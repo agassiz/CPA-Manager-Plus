@@ -5,7 +5,9 @@ import {
   authFileMatchesProblemTypeFilter,
   buildAuthFileCodexInspectionMap,
   compareAuthFileDisabledLast,
+  compareAuthFileModifiedDesc,
   getAuthFileCodexInspectionKey,
+  getAuthFileModifiedTime,
   getAuthFileCodexStatus,
   getAuthFilePlanSortRank,
   getAuthFileProblemStatusCode,
@@ -100,6 +102,19 @@ describe('auth file sorting helpers', () => {
     expect(compareAuthFileDisabledLast(enabled, disabled)).toBeLessThan(0);
     expect(compareAuthFileDisabledLast(disabled, enabled)).toBeGreaterThan(0);
     expect(compareAuthFileDisabledLast(enabled, codexFile({ name: 'other.json' }))).toBe(0);
+  });
+
+  it('orders newer modified times first and keeps unknowns last', () => {
+    const older = codexFile({ name: 'older.json', modified: 1_000 });
+    const newer = codexFile({ name: 'newer.json', modified: 2_000 });
+    const unknown = codexFile({ name: 'unknown.json' });
+
+    expect(getAuthFileModifiedTime(newer)).toBe(2_000);
+    expect(compareAuthFileModifiedDesc(newer, older)).toBeLessThan(0);
+    expect(compareAuthFileModifiedDesc(older, newer)).toBeGreaterThan(0);
+    expect(compareAuthFileModifiedDesc(newer, unknown)).toBeLessThan(0);
+    expect(compareAuthFileModifiedDesc(unknown, newer)).toBeGreaterThan(0);
+    expect(compareAuthFileModifiedDesc(newer, codexFile({ name: 'same.json', modified: 2_000 }))).toBe(0);
   });
 });
 

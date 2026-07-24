@@ -8,12 +8,12 @@ import type {
   GeminiCliQuotaState,
   KimiQuotaState,
   KiroQuotaState,
+  XaiBillingSummary,
   XaiQuotaState,
 } from '@/types';
 import {
   formatKimiResetHint,
   formatQuotaResetTime,
-  formatUnixSeconds,
   normalizePlanType,
   resolveCodexChatgptAccountId,
   resolveCodexPlanType,
@@ -131,6 +131,321 @@ export const getCodexTableQuotaWindows = (
   ].filter((window) => window.usedPercent !== null || window.resetLabel !== '-');
 };
 
+export const formatXaiCurrencyCents = (value: number | null): string => {
+  if (value === null) return '--';
+  return `$${(value / 100).toFixed(2)}`;
+};
+
+/** 列表模式使用：从 xAI 额度状态提取账单摘要（与卡片模式成功态一致）。 */
+export const getXaiTableQuotaBilling = (
+  quota: XaiQuotaState | undefined
+): XaiBillingSummary | null => {
+  if (!quota || quota.status !== 'success' || !quota.billing) return null;
+  return quota.billing;
+};
+
+export type AuthFileTableQuotaDisplayItem = {
+  id: string;
+  label: string;
+  /** 剩余百分比（0-100），进度条使用；meta 行可为 null */
+  remainingPercent: number | null;
+  /** 次要信息：金额 / 重置时间等 */
+  detail: string | null;
+  kind: 'progress' | 'meta';
+};
+
+const clampRemainingPercent = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(100, value));
+};
+
+const usedPercentToRemaining = (usedPercent: number | null | undefined): number | null => {
+  if (usedPercent === null || usedPercent === undefined || !Number.isFinite(usedPercent)) {
+    return null;
+  }
+  return clampRemainingPercent(100 - usedPercent);
+};
+
+const formatKiroUnixTime = (timestamp: number | undefined): string => {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp * 1000);
+  if (Number.isNaN(date.getTime())) return '-';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${month}/${day} ${hours}:${minutes}`;
+};
+
+const formatKiroNumber = (value: number | null | undefined, digits = 2): string => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '-';
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: digits,
+  }).format(value);
+};
+
+const pushMeta = (
+  items: AuthFileTableQuotaDisplayItem[],
+  id: string,
+  label: string,
+  detail: string | null
+) => {
+  if (!detail) return;
+  items.push({ id, label, remainingPercent: null, detail, kind: 'meta' });
+};
+
+const pushProgress = (
+  items: AuthFileTableQuotaDisplayItem[],
+  id: string,
+  label: string,
+  remainingPercent: number | null,
+  detail: string | null
+) => {
+  if (remainingPercent === null && !detail) return;
+  items.push({
+    id,
+    label,
+    remainingPercent,
+    detail,
+    kind: 'progress',
+  });
+};
+
+/**
+ * 将各 provider 成功态额度转成列表模式紧凑展示项（对齐卡片模式核心信息）。
+ * codex 可在窗口未加载时回退到状态摘要。
+ */
+export const buildAuthFileTableQuotaItems = (
+  quotaType: string | null,
+  quota: unknown,
+  t: TFunction,
+  options?: { codexStatus?: AuthFileCodexStatusSummary }
+): AuthFileTableQuotaDisplayItem[] => {
+  if (!quotaType) return [];
+
+  if (quotaType === 'codex') {
+    const windows = getCodexTableQuotaWindows(
+      quota as CodexQuotaState | undefined,
+      options?.codexStatus ?? {
+        isCodex: true,
+        isHttp401: false,
+        needsReauth: false,
+        isFiveHourLimited: false,
+        isWeeklyLimited: false,
+        isMonthlyLimited: false,
+        hasDisabledRecoveryReset: false,
+        fiveHourResetLabel: null,
+        weeklyResetLabel: null,
+        monthlyResetLabel: null,
+        recoveryResetLabel: null,
+        fiveHourUsedPercent: null,
+        weeklyUsedPercent: null,
+        monthlyUsedPercent: null,
+        badges: [],
+      }
+    );
+    return windows.map((window) => ({
+      id: window.id,
+      label: window.labelKey ? t(window.labelKey, window.labelParams) : window.label,
+      remainingPercent: usedPercentToRemaining(window.usedPercent),
+      detail: window.resetLabel && window.resetLabel !== '-' ? window.resetLabel : null,
+      kind: 'progress' as const,
+    }));
+  }
+
+  if (!quota || typeof quota !== 'object') return [];
+  const status = (quota as { status?: string }).status;
+  if (status !== 'success') return [];
+
+  const items: AuthFileTableQuotaDisplayItem[] = [];
+
+  if (quotaType === 'xai') {
+    const billing = getXaiTableQuotaBilling(quota as XaiQuotaState);
+    if (!billing) return [];
+    const amountLabel = t('xai_quota.usage_amount', {
+      used: formatXaiCurrencyCents(billing.usedCents),
+      limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
+    });
+    const resetLabel = billing.billingPeriodEnd
+      ? formatQuotaResetTime(billing.billingPeriodEnd)
+      : t('xai_quota.reset_unknown');
+    pushProgress(
+      items,
+      'monthly',
+      t('xai_quota.monthly_limit'),
+      usedPercentToRemaining(billing.usedPercent),
+      `${amountLabel} · ${resetLabel}`
+    );
+    if (billing.onDemandCapCents !== null) {
+      pushMeta(
+        items,
+        'on-demand-cap',
+        t('xai_quota.on_demand_cap'),
+        formatXaiCurrencyCents(billing.onDemandCapCents)
+      );
+    }
+    return items;
+  }
+
+  if (quotaType === 'claude') {
+    const claude = quota as ClaudeQuotaState;
+    if (claude.planType) {
+      pushMeta(items, 'plan', t('claude_quota.plan_label'), t(`claude_quota.${claude.planType}`));
+    }
+    if (claude.extraUsage?.is_enabled) {
+      const usedLabel = `$${(claude.extraUsage.used_credits / 100).toFixed(2)} / $${(
+        claude.extraUsage.monthly_limit / 100
+      ).toFixed(2)}`;
+      pushMeta(items, 'extra', t('claude_quota.extra_usage_label'), usedLabel);
+    }
+    for (const window of claude.windows ?? []) {
+      pushProgress(
+        items,
+        window.id,
+        window.labelKey ? t(window.labelKey) : window.label,
+        usedPercentToRemaining(window.usedPercent),
+        window.resetLabel || null
+      );
+    }
+    return items;
+  }
+
+  if (quotaType === 'antigravity') {
+    const anti = quota as AntigravityQuotaState;
+    for (const group of anti.groups ?? []) {
+      const remaining = clampRemainingPercent(Math.round(Math.max(0, Math.min(1, group.remainingFraction)) * 100));
+      pushProgress(
+        items,
+        group.id,
+        group.label,
+        remaining,
+        group.resetTime ? formatQuotaResetTime(group.resetTime) : null
+      );
+    }
+    if (anti.creditBalance !== null && anti.creditBalance !== undefined) {
+      pushMeta(
+        items,
+        'credits',
+        t('antigravity_quota.credit_label'),
+        t('antigravity_quota.credit_amount', { count: anti.creditBalance })
+      );
+    }
+    return items;
+  }
+
+  if (quotaType === 'gemini-cli') {
+    const gemini = quota as GeminiCliQuotaState;
+    if (gemini.tierLabel) {
+      pushMeta(items, 'tier', t('gemini_cli_quota.tier_label'), gemini.tierLabel);
+    }
+    if (gemini.creditBalance !== null && gemini.creditBalance !== undefined) {
+      pushMeta(
+        items,
+        'credits',
+        t('gemini_cli_quota.credit_label'),
+        t('gemini_cli_quota.credit_amount', { count: gemini.creditBalance })
+      );
+    }
+    for (const bucket of gemini.buckets ?? []) {
+      const remaining =
+        bucket.remainingFraction === null
+          ? null
+          : clampRemainingPercent(Math.round(Math.max(0, Math.min(1, bucket.remainingFraction)) * 100));
+      const amount =
+        bucket.remainingAmount === null || bucket.remainingAmount === undefined
+          ? null
+          : t('gemini_cli_quota.remaining_amount', { count: bucket.remainingAmount });
+      const reset = bucket.resetTime ? formatQuotaResetTime(bucket.resetTime) : null;
+      const detail = [amount, reset].filter(Boolean).join(' · ') || null;
+      pushProgress(items, bucket.id, bucket.label, remaining, detail);
+    }
+    return items;
+  }
+
+  if (quotaType === 'kimi') {
+    const kimi = quota as KimiQuotaState;
+    for (const row of kimi.rows ?? []) {
+      const remaining =
+        row.limit > 0
+          ? clampRemainingPercent(Math.round(((row.limit - row.used) / row.limit) * 100))
+          : row.used > 0
+            ? 0
+            : null;
+      const rowLabel = row.labelKey
+        ? t(row.labelKey, (row.labelParams ?? {}) as Record<string, string | number>)
+        : (row.label ?? '');
+      const amount = row.limit > 0 ? `${row.used} / ${row.limit}` : null;
+      const reset = formatKimiResetHint(t, row.resetHint) || null;
+      const detail = [amount, reset].filter(Boolean).join(' · ') || null;
+      pushProgress(items, row.id, rowLabel, remaining, detail);
+    }
+    return items;
+  }
+
+  if (quotaType === 'kiro') {
+    const kiro = quota as KiroQuotaState;
+    if (kiro.subscriptionTitle) {
+      pushMeta(items, 'subscription', t('kiro_quota.subscription_label'), kiro.subscriptionTitle);
+    }
+    if (kiro.overageStatus) {
+      const enabled = kiro.overageStatus.toUpperCase() === 'ENABLED';
+      pushMeta(
+        items,
+        'overage-status',
+        t('kiro_quota.overage_status'),
+        enabled ? t('kiro_quota.overage_enabled') : t('kiro_quota.overage_disabled')
+      );
+    }
+    if (kiro.overageQuota) {
+      const overage = kiro.overageQuota;
+      const unitLabel =
+        overage.unitLabel && !/^credits?$/i.test(overage.unitLabel)
+          ? overage.unitLabel
+          : t('kiro_quota.overage_unit');
+      const used = Math.max(0, overage.currentOverages ?? 0);
+      const cap = Math.max(0, overage.cap ?? 0);
+      const remaining = Math.max(0, cap - used);
+      const remainingPercent =
+        cap > 0 ? clampRemainingPercent(Math.round((remaining / cap) * 100)) : null;
+      const amountLabel =
+        overage.currentOverages === null && overage.cap === null
+          ? '-'
+          : `${formatKiroNumber(remaining)} / ${cap > 0 ? formatKiroNumber(cap, 0) : '-'} ${unitLabel}`;
+      pushProgress(items, 'overage-usage', t('kiro_quota.overage_usage'), remainingPercent, amountLabel);
+    }
+    if (kiro.baseQuota) {
+      const { used, limit, resetTime } = kiro.baseQuota;
+      const remaining = Math.max(0, limit - used);
+      const percent = limit > 0 ? clampRemainingPercent(Math.round((remaining / limit) * 100)) : 0;
+      pushProgress(
+        items,
+        'base',
+        t('kiro_quota.base_quota'),
+        percent,
+        `${remaining.toFixed(1)}/${limit} · ${formatKiroUnixTime(resetTime)}`
+      );
+    }
+    if (kiro.freeTrialQuota) {
+      const { used, limit, expiry, status: trialStatus } = kiro.freeTrialQuota;
+      const remaining = Math.max(0, limit - used);
+      const percent = limit > 0 ? clampRemainingPercent(Math.round((remaining / limit) * 100)) : 0;
+      const isActive = trialStatus.toUpperCase() === 'ACTIVE';
+      const statusLabel = isActive ? t('kiro_quota.trial_active') : t('kiro_quota.trial_expired');
+      pushProgress(
+        items,
+        'trial',
+        `${t('kiro_quota.free_trial')} (${statusLabel})`,
+        percent,
+        `${remaining.toFixed(1)}/${limit} · ${formatKiroUnixTime(expiry)}`
+      );
+    }
+    return items;
+  }
+
+  return items;
+};
+
+/** 兼容旧列表模式的额度项结构；新表格统一使用 buildAuthFileTableQuotaItems。 */
 export type AuthFileTableQuotaItem = {
   id: string;
   label: string;
@@ -149,15 +464,6 @@ export const getAntigravityTableQuotaItems = (
     resetLabel: formatQuotaResetTime(group.resetTime),
   }));
 
-const clampRemainingPercent = (value: number | null): number | null =>
-  value === null ? null : Math.max(0, Math.min(100, Math.round(value)));
-
-const remainingFromUsedPercent = (usedPercent: number | null): number | null =>
-  usedPercent === null ? null : clampRemainingPercent(100 - usedPercent);
-
-const formatXaiCurrency = (value: number | null): string =>
-  value === null ? '--' : `$${(value / 100).toFixed(2)}`;
-
 export const getAuthFileTableQuotaItems = (
   quotaType: Exclude<QuotaProviderType, 'codex'>,
   quota: unknown,
@@ -171,7 +477,7 @@ export const getAuthFileTableQuotaItems = (
     return ((quota as ClaudeQuotaState | undefined)?.windows ?? []).map((window) => ({
       id: window.id,
       label: window.labelKey ? t(window.labelKey) : window.label,
-      percent: remainingFromUsedPercent(window.usedPercent),
+      percent: usedPercentToRemaining(window.usedPercent),
       resetLabel: window.resetLabel,
     }));
   }
@@ -233,7 +539,7 @@ export const getAuthFileTableQuotaItems = (
           kiro.baseQuota.limit > 0
             ? clampRemainingPercent((remaining / kiro.baseQuota.limit) * 100)
             : 0,
-        resetLabel: formatUnixSeconds(kiro.baseQuota.resetTime),
+        resetLabel: formatKiroUnixTime(kiro.baseQuota.resetTime),
         detailLabel: `${remaining.toFixed(1)} / ${kiro.baseQuota.limit}`,
       });
     }
@@ -249,7 +555,7 @@ export const getAuthFileTableQuotaItems = (
           kiro.freeTrialQuota.limit > 0
             ? clampRemainingPercent((remaining / kiro.freeTrialQuota.limit) * 100)
             : 0,
-        resetLabel: formatUnixSeconds(kiro.freeTrialQuota.expiry),
+        resetLabel: formatKiroUnixTime(kiro.freeTrialQuota.expiry),
         detailLabel: `${remaining.toFixed(1)} / ${kiro.freeTrialQuota.limit}`,
       });
     }
@@ -262,13 +568,13 @@ export const getAuthFileTableQuotaItems = (
     {
       id: 'monthly-limit',
       label: t('xai_quota.monthly_limit'),
-      percent: remainingFromUsedPercent(billing.usedPercent),
+      percent: usedPercentToRemaining(billing.usedPercent),
       resetLabel: billing.billingPeriodEnd
         ? formatQuotaResetTime(billing.billingPeriodEnd)
         : t('xai_quota.reset_unknown'),
       detailLabel: t('xai_quota.usage_amount', {
-        used: formatXaiCurrency(billing.usedCents),
-        limit: formatXaiCurrency(billing.monthlyLimitCents),
+        used: formatXaiCurrencyCents(billing.usedCents),
+        limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
       }),
     },
   ];
@@ -307,6 +613,29 @@ const normalizeNumber = (value: unknown): number | null => {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+/** 读取认证文件修改时间（毫秒时间戳优先；无效值返回 null） */
+export const getAuthFileModifiedTime = (file: AuthFileItem): number | null => {
+  const raw = file.modified ?? file['modified'];
+  return normalizeNumber(raw);
+};
+
+/** 修改时间新的在前；缺失修改时间的项靠后 */
+export const compareAuthFileModifiedDesc = (left: AuthFileItem, right: AuthFileItem) => {
+  const leftTime = getAuthFileModifiedTime(left);
+  const rightTime = getAuthFileModifiedTime(right);
+  const leftKnown = leftTime !== null;
+  const rightKnown = rightTime !== null;
+
+  if (leftKnown || rightKnown) {
+    if (!leftKnown) return 1;
+    if (!rightKnown) return -1;
+    const diff = rightTime - leftTime;
+    if (diff !== 0) return diff;
+  }
+
+  return 0;
 };
 
 const normalizeAuthIndexKey = (value: unknown): string => {

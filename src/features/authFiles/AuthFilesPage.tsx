@@ -66,6 +66,7 @@ import {
   buildAuthFileCodexInspectionMap,
   buildWildcardSearch,
   compareAuthFileDisabledLast,
+  compareAuthFileModifiedDesc,
   compareAuthFileName,
   compareAuthFileNote,
   compareAuthFilePriority,
@@ -678,6 +679,8 @@ export function AuthFilesPage() {
         if (disabledCompare !== 0) return disabledCompare;
         const superCompare = compareSuperCategoryFirst(a, b);
         if (superCompare !== 0) return superCompare;
+        const modifiedCompare = compareAuthFileModifiedDesc(a, b);
+        if (modifiedCompare !== 0) return modifiedCompare;
         const leftRank = getAuthFilePlanSortRank(a, codexQuota[a.name]);
         const rightRank = getAuthFilePlanSortRank(b, codexQuota[b.name]);
         const leftKnown = leftRank !== null && leftRank !== undefined;

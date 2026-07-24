@@ -29,10 +29,8 @@ import {
   useAuthFileQuotaRefresh,
 } from '@/features/authFiles/components/AuthFileQuotaSection';
 import {
+  buildAuthFileTableQuotaItems,
   getAuthFilePlanLabel,
-  getAuthFileTableQuotaItems,
-  getCodexTableQuotaWindows,
-  type AuthFileTableQuotaItem,
   type AuthFileCodexStatusBadge,
   type AuthFileCodexStatusSummary,
 } from '@/features/authFiles/model/authFilesPageModel';
@@ -310,11 +308,6 @@ type QuotaProgressProps = {
   detailLabel?: string | null;
 };
 
-function toRemainingQuotaPercent(usedPercent: number | null): number | null {
-  if (usedPercent === null) return null;
-  return Math.max(0, Math.min(100, 100 - usedPercent));
-}
-
 function QuotaProgress({ label, percent, resetLabel, detailLabel }: QuotaProgressProps) {
   if (percent === null && !resetLabel) return null;
 
@@ -394,19 +387,9 @@ function AuthFileTableQuotaCell({
     );
   }
 
-  const quotaItems: AuthFileTableQuotaItem[] =
-    quotaType === 'codex'
-      ? getCodexTableQuotaWindows(quota as CodexQuotaState | undefined, codexStatus).map(
-          (window) => ({
-            id: window.id,
-            label: window.labelKey ? t(window.labelKey, window.labelParams) : window.label,
-            percent: toRemainingQuotaPercent(window.usedPercent),
-            resetLabel: window.resetLabel,
-          })
-        )
-      : getAuthFileTableQuotaItems(quotaType, quota, t);
+  const items = buildAuthFileTableQuotaItems(quotaType, quota, t, { codexStatus });
 
-  if (quotaItems.length === 0) {
+  if (items.length === 0) {
     return canRefreshQuota ? (
       <button
         type="button"
@@ -422,15 +405,23 @@ function AuthFileTableQuotaCell({
 
   return (
     <div className={styles.authFileTableQuotaStack}>
-      {quotaItems.map((item) => (
-        <QuotaProgress
-          key={item.id}
-          label={item.label}
-          percent={item.percent}
-          resetLabel={item.resetLabel}
-          detailLabel={item.detailLabel}
-        />
-      ))}
+      {items.map((item) =>
+        item.kind === 'meta' ? (
+          <div key={item.id} className={styles.authFileTableQuotaItem}>
+            <div className={styles.authFileTableQuotaHeader}>
+              <span>{item.label}</span>
+              <strong>{item.detail ?? '--'}</strong>
+            </div>
+          </div>
+        ) : (
+          <QuotaProgress
+            key={item.id}
+            label={item.label}
+            percent={item.remainingPercent}
+            resetLabel={item.detail}
+          />
+        )
+      )}
     </div>
   );
 }
