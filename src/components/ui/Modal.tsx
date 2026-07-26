@@ -1,6 +1,5 @@
 import {
   useCallback,
-  createContext,
   useEffect,
   useId,
   useRef,
@@ -11,6 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { IconX } from './icons';
+import { ModalFooterContext } from './ModalFooterContext';
 
 interface ModalProps {
   open: boolean;
@@ -20,6 +20,7 @@ interface ModalProps {
   width?: number | string;
   className?: string;
   closeDisabled?: boolean;
+  confirmClose?: () => boolean | Promise<boolean>;
 }
 
 const CLOSE_ANIMATION_DURATION = 350;
@@ -33,10 +34,6 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 let activeModalCount = 0;
-
-export type ModalFooterRegistration = (footer: ReactNode | null) => void;
-
-export const ModalFooterContext = createContext<ModalFooterRegistration | null>(null);
 
 const scrollLockSnapshot = {
   scrollY: 0,
@@ -129,6 +126,7 @@ export function Modal({
   width = 520,
   className,
   closeDisabled = false,
+  confirmClose,
   children,
 }: PropsWithChildren<ModalProps>) {
   const { t } = useTranslation();
@@ -189,9 +187,17 @@ export function Modal({
     };
   }, [open, isVisible, startClose]);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    if (confirmClose) {
+      try {
+        const ok = await confirmClose();
+        if (ok === false) return;
+      } catch {
+        return;
+      }
+    }
     startClose(true);
-  }, [startClose]);
+  }, [confirmClose, startClose]);
 
   useEffect(() => {
     return () => {

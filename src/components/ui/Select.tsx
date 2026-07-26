@@ -30,6 +30,7 @@ interface SelectProps {
   ariaLabelledBy?: string;
   ariaDescribedBy?: string;
   fullWidth?: boolean;
+  size?: 'sm' | 'md';
   id?: string;
   dropdownMinWidth?: number;
 }

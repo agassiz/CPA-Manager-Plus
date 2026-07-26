@@ -222,4 +222,40 @@ describe('providersApi auth-index preservation', () => {
       },
     ]);
   });
+
+  it('adds xAI keys without dropping concurrent or unknown backend fields', async () => {
+    mocks.get.mockResolvedValue({
+      'xai-api-key': [
+        {
+          'api-key': 'existing',
+          'base-url': 'https://api.x.ai/v1',
+          'future-field': 'keep',
+        },
+        { 'api-key': 'concurrent', 'base-url': 'https://api.x.ai/v1' },
+      ],
+    });
+    mocks.put.mockResolvedValue({});
+
+    await providersApi.createXAIConfig({
+      apiKey: 'new-xai',
+      baseUrl: 'https://api.x.ai/v1',
+      websockets: true,
+      disableCooling: true,
+    });
+
+    expect(mocks.put).toHaveBeenCalledWith('/xai-api-key', [
+      {
+        'api-key': 'existing',
+        'base-url': 'https://api.x.ai/v1',
+        'future-field': 'keep',
+      },
+      { 'api-key': 'concurrent', 'base-url': 'https://api.x.ai/v1' },
+      {
+        'api-key': 'new-xai',
+        'base-url': 'https://api.x.ai/v1',
+        websockets: true,
+        'disable-cooling': true,
+      },
+    ]);
+  });
 });

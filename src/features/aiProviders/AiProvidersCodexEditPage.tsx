@@ -8,6 +8,7 @@ import { HeaderInputList } from '@/components/ui/HeaderInputList';
 import { ModelInputList } from '@/components/ui/ModelInputList';
 import { Modal } from '@/components/ui/Modal';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
+import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
@@ -17,12 +18,21 @@ import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import {
+  areKeyValueEntriesEqual,
+  areModelEntriesEqual,
+  areStringArraysEqual,
+} from '@/utils/compare';
 import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputListUtils';
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import type { ProviderFormState } from '@/components/providers';
 import type { ModelInfo } from '@/utils/models';
 import { parseProviderIndexParam } from '@/features/aiProviders/model/routeParams';
+import {
+  useConnectivityTest,
+  type ConnectivityErrorMessages,
+} from '@/features/providers/sheets/forms/useConnectivityTest';
+import { ConnectivityStatusIcon } from '@/features/providers/sheets/forms/ConnectivityStatusIcon';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
 
@@ -41,6 +51,7 @@ const buildEmptyForm = (): ProviderFormState => ({
   excludedModels: [],
   modelEntries: [{ name: '', alias: '' }],
   excludedText: '',
+  disableCooling: false,
 });
 
 const getErrorMessage = (err: unknown) => {
@@ -69,6 +80,7 @@ type CodexFormBaseline = {
   prefix: string;
   baseUrl: string;
   websockets: boolean;
+  disableCooling: boolean;
   proxyUrl: string;
   headers: ReturnType<typeof normalizeHeaderEntries>;
   models: ReturnType<typeof normalizeModelEntries>;
@@ -80,10 +92,13 @@ const buildCodexBaseline = (form: ProviderFormState): CodexFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
   authIndex: normalizeAuthIndex(form.authIndex) ?? '',
   priority:
-    form.priority !== undefined && Number.isFinite(form.priority) ? Math.trunc(form.priority) : null,
+    form.priority !== undefined && Number.isFinite(form.priority)
+      ? Math.trunc(form.priority)
+      : null,
   prefix: String(form.prefix ?? '').trim(),
   baseUrl: String(form.baseUrl ?? '').trim(),
   websockets: Boolean(form.websockets),
+  disableCooling: Boolean(form.disableCooling),
   proxyUrl: String(form.proxyUrl ?? '').trim(),
   headers: normalizeHeaderEntries(form.headers),
   models: normalizeModelEntries(form.modelEntries),
@@ -110,6 +125,7 @@ export function AiProvidersCodexEditPage() {
   const [error, setError] = useState('');
   const [form, setForm] = useState<ProviderFormState>(() => buildEmptyForm());
   const [baseline, setBaseline] = useState(() => buildCodexBaseline(buildEmptyForm()));
+  const [testModel, setTestModel] = useState('');
 
   const [modelDiscoveryOpen, setModelDiscoveryOpen] = useState(false);
   const [modelDiscoveryEndpoint, setModelDiscoveryEndpoint] = useState('');
@@ -131,6 +147,44 @@ export function AiProvidersCodexEditPage() {
   }, [configs, editIndex]);
 
   const invalidIndex = editIndex !== null && !initialData;
+
+  const codexTestModels = useMemo(() => {
+    const seen = new Set<string>();
+    return form.modelEntries.reduce<Array<{ value: string; label: string }>>((options, entry) => {
+      const name = entry.name.trim();
+      if (!name || seen.has(name)) return options;
+      seen.add(name);
+      const alias = entry.alias.trim();
+      options.push({ value: name, label: alias && alias !== name ? `${name} (${alias})` : name });
+      return options;
+    }, []);
+  }, [form.modelEntries]);
+  const resolvedTestModel = testModel || codexTestModels[0]?.value || '';
+
+  const connectivityMessages = useMemo<ConnectivityErrorMessages>(
+    () => ({
+      baseUrlRequired: t('providersPage.connectivity.baseUrlRequired'),
+      endpointInvalid: t('providersPage.connectivity.endpointInvalid'),
+      apiKeyRequired: t('providersPage.connectivity.apiKeyRequired'),
+      modelRequired: t('providersPage.connectivity.modelRequired'),
+      timeout: (seconds) => t('providersPage.connectivity.timeout', { seconds }),
+      requestFailed: t('providersPage.connectivity.requestFailed'),
+    }),
+    [t]
+  );
+
+  const connectivity = useConnectivityTest(
+    {
+      brand: 'codex',
+      baseUrl: form.baseUrl ?? '',
+      testModel: resolvedTestModel,
+      models: form.modelEntries,
+      formHeaders: form.headers,
+      apiKey: form.apiKey,
+      authIndex: form.authIndex,
+    },
+    connectivityMessages
+  );
 
   const title =
     editIndex !== null
@@ -237,11 +291,13 @@ export function AiProvidersCodexEditPage() {
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.websockets !== Boolean(form.websockets) ||
+    baseline.disableCooling !== Boolean(form.disableCooling) ||
     baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
     isHeadersDirty ||
     isModelsDirty ||
     isExcludedModelsDirty;
-  const canGuard = !loading && !saving && !invalidIndexParam && !invalidIndex;
+  const canGuard =
+    !loading && !saving && !connectivity.isTestingAny && !invalidIndexParam && !invalidIndex;
 
   const { allowNextNavigation } = useUnsavedChangesGuard({
     enabled: canGuard,
@@ -256,7 +312,13 @@ export function AiProvidersCodexEditPage() {
     },
   });
 
-  const canSave = !disableControls && !saving && !loading && !invalidIndexParam && !invalidIndex;
+  const canSave =
+    !disableControls &&
+    !saving &&
+    !loading &&
+    !connectivity.isTestingAny &&
+    !invalidIndexParam &&
+    !invalidIndex;
 
   const discoveredModelsFiltered = useMemo(() => {
     const filter = modelDiscoverySearch.trim().toLowerCase();
@@ -385,7 +447,14 @@ export function AiProvidersCodexEditPage() {
     autoFetchSignatureRef.current = signature;
 
     void fetchCodexModelDiscovery();
-  }, [fetchCodexModelDiscovery, form.apiKey, form.authIndex, form.baseUrl, form.headers, modelDiscoveryOpen]);
+  }, [
+    fetchCodexModelDiscovery,
+    form.apiKey,
+    form.authIndex,
+    form.baseUrl,
+    form.headers,
+    modelDiscoveryOpen,
+  ]);
 
   useEffect(() => {
     const availableNames = new Set(discoveredModels.map((model) => model.name));
@@ -457,6 +526,7 @@ export function AiProvidersCodexEditPage() {
         prefix: form.prefix?.trim() || undefined,
         baseUrl,
         websockets: Boolean(form.websockets),
+        disableCooling: Boolean(form.disableCooling),
         proxyUrl: form.proxyUrl?.trim() || undefined,
         headers: buildHeaderObject(form.headers),
         models: entriesToModels(form.modelEntries),
@@ -560,35 +630,46 @@ export function AiProvidersCodexEditPage() {
             />
             <Input
               label={t('ai_providers.codex_add_modal_key_label')}
+              type="password"
+              revealable
+              revealLabel={t('providersPage.form.showApiKey')}
+              hideLabel={t('providersPage.form.hideApiKey')}
+              autoComplete="new-password"
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
-              disabled={disableControls || saving}
+              disabled={disableControls || saving || connectivity.isTestingAny}
+            />
+            <Input
+              label={t('providersPage.detail.fields.authIndex')}
+              value={form.authIndex ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
+              disabled={disableControls || saving || connectivity.isTestingAny}
             />
             <div className={styles.providerInlineFields}>
-            <Input
-              label={t('ai_providers.priority_label')}
-              hint={t('ai_providers.priority_hint')}
-              type="number"
-              step={1}
-              value={form.priority ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const parsed = raw.trim() === '' ? undefined : Number(raw);
-                setForm((prev) => ({
-                  ...prev,
-                  priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
-                }));
-              }}
-              disabled={disableControls || saving}
-            />
-            <Input
-              label={t('ai_providers.prefix_label')}
-              placeholder={t('ai_providers.prefix_placeholder')}
-              value={form.prefix ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
-              hint={t('ai_providers.prefix_hint')}
-              disabled={disableControls || saving}
-            />
+              <Input
+                label={t('ai_providers.priority_label')}
+                hint={t('ai_providers.priority_hint')}
+                type="number"
+                step={1}
+                value={form.priority ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const parsed = raw.trim() === '' ? undefined : Number(raw);
+                  setForm((prev) => ({
+                    ...prev,
+                    priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
+                  }));
+                }}
+                disabled={disableControls || saving}
+              />
+              <Input
+                label={t('ai_providers.prefix_label')}
+                placeholder={t('ai_providers.prefix_placeholder')}
+                value={form.prefix ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
+                hint={t('ai_providers.prefix_hint')}
+                disabled={disableControls || saving}
+              />
             </div>
             <Input
               label={t('ai_providers.codex_add_modal_url_label')}
@@ -605,6 +686,16 @@ export function AiProvidersCodexEditPage() {
                 ariaLabel={t('ai_providers.codex_websockets_label')}
               />
               <div className="hint">{t('ai_providers.codex_websockets_hint')}</div>
+            </div>
+            <div className="form-group">
+              <label>{t('providersPage.form.disableCooling')}</label>
+              <ToggleSwitch
+                checked={Boolean(form.disableCooling)}
+                onChange={(value) => setForm((prev) => ({ ...prev, disableCooling: value }))}
+                disabled={disableControls || saving || connectivity.isTestingAny}
+                ariaLabel={t('providersPage.form.disableCooling')}
+              />
+              <div className="hint">{t('providersPage.form.disableCoolingHint')}</div>
             </div>
             <Input
               label={t('ai_providers.codex_add_modal_proxy_label')}
@@ -668,6 +759,56 @@ export function AiProvidersCodexEditPage() {
                 removeButtonTitle={t('common.delete')}
                 removeButtonAriaLabel={t('common.delete')}
               />
+
+              <div className={styles.modelTestPanel}>
+                <div className={styles.modelTestMeta}>
+                  <label className={styles.modelTestLabel}>
+                    {t('providersPage.form.testModel')}
+                  </label>
+                  <span className={styles.modelTestHint}>
+                    {t('providersPage.form.testModelClaudeHint')}
+                  </span>
+                </div>
+                <div className={styles.modelTestControls}>
+                  <Select
+                    value={resolvedTestModel}
+                    options={codexTestModels}
+                    onChange={setTestModel}
+                    placeholder={t('providersPage.connectivity.modelRequired')}
+                    className={styles.openaiTestSelect}
+                    ariaLabel={t('providersPage.form.testModel')}
+                    disabled={
+                      disableControls ||
+                      saving ||
+                      connectivity.isTestingAny ||
+                      codexTestModels.length === 0
+                    }
+                  />
+                  <Button
+                    variant={connectivity.codexStatus.state === 'error' ? 'danger' : 'secondary'}
+                    size="sm"
+                    onClick={() => void connectivity.runCodex()}
+                    loading={connectivity.codexStatus.state === 'loading'}
+                    disabled={
+                      disableControls ||
+                      saving ||
+                      connectivity.isTestingAny ||
+                      codexTestModels.length === 0
+                    }
+                    className={styles.modelTestAllButton}
+                  >
+                    {t('providersPage.connectivity.test')}
+                  </Button>
+                  <ConnectivityStatusIcon state={connectivity.codexStatus.state} />
+                </div>
+              </div>
+              {connectivity.codexStatus.state === 'error' && connectivity.codexStatus.message ? (
+                <div className="error-box">{connectivity.codexStatus.message}</div>
+              ) : connectivity.codexStatus.state === 'success' ? (
+                <div className="status-badge success">
+                  {t('providersPage.connectivity.success')}
+                </div>
+              ) : null}
             </div>
             <div className="form-group">
               <label>{t('ai_providers.excluded_models_label')}</label>

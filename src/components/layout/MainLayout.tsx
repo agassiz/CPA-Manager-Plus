@@ -401,6 +401,20 @@ export function MainLayout() {
     });
   }, [fetchConfig]);
 
+  useEffect(() => {
+    if (!location.pathname.startsWith('/ai-providers')) return;
+    const timer = window.setTimeout(() => {
+      setSidebarOpen(false);
+      setSidebarCollapsed(false);
+      try {
+        localStorage.setItem(STORAGE_KEY_SIDEBAR, 'false');
+      } catch {
+        // ignore storage failures
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.pathname]);
+
   const loadPluginResources = useCallback(async () => {
     if (connectionStatus !== 'connected' || !supportsPlugin) {
       setPluginResources([]);

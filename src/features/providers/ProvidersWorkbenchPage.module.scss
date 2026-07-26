@@ -1,0 +1,135 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.layoutSingle {
+  width: 100%;
+}
+
+.providerPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.providerPickerButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color $transition-fast,
+    background-color $transition-fast,
+    transform $transition-fast;
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary-30);
+    background: var(--primary-8);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.providerPickerLogoWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+}
+
+.providerPickerLogo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.providerPickerLogoDark {
+  display: none;
+
+  [data-theme='dark'] & {
+    display: block;
+  }
+}
+
+.providerPickerLogoLight {
+  [data-theme='dark'] & {
+    display: none;
+  }
+}
+
+.providerPickerLogoInvert {
+  [data-theme='dark'] & {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+.providerPickerText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  small {
+    color: var(--muted-foreground);
+    font-size: 12px;
+  }
+}
+
+.modelCatalogSlot {
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    gap: 16px;
+  }
+
+  .providerPickerGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -33,7 +33,7 @@ export function ProtectedRoute({ children }: { children: ReactElement }) {
       }
     };
     tryRestore();
-  }, [apiBase, isAuthenticated, managementKey, navigate, restoreSession]);
+  }, [apiBase, isAuthenticated, location.pathname, managementKey, navigate, restoreSession]);
 
   if (checking) {
     return (

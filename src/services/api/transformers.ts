@@ -75,6 +75,12 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
       if (testModel) {
         entry.testModel = String(testModel);
       }
+      if (item.image === true) {
+        entry.image = true;
+      }
+      if (isRecord(item.thinking)) {
+        entry.thinking = item.thinking;
+      }
       return entry;
     })
     .filter(Boolean) as ModelAlias[];
@@ -189,6 +195,10 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
       record?.excluded_models
   );
   if (excludedModels.length) config.excludedModels = excludedModels;
+  const disableCooling = normalizeBoolean(
+    record?.['disable-cooling'] ?? record?.disableCooling ?? record?.disable_cooling
+  );
+  if (disableCooling !== undefined) config.disableCooling = disableCooling;
   if (authIndex) config.authIndex = authIndex;
 
   const cloakRaw = record?.cloak;
@@ -257,11 +267,18 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (headers) config.headers = headers;
   const excludedModels = normalizeExcludedModels(record?.['excluded-models'] ?? record?.excludedModels);
   if (excludedModels.length) config.excludedModels = excludedModels;
+  const disableCooling = normalizeBoolean(
+    record?.['disable-cooling'] ?? record?.disableCooling ?? record?.disable_cooling
+  );
+  if (disableCooling !== undefined) config.disableCooling = disableCooling;
   if (authIndex) config.authIndex = authIndex;
   return config;
 };
 
-const normalizeOpenAIProvider = (provider: unknown): OpenAIProviderConfig | null => {
+const normalizeOpenAIProvider = (
+  provider: unknown,
+  sourceIndex?: number
+): OpenAIProviderConfig | null => {
   if (!isRecord(provider)) return null;
   const name = provider.name || provider.id;
   const baseUrl = provider['base-url'] ?? provider.baseUrl;
@@ -301,6 +318,11 @@ const normalizeOpenAIProvider = (provider: unknown): OpenAIProviderConfig | null
   if (models.length) result.models = models;
   if (priority !== undefined) result.priority = Number(priority);
   if (testModel) result.testModel = String(testModel);
+  const disableCooling = normalizeBoolean(
+    provider['disable-cooling'] ?? provider.disableCooling ?? provider.disable_cooling
+  );
+  if (disableCooling !== undefined) result.disableCooling = disableCooling;
+  if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;
   const authIndex = normalizeAuthIndex(
     provider['auth-index'] ?? provider.authIndex ?? provider['auth_index']
   );
@@ -510,6 +532,13 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
       .filter(Boolean) as ProviderKeyConfig[];
   }
 
+  const xaiList = raw['xai-api-key'] ?? raw.xaiApiKey ?? raw.xaiApiKeys;
+  if (Array.isArray(xaiList)) {
+    config.xaiApiKeys = xaiList
+      .map((item) => normalizeProviderKeyConfig(item))
+      .filter(Boolean) as ProviderKeyConfig[];
+  }
+
   const claudeList = raw['claude-api-key'] ?? raw.claudeApiKey ?? raw.claudeApiKeys;
   if (Array.isArray(claudeList)) {
     config.claudeApiKeys = claudeList
@@ -527,7 +556,7 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
   const openaiList = raw['openai-compatibility'] ?? raw.openaiCompatibility ?? raw.openAICompatibility;
   if (Array.isArray(openaiList)) {
     config.openaiCompatibility = openaiList
-      .map((item) => normalizeOpenAIProvider(item))
+      .map((item, index) => normalizeOpenAIProvider(item, index))
       .filter(Boolean) as OpenAIProviderConfig[];
   }
 

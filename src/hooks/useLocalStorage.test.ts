@@ -25,37 +25,39 @@ describe('useLocalStorage', () => {
     const storage = createMemoryStorage();
     vi.stubGlobal('window', { localStorage: storage });
 
-    let currentValue = false;
-    let setValue: ((value: boolean) => void) | undefined;
     let renderer: ReactTestRenderer | null = null;
 
     function Consumer() {
       const [value, updateValue] = useLocalStorage('ai-providers-list-mode', false);
-      currentValue = value;
-      setValue = updateValue;
-      return null;
+      return createElement('button', {
+        type: 'button',
+        'data-value': String(value),
+        onClick: () => updateValue(true),
+      });
     }
+
+    const readValue = () => renderer!.root.findByType('button').props['data-value'];
 
     act(() => {
       renderer = create(createElement(Consumer));
     });
 
-    expect(currentValue).toBe(false);
+    expect(readValue()).toBe('false');
     expect(storage.getItem('ai-providers-list-mode')).toBeNull();
 
     act(() => {
-      setValue?.(true);
+      renderer!.root.findByType('button').props.onClick();
     });
 
-    expect(currentValue).toBe(true);
+    expect(readValue()).toBe('true');
     expect(storage.getItem('ai-providers-list-mode')).toBe('true');
 
     act(() => {
-      renderer?.unmount();
+      renderer!.unmount();
       renderer = create(createElement(Consumer));
     });
 
-    expect(currentValue).toBe(true);
-    (renderer as ReactTestRenderer | null)?.unmount();
+    expect(readValue()).toBe('true');
+    renderer!.unmount();
   });
 });

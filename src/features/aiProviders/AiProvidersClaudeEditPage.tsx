@@ -319,35 +319,45 @@ export function AiProvidersClaudeEditPage() {
             />
             <Input
               label={t('ai_providers.claude_add_modal_key_label')}
+              revealable
+              revealLabel={t('providersPage.form.showApiKey')}
+              hideLabel={t('providersPage.form.hideApiKey')}
+              autoComplete="new-password"
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
               disabled={saving || disableControls || isTesting}
             />
+            <Input
+              label={t('providersPage.detail.fields.authIndex')}
+              value={form.authIndex ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
+              disabled={saving || disableControls || isTesting}
+            />
             <div className={styles.providerInlineFields}>
-            <Input
-              label={t('ai_providers.priority_label')}
-              hint={t('ai_providers.priority_hint')}
-              type="number"
-              step={1}
-              value={form.priority ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const parsed = raw.trim() === '' ? undefined : Number(raw);
-                setForm((prev) => ({
-                  ...prev,
-                  priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
-                }));
-              }}
-              disabled={saving || disableControls || isTesting}
-            />
-            <Input
-              label={t('ai_providers.prefix_label')}
-              placeholder={t('ai_providers.prefix_placeholder')}
-              value={form.prefix ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
-              hint={t('ai_providers.prefix_hint')}
-              disabled={saving || disableControls || isTesting}
-            />
+              <Input
+                label={t('ai_providers.priority_label')}
+                hint={t('ai_providers.priority_hint')}
+                type="number"
+                step={1}
+                value={form.priority ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const parsed = raw.trim() === '' ? undefined : Number(raw);
+                  setForm((prev) => ({
+                    ...prev,
+                    priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
+                  }));
+                }}
+                disabled={saving || disableControls || isTesting}
+              />
+              <Input
+                label={t('ai_providers.prefix_label')}
+                placeholder={t('ai_providers.prefix_placeholder')}
+                value={form.prefix ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
+                hint={t('ai_providers.prefix_hint')}
+                disabled={saving || disableControls || isTesting}
+              />
             </div>
             <Input
               label={t('ai_providers.claude_add_modal_url_label')}
@@ -361,6 +371,16 @@ export function AiProvidersClaudeEditPage() {
               onChange={(e) => setForm((prev) => ({ ...prev, proxyUrl: e.target.value }))}
               disabled={saving || disableControls || isTesting}
             />
+            <div className="form-group">
+              <label>{t('providersPage.form.disableCooling')}</label>
+              <ToggleSwitch
+                checked={Boolean(form.disableCooling)}
+                onChange={(value) => setForm((prev) => ({ ...prev, disableCooling: value }))}
+                disabled={saving || disableControls || isTesting}
+                ariaLabel={t('providersPage.form.disableCooling')}
+              />
+              <div className="hint">{t('providersPage.form.disableCoolingHint')}</div>
+            </div>
             <HeaderInputList
               entries={form.headers}
               onChange={(entries) => setForm((prev) => ({ ...prev, headers: entries }))}
@@ -374,7 +394,9 @@ export function AiProvidersClaudeEditPage() {
 
             <div className={styles.modelConfigSection}>
               <div className={styles.modelConfigHeader}>
-                <label className={styles.modelConfigTitle}>{t('ai_providers.claude_models_label')}</label>
+                <label className={styles.modelConfigTitle}>
+                  {t('ai_providers.claude_models_label')}
+                </label>
                 <div className={styles.modelConfigToolbar}>
                   <Button
                     variant="secondary"
@@ -419,7 +441,9 @@ export function AiProvidersClaudeEditPage() {
 
               <div className={styles.modelTestPanel}>
                 <div className={styles.modelTestMeta}>
-                  <label className={styles.modelTestLabel}>{t('ai_providers.claude_test_title')}</label>
+                  <label className={styles.modelTestLabel}>
+                    {t('ai_providers.claude_test_title')}
+                  </label>
                   <span className={styles.modelTestHint}>{t('ai_providers.claude_test_hint')}</span>
                 </div>
                 <div className={styles.modelTestControls}>
@@ -499,7 +523,9 @@ export function AiProvidersClaudeEditPage() {
                   {t('ai_providers.claude_cache_optimization_title')}
                 </label>
               </div>
-              <div className={styles.sectionHint}>{t('ai_providers.claude_cache_optimization_hint')}</div>
+              <div className={styles.sectionHint}>
+                {t('ai_providers.claude_cache_optimization_hint')}
+              </div>
 
               <div className="form-group">
                 <label>{t('ai_providers.claude_experimental_cch_signing_label')}</label>
@@ -520,7 +546,9 @@ export function AiProvidersClaudeEditPage() {
 
             <div className={styles.modelConfigSection}>
               <div className={styles.modelConfigHeader}>
-                <label className={styles.modelConfigTitle}>{t('ai_providers.claude_cloak_title')}</label>
+                <label className={styles.modelConfigTitle}>
+                  {t('ai_providers.claude_cloak_title')}
+                </label>
                 <div className={styles.modelConfigToolbar}>
                   <ToggleSwitch
                     checked={Boolean(form.cloak)}
@@ -533,9 +561,13 @@ export function AiProvidersClaudeEditPage() {
                           return { ...prev, cloak: undefined };
                         }
 
-                        const restored = prev.cloak
-                          ?? lastCloakConfigRef.current
-                          ?? { mode: 'never', strictMode: false, sensitiveWords: [], cacheUserID: true };
+                        const restored = prev.cloak ??
+                          lastCloakConfigRef.current ?? {
+                            mode: 'never',
+                            strictMode: false,
+                            sensitiveWords: [],
+                            cacheUserID: true,
+                          };
                         const mode = String(restored.mode ?? 'never').trim() || 'never';
                         return {
                           ...prev,
@@ -635,7 +667,9 @@ export function AiProvidersClaudeEditPage() {
                       rows={3}
                       disabled={saving || disableControls || isTesting}
                     />
-                    <div className="hint">{t('ai_providers.claude_cloak_sensitive_words_hint')}</div>
+                    <div className="hint">
+                      {t('ai_providers.claude_cloak_sensitive_words_hint')}
+                    </div>
                   </div>
                 </>
               ) : null}

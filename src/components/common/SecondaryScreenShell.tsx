@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { IconChevronLeft } from '@/components/ui/icons';
-import { ModalFooterContext } from '@/components/ui/Modal';
+import { ModalFooterContext } from '@/components/ui/ModalFooterContext';
 import { usePageTransitionLayer } from './PageTransitionLayer';
 import styles from './SecondaryScreenShell.module.scss';
 

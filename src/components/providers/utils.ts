@@ -88,6 +88,15 @@ export const buildOpenAIChatCompletionsEndpoint = (baseUrl: string): string => {
   return `${trimmed}/chat/completions`;
 };
 
+export const buildCodexResponsesEndpoint = (baseUrl: string): string => {
+  const trimmed = normalizeOpenAIBaseUrl(baseUrl);
+  if (!trimmed) return '';
+  if (/\/v1\/responses$/i.test(trimmed)) return trimmed;
+  if (/\/v1\/models$/i.test(trimmed)) return trimmed.replace(/\/models$/i, '/responses');
+  if (/\/v1$/i.test(trimmed)) return `${trimmed}/responses`;
+  return `${trimmed}/v1/responses`;
+};
+
 export const buildClaudeMessagesEndpoint = (baseUrl: string): string => {
   const trimmed = normalizeClaudeBaseUrl(baseUrl);
   if (!trimmed) return '';
@@ -98,6 +107,33 @@ export const buildClaudeMessagesEndpoint = (baseUrl: string): string => {
     return `${trimmed}/messages`;
   }
   return `${trimmed}/v1/messages`;
+};
+
+const buildGeminiModelResource = (model: string): string => {
+  const trimmed = String(model || '')
+    .trim()
+    .replace(/^\/+/, '')
+    .replace(/:generateContent$/i, '');
+  if (!trimmed) return '';
+  if (/^(models|tunedModels)\//i.test(trimmed)) {
+    return trimmed.split('/').map(encodeURIComponent).join('/');
+  }
+  return `models/${encodeURIComponent(trimmed)}`;
+};
+
+export const buildGeminiGenerateContentEndpoint = (baseUrl: string, model: string): string => {
+  const resource = buildGeminiModelResource(model);
+  if (!resource) return '';
+  let root = normalizeOpenAIBaseUrl(baseUrl || 'https://generativelanguage.googleapis.com');
+  if (!root) return '';
+  if (/:generateContent$/i.test(root)) return root;
+  if (/\/v1beta\/models$/i.test(root)) {
+    root = root.replace(/\/models$/i, '');
+  } else if (!/\/v1beta$/i.test(root)) {
+    root = root.replace(/\/v1beta(?:\/.*)?$/i, '');
+    root = `${root}/v1beta`;
+  }
+  return `${root}/${resource}:generateContent`;
 };
 
 export type ProviderRecentUsageMap = Map<string, Map<string, RecentRequestUsageEntry>>;
@@ -337,6 +373,18 @@ export const entriesToAmpcodeUpstreamApiKeys = (
 
   return mappings;
 };
+
+export const hasAmpcodeConfiguration = (
+  config: AmpcodeConfig | null | undefined
+): config is AmpcodeConfig =>
+  Boolean(
+    config &&
+      (config.upstreamUrl?.trim() ||
+        config.upstreamApiKey?.trim() ||
+        config.upstreamApiKeys?.length ||
+        config.modelMappings?.length ||
+        config.forceModelMappings === true)
+  );
 
 export const buildAmpcodeFormState = (ampcode?: AmpcodeConfig | null): AmpcodeFormState => ({
   upstreamUrl: ampcode?.upstreamUrl ?? '',

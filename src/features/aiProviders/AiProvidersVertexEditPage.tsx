@@ -15,7 +15,12 @@ import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import {
+  areKeyValueEntriesEqual,
+  areModelEntriesEqual,
+  areStringArraysEqual,
+} from '@/utils/compare';
+import { normalizeAuthIndex } from '@/utils/authIndex';
 import type { VertexFormState } from '@/components/providers';
 import { parseProviderIndexParam } from '@/features/aiProviders/model/routeParams';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
@@ -24,6 +29,7 @@ type LocationState = { fromAiProviders?: boolean } | null;
 
 const buildEmptyForm = (): VertexFormState => ({
   apiKey: '',
+  authIndex: '',
   prefix: '',
   baseUrl: '',
   proxyUrl: '',
@@ -45,6 +51,7 @@ const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) 
 
 type VertexFormBaseline = {
   apiKey: string;
+  authIndex: string;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -56,8 +63,11 @@ type VertexFormBaseline = {
 
 const buildVertexBaseline = (form: VertexFormState): VertexFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
+  authIndex: String(form.authIndex ?? '').trim(),
   priority:
-    form.priority !== undefined && Number.isFinite(form.priority) ? Math.trunc(form.priority) : null,
+    form.priority !== undefined && Number.isFinite(form.priority)
+      ? Math.trunc(form.priority)
+      : null,
   prefix: String(form.prefix ?? '').trim(),
   baseUrl: String(form.baseUrl ?? '').trim(),
   proxyUrl: String(form.proxyUrl ?? '').trim(),
@@ -99,7 +109,9 @@ export function AiProvidersVertexEditPage() {
   const invalidIndex = editIndex !== null && !initialData;
 
   const title =
-    editIndex !== null ? t('ai_providers.vertex_edit_modal_title') : t('ai_providers.vertex_add_modal_title');
+    editIndex !== null
+      ? t('ai_providers.vertex_edit_modal_title')
+      : t('ai_providers.vertex_add_modal_title');
 
   const handleBack = useCallback(() => {
     const state = location.state as LocationState;
@@ -204,6 +216,7 @@ export function AiProvidersVertexEditPage() {
   );
   const isDirty =
     baseline.apiKey !== form.apiKey.trim() ||
+    baseline.authIndex !== (normalizeAuthIndex(form.authIndex) ?? '') ||
     baseline.priority !== normalizedPriority ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
@@ -237,6 +250,7 @@ export function AiProvidersVertexEditPage() {
     try {
       const payload: ProviderKeyConfig = {
         apiKey: form.apiKey.trim(),
+        authIndex: normalizeAuthIndex(form.authIndex) ?? undefined,
         priority:
           form.priority !== undefined && Number.isFinite(form.priority)
             ? Math.trunc(form.priority)
@@ -265,7 +279,9 @@ export function AiProvidersVertexEditPage() {
       updateConfigValue('vertex-api-key', nextList);
       clearCache('vertex-api-key');
       showNotification(
-        editIndex !== null ? t('notification.vertex_config_updated') : t('notification.vertex_config_added'),
+        editIndex !== null
+          ? t('notification.vertex_config_updated')
+          : t('notification.vertex_config_added'),
         'success'
       );
       allowNextNavigation();
@@ -334,9 +350,19 @@ export function AiProvidersVertexEditPage() {
           <>
             <Input
               label={t('ai_providers.vertex_add_modal_key_label')}
+              revealable
+              revealLabel={t('providersPage.form.showApiKey')}
+              hideLabel={t('providersPage.form.hideApiKey')}
+              autoComplete="new-password"
               placeholder={t('ai_providers.vertex_add_modal_key_placeholder')}
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
+              disabled={disableControls || saving}
+            />
+            <Input
+              label={t('providersPage.detail.fields.authIndex')}
+              value={form.authIndex ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
               disabled={disableControls || saving}
             />
             <Input

@@ -15,6 +15,7 @@ export const CONFIG_SECTION_KEYS: RawConfigSection[] = [
   'ampcode',
   'gemini-api-key',
   'codex-api-key',
+  'xai-api-key',
   'claude-api-key',
   'vertex-api-key',
   'openai-compatibility',
@@ -55,6 +56,8 @@ export const extractConfigSectionValue = (
       return config.geminiApiKeys;
     case 'codex-api-key':
       return config.codexApiKeys;
+    case 'xai-api-key':
+      return config.xaiApiKeys;
     case 'claude-api-key':
       return config.claudeApiKeys;
     case 'vertex-api-key':

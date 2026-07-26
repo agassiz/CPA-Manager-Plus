@@ -8,6 +8,8 @@ import { HeaderInputList } from '@/components/ui/HeaderInputList';
 import { ModelInputList } from '@/components/ui/ModelInputList';
 import { Modal } from '@/components/ui/Modal';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
+import { Select } from '@/components/ui/Select';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
@@ -16,12 +18,21 @@ import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { GeminiKeyConfig } from '@/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import {
+  areKeyValueEntriesEqual,
+  areModelEntriesEqual,
+  areStringArraysEqual,
+} from '@/utils/compare';
 import type { ModelInfo } from '@/utils/models';
 import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputListUtils';
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import type { GeminiFormState } from '@/components/providers';
 import { parseProviderIndexParam } from '@/features/aiProviders/model/routeParams';
+import {
+  useConnectivityTest,
+  type ConnectivityErrorMessages,
+} from '@/features/providers/sheets/forms/useConnectivityTest';
+import { ConnectivityStatusIcon } from '@/features/providers/sheets/forms/ConnectivityStatusIcon';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
 
@@ -37,6 +48,7 @@ const buildEmptyForm = (): GeminiFormState => ({
   modelEntries: [{ name: '', alias: '' }],
   excludedModels: [],
   excludedText: '',
+  disableCooling: false,
 });
 
 const stripGeminiModelResourceName = (value: string) => {
@@ -67,19 +79,23 @@ type GeminiFormBaseline = {
   headers: ReturnType<typeof normalizeHeaderEntries>;
   models: ReturnType<typeof normalizeModelEntries>;
   excludedModels: string[];
+  disableCooling: boolean;
 };
 
 const buildGeminiBaseline = (form: GeminiFormState): GeminiFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
   authIndex: normalizeAuthIndex(form.authIndex) ?? '',
   priority:
-    form.priority !== undefined && Number.isFinite(form.priority) ? Math.trunc(form.priority) : null,
+    form.priority !== undefined && Number.isFinite(form.priority)
+      ? Math.trunc(form.priority)
+      : null,
   prefix: String(form.prefix ?? '').trim(),
   baseUrl: String(form.baseUrl ?? '').trim(),
   proxyUrl: String(form.proxyUrl ?? '').trim(),
   headers: normalizeHeaderEntries(form.headers),
   models: normalizeModelEntries(form.modelEntries),
   excludedModels: parseExcludedModels(form.excludedText ?? ''),
+  disableCooling: Boolean(form.disableCooling),
 });
 
 export function AiProvidersGeminiEditPage() {
@@ -102,6 +118,7 @@ export function AiProvidersGeminiEditPage() {
   const [error, setError] = useState('');
   const [form, setForm] = useState<GeminiFormState>(() => buildEmptyForm());
   const [baseline, setBaseline] = useState(() => buildGeminiBaseline(buildEmptyForm()));
+  const [testModel, setTestModel] = useState('');
 
   const [modelDiscoveryOpen, setModelDiscoveryOpen] = useState(false);
   const [modelDiscoveryEndpoint, setModelDiscoveryEndpoint] = useState('');
@@ -198,7 +215,49 @@ export function AiProvidersGeminiEditPage() {
     setBaseline(buildGeminiBaseline(nextForm));
   }, [initialData, loading]);
 
-  const canSave = !disableControls && !saving && !loading && !invalidIndexParam && !invalidIndex;
+  const geminiTestModels = useMemo(() => {
+    const seen = new Set<string>();
+    return form.modelEntries.reduce<Array<{ value: string; label: string }>>((options, entry) => {
+      const name = stripGeminiModelResourceName(entry.name);
+      if (!name || seen.has(name)) return options;
+      seen.add(name);
+      const alias = entry.alias.trim();
+      options.push({ value: name, label: alias && alias !== name ? `${name} (${alias})` : name });
+      return options;
+    }, []);
+  }, [form.modelEntries]);
+  const resolvedTestModel = testModel || geminiTestModels[0]?.value || '';
+  const connectivityMessages = useMemo<ConnectivityErrorMessages>(
+    () => ({
+      baseUrlRequired: t('providersPage.connectivity.baseUrlRequired'),
+      endpointInvalid: t('providersPage.connectivity.endpointInvalid'),
+      apiKeyRequired: t('providersPage.connectivity.apiKeyRequired'),
+      modelRequired: t('providersPage.connectivity.modelRequired'),
+      timeout: (seconds) => t('providersPage.connectivity.timeout', { seconds }),
+      requestFailed: t('providersPage.connectivity.requestFailed'),
+    }),
+    [t]
+  );
+  const connectivity = useConnectivityTest(
+    {
+      brand: 'gemini',
+      baseUrl: form.baseUrl ?? '',
+      testModel: resolvedTestModel,
+      models: form.modelEntries,
+      formHeaders: form.headers,
+      apiKey: form.apiKey,
+      authIndex: form.authIndex,
+    },
+    connectivityMessages
+  );
+
+  const canSave =
+    !disableControls &&
+    !saving &&
+    !loading &&
+    !connectivity.isTestingAny &&
+    !invalidIndexParam &&
+    !invalidIndex;
 
   const discoveredModelsFiltered = useMemo(() => {
     const filter = modelDiscoverySearch.trim().toLowerCase();
@@ -333,7 +392,14 @@ export function AiProvidersGeminiEditPage() {
     autoFetchSignatureRef.current = signature;
 
     void fetchGeminiModelDiscovery();
-  }, [fetchGeminiModelDiscovery, form.apiKey, form.authIndex, form.baseUrl, form.headers, modelDiscoveryOpen]);
+  }, [
+    fetchGeminiModelDiscovery,
+    form.apiKey,
+    form.authIndex,
+    form.baseUrl,
+    form.headers,
+    modelDiscoveryOpen,
+  ]);
 
   useEffect(() => {
     const availableNames = new Set(discoveredModels.map((model) => model.name));
@@ -418,10 +484,12 @@ export function AiProvidersGeminiEditPage() {
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
+    baseline.disableCooling !== Boolean(form.disableCooling) ||
     isHeadersDirty ||
     isModelsDirty ||
     isExcludedModelsDirty;
-  const canGuard = !loading && !saving && !invalidIndexParam && !invalidIndex;
+  const canGuard =
+    !loading && !saving && !connectivity.isTestingAny && !invalidIndexParam && !invalidIndex;
 
   const { allowNextNavigation } = useUnsavedChangesGuard({
     enabled: canGuard,
@@ -456,6 +524,7 @@ export function AiProvidersGeminiEditPage() {
         headers: buildHeaderObject(form.headers),
         models: entriesToModels(normalizedModelEntries),
         excludedModels: parseExcludedModels(form.excludedText),
+        disableCooling: Boolean(form.disableCooling),
         authIndex: normalizeAuthIndex(form.authIndex) ?? undefined,
       };
 
@@ -544,36 +613,57 @@ export function AiProvidersGeminiEditPage() {
           <>
             <Input
               label={t('ai_providers.gemini_add_modal_key_label')}
+              type="password"
+              revealable
+              revealLabel={t('providersPage.form.showApiKey')}
+              hideLabel={t('providersPage.form.hideApiKey')}
+              autoComplete="new-password"
               placeholder={t('ai_providers.gemini_add_modal_key_placeholder')}
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
-              disabled={disableControls || saving}
+              disabled={disableControls || saving || connectivity.isTestingAny}
+            />
+            <Input
+              label={t('providersPage.detail.fields.authIndex')}
+              value={form.authIndex ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
+              disabled={disableControls || saving || connectivity.isTestingAny}
             />
             <div className={styles.providerInlineFields}>
-            <Input
-              label={t('ai_providers.priority_label')}
-              hint={t('ai_providers.priority_hint')}
-              type="number"
-              step={1}
-              value={form.priority ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const parsed = raw.trim() === '' ? undefined : Number(raw);
-                setForm((prev) => ({
-                  ...prev,
-                  priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
-                }));
-              }}
-              disabled={disableControls || saving}
-            />
-            <Input
-              label={t('ai_providers.prefix_label')}
-              placeholder={t('ai_providers.prefix_placeholder')}
-              value={form.prefix ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
-              hint={t('ai_providers.prefix_hint')}
-              disabled={disableControls || saving}
-            />
+              <Input
+                label={t('ai_providers.priority_label')}
+                hint={t('ai_providers.priority_hint')}
+                type="number"
+                step={1}
+                value={form.priority ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const parsed = raw.trim() === '' ? undefined : Number(raw);
+                  setForm((prev) => ({
+                    ...prev,
+                    priority: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
+                  }));
+                }}
+                disabled={disableControls || saving || connectivity.isTestingAny}
+              />
+              <div className="form-group">
+                <label>{t('providersPage.form.disableCooling')}</label>
+                <ToggleSwitch
+                  checked={Boolean(form.disableCooling)}
+                  onChange={(value) => setForm((prev) => ({ ...prev, disableCooling: value }))}
+                  disabled={disableControls || saving || connectivity.isTestingAny}
+                  ariaLabel={t('providersPage.form.disableCooling')}
+                />
+                <div className="hint">{t('providersPage.form.disableCoolingHint')}</div>
+              </div>
+              <Input
+                label={t('ai_providers.prefix_label')}
+                placeholder={t('ai_providers.prefix_placeholder')}
+                value={form.prefix ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, prefix: e.target.value }))}
+                hint={t('ai_providers.prefix_hint')}
+                disabled={disableControls || saving}
+              />
             </div>
             <Input
               label={t('ai_providers.gemini_base_url_label')}
@@ -645,6 +735,55 @@ export function AiProvidersGeminiEditPage() {
                 removeButtonTitle={t('common.delete')}
                 removeButtonAriaLabel={t('common.delete')}
               />
+              <div className={styles.modelTestPanel}>
+                <div className={styles.modelTestMeta}>
+                  <label className={styles.modelTestLabel}>
+                    {t('providersPage.form.testModel')}
+                  </label>
+                  <span className={styles.modelTestHint}>
+                    {t('providersPage.form.testModelClaudeHint')}
+                  </span>
+                </div>
+                <div className={styles.modelTestControls}>
+                  <Select
+                    value={resolvedTestModel}
+                    options={geminiTestModels}
+                    onChange={setTestModel}
+                    placeholder={t('providersPage.connectivity.modelRequired')}
+                    className={styles.openaiTestSelect}
+                    ariaLabel={t('providersPage.form.testModel')}
+                    disabled={
+                      disableControls ||
+                      saving ||
+                      connectivity.isTestingAny ||
+                      geminiTestModels.length === 0
+                    }
+                  />
+                  <Button
+                    variant={connectivity.geminiStatus.state === 'error' ? 'danger' : 'secondary'}
+                    size="sm"
+                    onClick={() => void connectivity.runGemini()}
+                    loading={connectivity.geminiStatus.state === 'loading'}
+                    disabled={
+                      disableControls ||
+                      saving ||
+                      connectivity.isTestingAny ||
+                      geminiTestModels.length === 0
+                    }
+                    className={styles.modelTestAllButton}
+                  >
+                    {t('providersPage.connectivity.test')}
+                  </Button>
+                  <ConnectivityStatusIcon state={connectivity.geminiStatus.state} />
+                </div>
+              </div>
+              {connectivity.geminiStatus.state === 'error' && connectivity.geminiStatus.message ? (
+                <div className="error-box">{connectivity.geminiStatus.message}</div>
+              ) : connectivity.geminiStatus.state === 'success' ? (
+                <div className="status-badge success">
+                  {t('providersPage.connectivity.success')}
+                </div>
+              ) : null}
             </div>
 
             <div className="form-group">

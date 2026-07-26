@@ -26,6 +26,7 @@ export type OpenAIEditBaseline = {
   prefix: string;
   baseUrl: string;
   chatCompletionsOnly: boolean;
+  disableCooling: boolean;
   headers: Array<{ key: string; value: string }>;
   apiKeyEntries: Array<{
     apiKey: string;
@@ -64,7 +65,7 @@ interface OpenAIEditDraftState {
   clearDraft: (key: string) => void;
 }
 
-const resolveAction = <T,>(action: SetStateAction<T>, prev: T): T =>
+const resolveAction = <T>(action: SetStateAction<T>, prev: T): T =>
   typeof action === 'function' ? (action as (previous: T) => T)(prev) : action;
 
 const buildEmptyForm = (): OpenAIFormState => ({
@@ -73,6 +74,7 @@ const buildEmptyForm = (): OpenAIFormState => ({
   baseUrl: '',
   headers: [],
   chatCompletionsOnly: false,
+  disableCooling: false,
   apiKeyEntries: [buildApiKeyEntry()],
   modelEntries: [{ name: '', alias: '' }],
   testModel: undefined,

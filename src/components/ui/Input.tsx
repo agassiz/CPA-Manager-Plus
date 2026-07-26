@@ -1,21 +1,52 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { IconEye, IconEyeOff } from './icons';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   hint?: string;
   error?: string;
   rightElement?: ReactNode;
+  revealable?: boolean;
+  revealLabel?: string;
+  hideLabel?: string;
 }
 
-export function Input({ label, hint, error, rightElement, className = '', id, ...rest }: InputProps) {
+export function Input({
+  label,
+  hint,
+  error,
+  rightElement,
+  revealable = false,
+  revealLabel = 'Show value',
+  hideLabel = 'Hide value',
+  className = '',
+  id,
+  type,
+  ...rest
+}: InputProps) {
   const generatedId = useId();
+  const [revealed, setRevealed] = useState(false);
   const inputId = id ?? generatedId;
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
-  const describedBy = [rest['aria-describedby'], errorId, hintId].filter(Boolean).join(' ') || undefined;
+  const describedBy =
+    [rest['aria-describedby'], errorId, hintId].filter(Boolean).join(' ') || undefined;
+  const revealControl = revealable ? (
+    <button
+      type="button"
+      className="input-reveal-button"
+      onClick={() => setRevealed((current) => !current)}
+      disabled={rest.disabled}
+      aria-label={revealed ? hideLabel : revealLabel}
+      title={revealed ? hideLabel : revealLabel}
+    >
+      {revealed ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+    </button>
+  ) : null;
+  const effectiveRightElement = revealControl ?? rightElement;
   const inputClassName = [
     'input',
-    rightElement ? 'input-with-right-element' : '',
+    effectiveRightElement ? 'input-with-right-element' : '',
     className,
   ]
     .filter(Boolean)
@@ -30,9 +61,12 @@ export function Input({ label, hint, error, rightElement, className = '', id, ..
           className={inputClassName}
           aria-invalid={Boolean(error) || rest['aria-invalid']}
           aria-describedby={describedBy}
+          type={revealable ? (revealed ? 'text' : 'password') : type}
           {...rest}
         />
-        {rightElement && <div className="input-right-element">{rightElement}</div>}
+        {effectiveRightElement && (
+          <div className="input-right-element">{effectiveRightElement}</div>
+        )}
       </div>
       {hint && (
         <div id={hintId} className="hint">

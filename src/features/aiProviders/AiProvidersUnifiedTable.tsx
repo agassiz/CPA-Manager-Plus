@@ -18,6 +18,10 @@ export type AiProviderListRow = {
   credentialDetails?: string[];
   modelCount: number | null;
   modelDetails?: string[];
+  filterModels?: string[];
+  searchValues?: string[];
+  priority?: number;
+  statusLabel?: string;
   success: number;
   failure: number;
   statusData: StatusBarData;
@@ -188,9 +192,10 @@ export function AiProvidersUnifiedTable({
                       : styles.unifiedProviderStatusEnabled
                   }`}
                 >
-                  {row.disabled
-                    ? t('ai_providers.unified_disabled')
-                    : t('ai_providers.unified_enabled')}
+                  {row.statusLabel ??
+                    (row.disabled
+                      ? t('ai_providers.unified_disabled')
+                      : t('ai_providers.unified_enabled'))}
                 </span>
               </td>
               <td className={styles.unifiedProviderActionsCell}>
