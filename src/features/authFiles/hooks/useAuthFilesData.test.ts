@@ -129,6 +129,30 @@ describe('buildPastedAuthJsonPayload', () => {
     expect(result.authJson).toEqual(input);
   });
 
+  it('keeps pasted Sub2API auth JSON unchanged', () => {
+    const input = {
+      accounts: [
+        {
+          platform: 'openai',
+          type: 'oauth',
+          credentials: {
+            access_token: 'eyJ.oauth-access-token',
+            refresh_token: 'rt.oauth-refresh-token',
+          },
+        },
+      ],
+    };
+
+    const result = buildPastedAuthJsonPayload(
+      'sub2api',
+      'sub2api-export.json',
+      JSON.stringify(input)
+    );
+
+    expect(result.resolvedFileName).toBe('sub2api-export.json');
+    expect(result.authJson).toEqual(input);
+  });
+
   it('keeps explicit file names for pasted session auth JSON when a custom name is provided', () => {
     const result = buildPastedAuthJsonPayload(
       'session',
@@ -207,6 +231,31 @@ describe('useAuthFilesData savePastedAuthJson', () => {
 
     expect(savedName).toBe('custom-auth.json');
     expect(mocks.saveJsonObject).toHaveBeenCalledWith('custom-auth.json', cpaInput);
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+    hook.unmount();
+  });
+
+  it('saves Sub2API JSON unchanged with explicit file name', async () => {
+    const hook = mountUseAuthFilesData();
+    const input = {
+      accounts: [
+        {
+          platform: 'openai',
+          type: 'oauth',
+          credentials: {
+            access_token: 'eyJ.oauth-access-token',
+            refresh_token: 'rt.oauth-refresh-token',
+          },
+        },
+      ],
+    };
+
+    const savedName = await hook
+      .getCurrent()
+      .savePastedAuthJson('sub2api', 'sub2api-export.json', JSON.stringify(input));
+
+    expect(savedName).toBe('sub2api-export.json');
+    expect(mocks.saveJsonObject).toHaveBeenCalledWith('sub2api-export.json', input);
     expect(mocks.list).toHaveBeenCalledTimes(1);
     hook.unmount();
   });

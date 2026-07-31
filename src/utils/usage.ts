@@ -1060,13 +1060,16 @@ export const getCacheHitTotals = ({
   inputTokens,
   cachedTokens,
   cacheReadTokens,
+  cacheCreationTokens,
 }: CacheHitMetricsInput): { hitTokens: number; inputTokens: number } => {
   const input = Math.max(toFiniteNumber(inputTokens), 0);
   const cached = Math.max(toFiniteNumber(cachedTokens), 0);
   const cacheRead = Math.max(toFiniteNumber(cacheReadTokens), 0);
+  const cacheCreation = Math.max(toFiniteNumber(cacheCreationTokens), 0);
+  const cacheHits = Math.max(cached, cacheRead);
   return {
-    hitTokens: cached + cacheRead,
-    inputTokens: input,
+    hitTokens: cacheHits,
+    inputTokens: input + cacheHits + cacheCreation,
   };
 };
 

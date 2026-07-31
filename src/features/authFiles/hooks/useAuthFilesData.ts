@@ -72,7 +72,7 @@ export type UseAuthFilesDataResult = {
 };
 
 type PastedAuthJsonPayload = {
-  authJson: Record<string, unknown>;
+  authJson: Record<string, unknown> | unknown[];
   resolvedFileName: string;
 };
 

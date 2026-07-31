@@ -509,7 +509,7 @@ export const authFilesApi = {
 
   saveText: (name: string, text: string) => saveAuthFileText(name, text),
 
-  saveJsonObject: (name: string, json: Record<string, unknown>) =>
+  saveJsonObject: (name: string, json: Record<string, unknown> | unknown[]) =>
     saveAuthFileText(name, JSON.stringify(json)),
 
   // OAuth 排除模型

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildCandidateUsageSourceIds,
+  calculateCacheHitRate,
   calculateCost,
   collectUsageDetails,
   collectUsageDetailsWithEndpoint,
@@ -13,6 +14,19 @@ import {
   normalizeUsageSourceId,
 } from './usage';
 import { maskSensitiveText } from './format';
+
+describe('calculateCacheHitRate', () => {
+  it('uses uncached input, cache reads, and cache writes without double-counting aliases', () => {
+    expect(
+      calculateCacheHitRate({
+        inputTokens: 5_360_000,
+        cachedTokens: 147_390_000,
+        cacheReadTokens: 147_390_000,
+        cacheCreationTokens: 2_000_000,
+      })
+    ).toBeCloseTo(147_390_000 / (5_360_000 + 147_390_000 + 2_000_000));
+  });
+});
 
 describe('formatCompactNumber', () => {
   it('keeps large values compact as data grows beyond millions', () => {

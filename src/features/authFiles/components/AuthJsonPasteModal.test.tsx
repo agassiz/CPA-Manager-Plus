@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { createDefaultAuthFileName } from '@/features/authFiles/authFileName';
+import type { AuthJsonInputType } from '@/features/authFiles/sessionAuthConverter';
 import { AuthJsonPasteModal } from './AuthJsonPasteModal';
 
 vi.mock('react-i18next', () => ({
@@ -27,12 +28,12 @@ type ModalHarness = {
   clickSave: () => Promise<void>;
   setFileName: (value: string) => void;
   setJsonText: (value: string) => void;
-  setType: (value: 'session' | 'cpa') => void;
+  setType: (value: AuthJsonInputType) => void;
   getText: () => string;
 };
 
   const mountModal = (
-    onSave: (type: 'session' | 'cpa', fileName: string, jsonText: string) => Promise<void>,
+    onSave: (type: AuthJsonInputType, fileName: string, jsonText: string) => Promise<void>,
     saving = false,
     disabled = false
   ): ModalHarness => {
@@ -63,7 +64,7 @@ type ModalHarness = {
     });
   };
 
-  const setType = (value: 'session' | 'cpa') => {
+  const setType = (value: AuthJsonInputType) => {
     const select = renderer!.root.findByType(Select);
     act(() => {
       select.props.onChange(value);
@@ -111,6 +112,20 @@ describe('AuthJsonPasteModal', () => {
     expect(modal.renderer.root.findByType(Input).props.value).toBe(
       '07-14-12-13-codex-account.json'
     );
+    modal.renderer.unmount();
+  });
+
+  it('offers Sub2API JSON and renders its format guidance', () => {
+    const modal = mountModal(vi.fn().mockResolvedValue(undefined));
+    const select = modal.renderer.root.findByType(Select);
+
+    expect(select.props.options).toContainEqual({
+      value: 'sub2api',
+      label: 'auth_files.paste_type_sub2api',
+    });
+    modal.setType('sub2api');
+    expect(modal.getText()).toContain('auth_files.paste_sub2api_placeholder');
+    expect(modal.getText()).toContain('auth_files.paste_sub2api_hint');
     modal.renderer.unmount();
   });
 

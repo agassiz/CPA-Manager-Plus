@@ -17,6 +17,16 @@ type AuthJsonPasteModalProps = {
 };
 
 const DEFAULT_FILE_NAME_HINT = 'MM-DD-HH-mm-codex-account.json';
+const PLACEHOLDER_KEYS: Record<AuthJsonInputType, string> = {
+  cpa: 'auth_files.paste_cpa_placeholder',
+  session: 'auth_files.paste_session_placeholder',
+  sub2api: 'auth_files.paste_sub2api_placeholder',
+};
+const HINT_KEYS: Record<AuthJsonInputType, string> = {
+  cpa: 'auth_files.paste_cpa_hint',
+  session: 'auth_files.paste_session_hint',
+  sub2api: 'auth_files.paste_sub2api_hint',
+};
 const INVALID_BASE_FILE_NAME_PATTERN = /[\\/:*?"<>|]/;
 const FORBIDDEN_INVISIBLE_CODE_POINTS = new Set([
   0x200b,
@@ -114,6 +124,7 @@ export function AuthJsonPasteModal({
     () => [
       { value: 'cpa', label: t('auth_files.paste_type_cpa') },
       { value: 'session', label: t('auth_files.paste_type_session') },
+      { value: 'sub2api', label: t('auth_files.paste_type_sub2api') },
     ],
     [t]
   );
@@ -190,16 +201,10 @@ export function AuthJsonPasteModal({
             onChange={(event) => setJsonText(event.target.value)}
             disabled={saving || disabled}
             spellCheck={false}
-            placeholder={t(
-              type === 'session'
-                ? 'auth_files.paste_session_placeholder'
-                : 'auth_files.paste_cpa_placeholder'
-            )}
+            placeholder={t(PLACEHOLDER_KEYS[type])}
           />
         </div>
-        <p className={styles.authJsonPasteHint}>
-          {t(type === 'session' ? 'auth_files.paste_session_hint' : 'auth_files.paste_cpa_hint')}
-        </p>
+        <p className={styles.authJsonPasteHint}>{t(HINT_KEYS[type])}</p>
       </div>
     </Modal>
   );

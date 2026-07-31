@@ -31,6 +31,57 @@ describe('convertAuthJsonInput', () => {
     expect(result).toEqual(input);
   });
 
+  it('keeps a Sub2API Codex OAuth envelope unchanged', () => {
+    const input = {
+      exported_at: '2026-07-31T09:22:07Z',
+      proxies: [],
+      accounts: [
+        {
+          name: 'oauth@example.com',
+          platform: 'openai',
+          type: 'oauth',
+          credentials: {
+            access_token: 'eyJ.oauth-access-token',
+            refresh_token: 'rt.oauth-refresh-token',
+            id_token: 'eyJ.oauth-id-token',
+            expires_at: 1_786_352_462,
+          },
+        },
+      ],
+    };
+
+    expect(convertAuthJsonInput(JSON.stringify(input), 'sub2api')).toEqual(input);
+  });
+
+  it('keeps a Sub2API Codex PAT array unchanged', () => {
+    const input = [
+      {
+        name: 'pat@example.com',
+        platform: 'codex',
+        type: 'oauth',
+        credentials: { access_token: 'at-personal-access-token' },
+      },
+    ];
+
+    expect(convertAuthJsonInput(JSON.stringify(input), 'sub2api')).toEqual(input);
+  });
+
+  it('rejects Sub2API JSON without a supported Codex account', () => {
+    const input = {
+      accounts: [
+        {
+          platform: 'other-provider',
+          type: 'oauth',
+          credentials: { access_token: 'token', refresh_token: 'refresh-token' },
+        },
+      ],
+    };
+
+    expect(() => convertAuthJsonInput(JSON.stringify(input), 'sub2api')).toThrow(
+      'Sub2API JSON does not contain a supported Codex account'
+    );
+  });
+
   it('converts a ChatGPT session object to CPA Codex auth JSON', () => {
     const accessToken = buildJwt({
       exp: 1_800_000_000,

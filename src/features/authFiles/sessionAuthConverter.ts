@@ -1,4 +1,4 @@
-export type AuthJsonInputType = 'cpa' | 'session';
+export type AuthJsonInputType = 'cpa' | 'session' | 'sub2api';
 
 type JsonRecord = Record<string, unknown>;
 type TraversalState = {
@@ -734,12 +734,27 @@ const convertSessionToCpaAuthJson = (record: JsonRecord, now: Date): JsonRecord 
   }) as JsonRecord;
 };
 
-export const convertAuthJsonInput = (
+export function convertAuthJsonInput(
+  text: string,
+  type: 'cpa' | 'session',
+  now?: Date
+): JsonRecord;
+export function convertAuthJsonInput(
+  text: string,
+  type: 'sub2api',
+  now?: Date
+): JsonRecord | unknown[];
+export function convertAuthJsonInput(
+  text: string,
+  type: AuthJsonInputType,
+  now?: Date
+): JsonRecord | unknown[];
+export function convertAuthJsonInput(
   text: string,
   type: AuthJsonInputType,
   now = new Date()
-): JsonRecord => {
-  const parsed = parseJsonObject(text, type === 'session');
+): JsonRecord | unknown[] {
+  const parsed = parseJsonObject(text, type === 'session' || type === 'sub2api');
   if (hasForbiddenInvisibleCharacter(parsed)) {
     throw new AuthJsonConversionError('Auth JSON contains unsupported invisible characters');
   }
@@ -749,6 +764,52 @@ export const convertAuthJsonInput = (
     }
     if (!isRecord(parsed) || !hasCpaAuthFileShape(parsed)) {
       throw new AuthJsonConversionError('CPA auth JSON is missing required auth fields');
+    }
+    return parsed;
+  }
+
+  if (type === 'sub2api') {
+    const accounts = Array.isArray(parsed)
+      ? parsed
+      : isRecord(parsed) && Array.isArray(parsed.accounts)
+        ? parsed.accounts
+        : undefined;
+    if (!accounts || accounts.length === 0) {
+      throw new AuthJsonConversionError('Sub2API JSON does not contain any accounts');
+    }
+    if (
+      isRecord(parsed) &&
+      typeof parsed.type === 'string' &&
+      parsed.type.trim() !== '' &&
+      parsed.type.trim().toLowerCase() !== 'sub2api-data'
+    ) {
+      throw new AuthJsonConversionError('Sub2API JSON has an unsupported export type');
+    }
+    const hasCodexAccount = accounts.some((account) => {
+      if (!isRecord(account) || !isRecord(account.credentials)) return false;
+      const platform = firstNonEmptyString(account.platform, account.provider)?.toLowerCase();
+      const accountType = firstNonEmptyString(account.type, account.account_type)?.toLowerCase();
+      const accessToken = firstNonEmptyString(
+        account.credentials.access_token,
+        account.credentials.accessToken
+      );
+      if ((platform !== 'openai' && platform !== 'codex') || accountType !== 'oauth' || !accessToken) {
+        return false;
+      }
+      return (
+        accessToken.startsWith('at-') ||
+        Boolean(
+          firstNonEmptyString(
+            account.credentials.refresh_token,
+            account.credentials.refreshToken,
+            account.credentials.id_token,
+            account.credentials.idToken
+          )
+        )
+      );
+    });
+    if (!hasCodexAccount) {
+      throw new AuthJsonConversionError('Sub2API JSON does not contain a supported Codex account');
     }
     return parsed;
   }
@@ -764,7 +825,7 @@ export const convertAuthJsonInput = (
   }
 
   return convertSessionToCpaAuthJson(sessions[0].value, now);
-};
+}
 
 export const getDefaultSessionAuthFileName = (authJson: JsonRecord) => {
   const rawName = firstNonEmpty(
