@@ -68,6 +68,28 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
+  it('round-trips the global image fallback model', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['image-fallback-model: gpt-5.6-luna', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.imageFallbackModel).toBe('gpt-5.6-luna');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({
+        imageFallbackModel: 'vision-gpt',
+      });
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).toContain('image-fallback-model: vision-gpt');
+
+    harness.unmount();
+  });
+
   it('defaults configured completion models to disabled', () => {
     const harness = mountUseVisualConfig();
     const yaml = [
@@ -253,6 +275,7 @@ describe('useVisualConfig', () => {
     expect(savedYaml).toContain('code-completion-model: gpt-5.6-luna');
     expect(savedYaml).toContain('chat-input-completion-model: gpt-5.4-mini');
     expect(savedYaml).toContain('show-thinking-progress: true');
+    expect(savedYaml).not.toContain('image-fallback-model: qwen3.5-plus');
     expect(savedYaml).toContain('cooldown-strategy: exponential');
 
     harness.unmount();

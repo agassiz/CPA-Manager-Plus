@@ -983,6 +983,14 @@ export function VisualConfigEditor({
                     onChange({ responsesCompactFallbackModel: event.target.value })
                   }
                 />
+                <Input
+                  label={t('config_management.visual.sections.network.image_fallback_model')}
+                  value={values.imageFallbackModel}
+                  placeholder="gpt-5.6-luna"
+                  disabled={disabled}
+                  hint={t('config_management.visual.sections.network.image_fallback_model_hint')}
+                  onChange={(event) => onChange({ imageFallbackModel: event.target.value })}
+                />
                 <ToggleRow
                   title={t('config_management.visual.sections.network.passthrough_headers')}
                   description={t(
@@ -1202,14 +1210,6 @@ export function VisualConfigEditor({
                   onChange={(e) => onChange({ augmentSilentModeModel: e.target.value })}
                   disabled={disabled}
                   hint={t('config_management.visual.sections.augment.silent_mode_model_hint')}
-                />
-                <Input
-                  label={t('config_management.visual.sections.augment.image_fallback_model')}
-                  placeholder="qwen3.5-plus"
-                  value={values.augmentImageFallbackModel}
-                  onChange={(e) => onChange({ augmentImageFallbackModel: e.target.value })}
-                  disabled={disabled}
-                  hint={t('config_management.visual.sections.augment.image_fallback_model_hint')}
                 />
                 <Input
                   label={t('config_management.visual.sections.augment.codebase_retrieval_model')}

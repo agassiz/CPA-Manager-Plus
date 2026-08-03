@@ -111,6 +111,7 @@ export type VisualConfigValues = {
   errorLogsMaxFiles: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
+  imageFallbackModel: string;
   responsesCompactFallbackModel: string;
   codexForceSuperCategory: boolean;
   codexBugMode: boolean;
@@ -146,7 +147,6 @@ export type VisualConfigValues = {
   codexHeaderBetaFeatures: string;
   codexIdentityConfuse: boolean;
   augmentSilentModeModel: string;
-  augmentImageFallbackModel: string;
   augmentCodebaseRetrievalModel: string;
   augmentUseConfiguredCompletionModels: boolean;
   augmentCodeCompletionModel: string;
@@ -197,6 +197,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   errorLogsMaxFiles: '',
   proxyUrl: '',
   forceModelPrefix: false,
+  imageFallbackModel: '',
   responsesCompactFallbackModel: '',
   codexForceSuperCategory: false,
   codexBugMode: false,
@@ -232,7 +233,6 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexHeaderBetaFeatures: '',
   codexIdentityConfuse: false,
   augmentSilentModeModel: '',
-  augmentImageFallbackModel: '',
   augmentCodebaseRetrievalModel: '',
   augmentUseConfiguredCompletionModels: false,
   augmentCodeCompletionModel: '',

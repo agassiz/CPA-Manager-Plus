@@ -2253,7 +2253,9 @@
           "enable_gemini_cli_endpoint": "启用 Gemini CLI 内部端点",
           "enable_gemini_cli_endpoint_desc": "启用 /v1internal:* 兼容端点",
           "codex_compact_fallback_model": "Codex App 压缩回退模型",
-          "codex_compact_fallback_model_hint": "当 Codex App 请求 /responses/compact，而当前凭证没有原生压缩接口时，通过普通 Responses 链路生成上下文摘要。留空使用当前聊天模型；填写后使用指定模型，例如 Claude 模型。"
+          "codex_compact_fallback_model_hint": "当 Codex App 请求 /responses/compact，而当前凭证没有原生压缩接口时，通过普通 Responses 链路生成上下文摘要。留空使用当前聊天模型；填写后使用指定模型，例如 Claude 模型。",
+          "image_fallback_model": "图片请求回退模型",
+          "image_fallback_model_hint": "内置静态模型目录标记为不支持图片的模型收到图片时改走此模型；OpenAI、Codex、Claude 和 Augment 共用，留空默认使用 gpt-5.6-luna。"
         },
         "quota": {
           "title": "配额回退",
@@ -2267,11 +2269,9 @@
         },
         "augment": {
           "title": "Augment 自定义",
-          "description": "控制 Augment 请求的模型回退与思考进度显示",
+          "description": "控制 Augment 请求的模型与思考进度显示；图片回退模型使用全局网络设置。",
           "silent_mode_model": "静默模式模型(提示词增强，上下文压缩)",
           "silent_mode_model_hint": "留空表示不覆盖 CPA 默认策略",
-          "image_fallback_model": "图片回退模型",
-          "image_fallback_model_hint": "图片模型不可用时使用的备用模型",
           "codebase_retrieval_model": "代码库检索模型",
           "codebase_retrieval_model_hint": "Augment codebase-retrieval 请求调用的大模型",
           "use_configured_completion_models": "使用自定义补全模型",

@@ -465,6 +465,7 @@ function getNextDirtyFields(
       'disableCooling',
       'disableAutoDisable',
       'disableImageGeneration',
+      'imageFallbackModel',
       'responsesCompactFallbackModel',
       'authAutoRefreshWorkers',
       'enableGeminiCliEndpoint',
@@ -481,7 +482,6 @@ function getNextDirtyFields(
       'codexHeaderBetaFeatures',
       'codexIdentityConfuse',
       'augmentSilentModeModel',
-      'augmentImageFallbackModel',
       'augmentCodebaseRetrievalModel',
       'augmentUseConfiguredCompletionModels',
       'augmentCodeCompletionModel',
@@ -804,6 +804,10 @@ export function useVisualConfig() {
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
         forceModelPrefix: Boolean(parsed['force-model-prefix']),
+        imageFallbackModel:
+          typeof parsed['image-fallback-model'] === 'string'
+            ? parsed['image-fallback-model']
+            : DEFAULT_VISUAL_VALUES.imageFallbackModel,
         responsesCompactFallbackModel:
           typeof codex?.['responses-compact-fallback-model'] === 'string'
             ? codex['responses-compact-fallback-model']
@@ -880,10 +884,6 @@ export function useVisualConfig() {
           typeof augment?.['silent-mode-model'] === 'string'
             ? augment['silent-mode-model']
             : DEFAULT_VISUAL_VALUES.augmentSilentModeModel,
-        augmentImageFallbackModel:
-          typeof augment?.['image-fallback-model'] === 'string'
-            ? augment['image-fallback-model']
-            : DEFAULT_VISUAL_VALUES.augmentImageFallbackModel,
         augmentCodebaseRetrievalModel:
           typeof augment?.['codebase-retrieval-model'] === 'string'
             ? augment['codebase-retrieval-model']
@@ -1040,6 +1040,16 @@ export function useVisualConfig() {
         setIntFromStringInDoc(doc, ['error-logs-max-files'], values.errorLogsMaxFiles);
         setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
         setBooleanInDoc(doc, ['force-model-prefix'], values.forceModelPrefix);
+        if (
+          shouldWriteManagedField(
+            doc,
+            ['image-fallback-model'],
+            dirtyFields,
+            'imageFallbackModel'
+          )
+        ) {
+          setStringInDoc(doc, ['image-fallback-model'], values.imageFallbackModel);
+        }
         setBooleanInDoc(doc, ['passthrough-headers'], values.passthroughHeaders);
         setBooleanInDoc(doc, ['hide-upstream-error-details'], values.hideUpstreamErrorDetails);
         setBooleanInDoc(doc, ['disable-claude-cloak-mode'], values.disableClaudeCloakMode);
@@ -1227,7 +1237,6 @@ export function useVisualConfig() {
         const shouldWriteAugment =
           docHas(doc, ['augment']) ||
           dirtyFields.has('augmentSilentModeModel') ||
-          dirtyFields.has('augmentImageFallbackModel') ||
           dirtyFields.has('augmentCodebaseRetrievalModel') ||
           dirtyFields.has('augmentUseConfiguredCompletionModels') ||
           dirtyFields.has('augmentCodeCompletionModel') ||
@@ -1236,11 +1245,7 @@ export function useVisualConfig() {
         if (shouldWriteAugment) {
           ensureMapInDoc(doc, ['augment']);
           setStringInDoc(doc, ['augment', 'silent-mode-model'], values.augmentSilentModeModel);
-          setStringInDoc(
-            doc,
-            ['augment', 'image-fallback-model'],
-            values.augmentImageFallbackModel
-          );
+          doc.deleteIn(['augment', 'image-fallback-model']);
           setStringInDoc(
             doc,
             ['augment', 'codebase-retrieval-model'],

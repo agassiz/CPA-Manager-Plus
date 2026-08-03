@@ -2300,7 +2300,9 @@
           "enable_gemini_cli_endpoint": "Enable Gemini CLI Internal Endpoint",
           "enable_gemini_cli_endpoint_desc": "Enable /v1internal:* compatibility endpoints",
           "codex_compact_fallback_model": "Codex App Compact Fallback Model",
-          "codex_compact_fallback_model_hint": "When Codex App requests /responses/compact and the selected credential has no native compact API, generate a context summary through the normal Responses path. Leave empty to use the current chat model, or specify an override such as a Claude model."
+          "codex_compact_fallback_model_hint": "When Codex App requests /responses/compact and the selected credential has no native compact API, generate a context summary through the normal Responses path. Leave empty to use the current chat model, or specify an override such as a Claude model.",
+          "image_fallback_model": "Image Request Fallback Model",
+          "image_fallback_model_hint": "Use this model when a model marked as non-vision in the embedded catalog receives an image. Shared by OpenAI, Codex, Claude, and Augment. Leave empty to default to gpt-5.6-luna."
         },
         "quota": {
           "title": "Quota Fallback",
@@ -2314,11 +2316,9 @@
         },
         "augment": {
           "title": "Augment Customization",
-          "description": "Control Augment model fallbacks and thinking progress display",
+          "description": "Control Augment models and thinking progress. Image fallback uses the global network setting.",
           "silent_mode_model": "Silent Mode Model",
           "silent_mode_model_hint": "Leave empty to keep the CPA default policy",
-          "image_fallback_model": "Image Fallback Model",
-          "image_fallback_model_hint": "Fallback model used when the image model is unavailable",
           "codebase_retrieval_model": "Codebase Retrieval Model",
           "codebase_retrieval_model_hint": "Model used by Augment codebase retrieval requests",
           "use_configured_completion_models": "Use Configured Completion Models",

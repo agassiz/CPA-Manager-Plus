@@ -2265,7 +2265,9 @@
           "ws_auth": "WebSocket 驗證",
           "ws_auth_desc": "啟用 WebSocket 連線驗證（/v1/ws）",
           "enable_gemini_cli_endpoint": "啟用 Gemini CLI 內部端點",
-          "enable_gemini_cli_endpoint_desc": "啟用 /v1internal:* 相容端點"
+          "enable_gemini_cli_endpoint_desc": "啟用 /v1internal:* 相容端點",
+          "image_fallback_model": "圖片請求回退模型",
+          "image_fallback_model_hint": "內建靜態模型目錄標記為不支援圖片的模型收到圖片時改走此模型；OpenAI、Codex、Claude 和 Augment 共用，留空預設使用 gpt-5.6-luna。"
         },
         "quota": {
           "title": "配額回退",

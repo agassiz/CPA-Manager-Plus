@@ -2276,7 +2276,9 @@
           "ws_auth": "Аутентификация WebSocket",
           "ws_auth_desc": "Включить аутентификацию WebSocket (/v1/ws)",
           "enable_gemini_cli_endpoint": "Включить внутренний endpoint Gemini CLI",
-          "enable_gemini_cli_endpoint_desc": "Включить совместимые endpoints /v1internal:*"
+          "enable_gemini_cli_endpoint_desc": "Включить совместимые endpoints /v1internal:*",
+          "image_fallback_model": "Модель отката для изображений",
+          "image_fallback_model_hint": "Используется, когда модель, помеченная во встроенном каталоге как не-визуальная, получает изображение. Общая для OpenAI, Codex, Claude и Augment. Пустое значение означает gpt-5.6-luna."
         },
         "quota": {
           "title": "Резерв по квоте",
