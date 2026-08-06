@@ -143,6 +143,8 @@
     "plugin_store": "插件商店",
     "config_management": "配置面板",
     "logs": "日志查看",
+    "security_audit": "安全审计",
+    "security_audit_short": "安全",
     "system_info": "系统信息"
   },
   "nav_groups": {
@@ -1578,6 +1580,8 @@
     "service_tier_fast": "快速",
     "executor_type": "执行器类型",
     "executor_type_short": "执行器",
+    "security_policy": "安全策略",
+    "security_audit_error": "安全审计异常",
     "fail_status_code": "失败状态码",
     "fail_status_code_short": "HTTP",
     "fail_body": "失败内容",
@@ -1970,6 +1974,7 @@
     "column_model": "模型",
     "column_status": "状态",
     "column_endpoint": "接口",
+    "column_client_ip": "客户端 IP",
     "column_provider_channel": "提供方 / 渠道",
     "column_error": "错误",
     "request_type": "请求类型",

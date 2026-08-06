@@ -28,6 +28,7 @@ import { CodexInspectionPage } from '@/pages/CodexInspectionPage';
 import { ConfigPage } from '@/pages/ConfigPage';
 import { LogsPage } from '@/pages/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
+import { SecurityAuditPage } from '@/pages/SecurityAuditPage';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { usePanelFeatureAvailability } from '@/hooks/usePanelFeatureAvailability';
 import { isLogsRouteAvailable } from '@/features/logs/logFeatureAvailability';
@@ -253,6 +254,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
     element: <Navigate to="/codex-inspection" replace />,
   },
   { path: '/config', element: <ConfigPage /> },
+  { path: '/security-audit', element: <SecurityAuditPage /> },
   {
     path: '/logs',
     element: (

@@ -103,6 +103,7 @@ const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   source: 240,
   model: 160,
   endpoint: 220,
+  clientIp: 140,
   authIndex: 150,
   provider: 150,
   reasoning: 120,
@@ -145,7 +146,9 @@ const formatShortHash = (value: string | null | undefined) => {
 };
 
 const resolveServiceSpeedLabel = (serviceTier: string | null | undefined, t: TFunction) => {
-  const normalized = String(serviceTier || '').trim().toLowerCase();
+  const normalized = String(serviceTier || '')
+    .trim()
+    .toLowerCase();
   if (normalized === 'priority' || normalized === 'fast') {
     return t('monitoring.service_tier_fast');
   }
@@ -154,15 +157,40 @@ const resolveServiceSpeedLabel = (serviceTier: string | null | undefined, t: TFu
 
 const isCodexRealtimeRow = (row: MonitoringEventRow) =>
   [row.provider, row.channel, row.executorType]
-    .map((value) => String(value || '').trim().toLowerCase())
+    .map((value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+    )
     .some((value) => value === 'codex');
 
-const buildRealtimeApiKeyDisplay = (row: MonitoringEventRow, t: TFunction) => {
+const resolveSecurityAuditStatusLabel = (row: MonitoringEventRow, t: TFunction) => {
+  const executorType = String(row.executorType || '')
+    .trim()
+    .toLowerCase();
+  if (executorType === 'security_policy') {
+    return t('monitoring.security_policy');
+  }
+  if (executorType === 'security_audit') {
+    return t('monitoring.security_audit_error');
+  }
+  return '';
+};
+
+const buildRealtimeApiKeyDisplay = (
+  row: MonitoringEventRow,
+  t: TFunction,
+  accountDisplayMode: AccountDisplayMode
+) => {
   const label = formatReadableText(row.apiKeyLabel);
   const masked = formatReadableText(row.apiKeyMasked);
+  const full = formatReadableText(row.apiKeyFull);
   const hash = formatReadableText(row.apiKeyHash);
   const shortHash = formatShortHash(hash);
-  const display = label || masked || shortHash;
+  const display =
+    accountDisplayMode === 'full'
+      ? full || label || masked || shortHash
+      : masked || label || shortHash;
 
   if (!display) {
     return null;
@@ -170,6 +198,9 @@ const buildRealtimeApiKeyDisplay = (row: MonitoringEventRow, t: TFunction) => {
 
   const titleParts = [
     `${t('monitoring.realtime_api_key_label')}: ${display}`,
+    accountDisplayMode === 'full' && full && full !== display
+      ? `${t('monitoring.realtime_api_key_label')}: ${full}`
+      : '',
     masked && masked !== display ? `${t('monitoring.realtime_api_key_masked')}: ${masked}` : '',
     hash ? `${t('monitoring.realtime_api_key_hash')}: ${hash}` : '',
     formatReadableText(row.executorType)
@@ -300,11 +331,17 @@ const buildRealtimeTokenSummaryLines = (row: MonitoringEventRow, t: TFunction) =
 const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
   switch (key) {
     case 'source':
-      return shortLabel(t, 'monitoring.column_source_api_key_short', 'monitoring.column_source_api_key');
+      return shortLabel(
+        t,
+        'monitoring.column_source_api_key_short',
+        'monitoring.column_source_api_key'
+      );
     case 'model':
       return t('monitoring.column_model');
     case 'endpoint':
       return t('monitoring.column_endpoint');
+    case 'clientIp':
+      return t('monitoring.column_client_ip');
     case 'authIndex':
       return shortLabel(t, 'monitoring.auth_index_short', 'monitoring.auth_index');
     case 'provider':
@@ -316,7 +353,11 @@ const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
     case 'status':
       return shortLabel(t, 'monitoring.request_status_short', 'monitoring.request_status');
     case 'successRate':
-      return shortLabel(t, 'monitoring.column_success_rate_short', 'monitoring.column_success_rate');
+      return shortLabel(
+        t,
+        'monitoring.column_success_rate_short',
+        'monitoring.column_success_rate'
+      );
     case 'totalCalls':
       return shortLabel(t, 'monitoring.total_calls_short', 'monitoring.total_calls', 'Calls');
     case 'tps':
@@ -609,7 +650,7 @@ export function RealtimeEventsPanel({
   };
   const renderColumnCell = (key: RealtimeColumnKey, row: RealtimeLogRow) => {
     const sourceDisplay = buildRealtimeSourceDisplay(row, t, accountDisplayMode);
-    const apiKeyDisplay = buildRealtimeApiKeyDisplay(row, t);
+    const apiKeyDisplay = buildRealtimeApiKeyDisplay(row, t, accountDisplayMode);
     const showResolvedModel =
       row.resolvedModel && row.resolvedModel.trim() && row.resolvedModel.trim() !== row.model;
     const reasoningEffort = formatOptionalText(row.reasoningEffort);
@@ -617,6 +658,7 @@ export function RealtimeEventsPanel({
       ? resolveServiceSpeedLabel(row.serviceTier, t)
       : '';
     const failureDetails = buildFailureDetails(row, t);
+    const securityAuditStatusLabel = resolveSecurityAuditStatusLabel(row, t);
     const failureTooltipId = failureDetails
       ? `${tooltipIdPrefix}-failure-tooltip-${row.id}`
       : undefined;
@@ -624,7 +666,9 @@ export function RealtimeEventsPanel({
     const hasTtftMs = row.ttftMs !== null && row.ttftMs !== undefined;
     const ttftToneClass = getRealtimeDurationToneClass(row.ttftMs);
     const latencyToneClass = getRealtimeDurationToneClass(row.latencyMs);
-    const endpoint = [row.endpointMethod, row.endpointPath || row.endpoint].filter(Boolean).join(' ');
+    const endpoint = [row.endpointMethod, row.endpointPath || row.endpoint]
+      .filter(Boolean)
+      .join(' ');
 
     switch (key) {
       case 'source':
@@ -645,7 +689,9 @@ export function RealtimeEventsPanel({
         return (
           <div className={styles.primaryCell}>
             <span className={styles.monoCell}>{row.model}</span>
-            {showResolvedModel ? <small className={styles.monoCell}>{row.resolvedModel}</small> : null}
+            {showResolvedModel ? (
+              <small className={styles.monoCell}>{row.resolvedModel}</small>
+            ) : null}
           </div>
         );
       case 'endpoint':
@@ -657,8 +703,12 @@ export function RealtimeEventsPanel({
             ) : null}
           </div>
         );
+      case 'clientIp':
+        return <span className={styles.monoCell}>{formatOptionalText(row.clientIp)}</span>;
       case 'authIndex':
-        return <span className={styles.monoCell}>{row.authIndexMasked || row.authIndex || '-'}</span>;
+        return (
+          <span className={styles.monoCell}>{row.authIndexMasked || row.authIndex || '-'}</span>
+        );
       case 'provider':
         return (
           <div className={styles.primaryCell}>
@@ -698,7 +748,7 @@ export function RealtimeEventsPanel({
                 <span
                   className={`${styles.realtimeRequestStatus} ${styles.realtimeRequestStatusBad}`}
                 >
-                  {t('monitoring.result_failed')}
+                  {securityAuditStatusLabel || t('monitoring.result_failed')}
                 </span>
                 <span
                   id={failureTooltipId}
@@ -781,19 +831,18 @@ export function RealtimeEventsPanel({
             <span className={styles.realtimeTimeLine}>{timeParts.time}</span>
           </div>
         );
-      case 'usage':
-        {
-          const [inputOutputLine, cacheLine] = buildRealtimeTokenSummaryLines(row, t);
-          return (
-            <div className={styles.primaryCell}>
-              <span>{formatCompactNumber(row.totalTokens)}</span>
-              <small className={styles.realtimeTokenBreakdown}>
-                <span className={styles.realtimeTokenLine}>{inputOutputLine}</span>
-                <span className={styles.realtimeTokenLine}>{cacheLine}</span>
-              </small>
-            </div>
-          );
-        }
+      case 'usage': {
+        const [inputOutputLine, cacheLine] = buildRealtimeTokenSummaryLines(row, t);
+        return (
+          <div className={styles.primaryCell}>
+            <span>{formatCompactNumber(row.totalTokens)}</span>
+            <small className={styles.realtimeTokenBreakdown}>
+              <span className={styles.realtimeTokenLine}>{inputOutputLine}</span>
+              <span className={styles.realtimeTokenLine}>{cacheLine}</span>
+            </small>
+          </div>
+        );
+      }
       case 'cost':
         return <>{hasPrices ? formatUsd(row.totalCost) : '--'}</>;
       case 'apiKeyHash':

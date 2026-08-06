@@ -22,6 +22,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.cache_read_tokens_short': 'Cache Read',
     'monitoring.cache_write_tokens_short': 'Cache Write',
     'monitoring.column_endpoint': 'Endpoint',
+    'monitoring.column_client_ip': 'Client IP',
     'monitoring.column_error': 'Error',
     'monitoring.column_latency': 'Latency',
     'monitoring.column_model': 'Model',
@@ -51,11 +52,14 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.request_status': 'Status',
     'monitoring.result_failed': 'Failed',
     'monitoring.result_success': 'Success',
+    'monitoring.security_policy': 'Security Policy',
+    'monitoring.security_audit_error': 'Security Audit Error',
     'monitoring.output_tokens_short': 'Output',
     'monitoring.page_size_label': 'Per page',
     'monitoring.page_size_label_short': 'Rows',
     'monitoring.page_size_option': '{{count}} / page',
-    'monitoring.pagination_info': 'Page {{current}} / {{total}} · Showing {{start}}-{{end}} / {{count}}',
+    'monitoring.pagination_info':
+      'Page {{current}} / {{total}} · Showing {{start}}-{{end}} / {{count}}',
     'monitoring.pagination_jump_label': 'Jump to page',
     'monitoring.pagination_jump_prefix': 'Go to',
     'monitoring.pagination_jump_suffix': 'page',
@@ -233,6 +237,30 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('rate limit exceeded');
   });
 
+  it('renders security audit rejections as security policy records', () => {
+    const markup = renderPanel(
+      baseRow({
+        failed: true,
+        successRate: 0,
+        executorType: 'security_policy',
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        totalCost: 0,
+        latencyMs: 18,
+        ttftMs: null,
+        failStatusCode: 403,
+        failSummary: 'security_audit_blocked: Qwen3Guard rejected the request',
+      })
+    );
+
+    expect(markup).toContain('Security Policy');
+    expect(markup).not.toContain('>Failed</span>');
+    expect(markup).toContain('HTTP 403');
+    expect(markup).toContain('security_audit_blocked: Qwen3Guard rejected the request');
+    expect(markup).toContain('Input 0 · Output 0');
+  });
+
   it('renders safe defaults when optional usage fields are missing', () => {
     const markup = renderPanel(baseRow());
 
@@ -261,7 +289,8 @@ describe('RealtimeEventsPanel', () => {
         apiKeyLabel: 'Team A',
         apiKeyMasked: 'sk-...cdef',
         executorType: 'codex',
-      })
+      }),
+      { accountDisplayMode: 'full' }
     );
 
     expect(markup).toContain('Source / API Key');
@@ -271,6 +300,29 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('Masked key: sk-...cdef');
     expect(markup).toContain('Executor: codex');
     expect(markup).not.toContain('>Executor: codex<');
+  });
+
+  it('renders the client IP in the realtime table', () => {
+    const markup = renderPanel(baseRow({ clientIp: '203.0.113.12' }));
+
+    expect(markup).toContain('>Client IP</span>');
+    expect(markup).toContain('>203.0.113.12</span>');
+  });
+
+  it('switches API keys between masked and full display with the account privacy control', () => {
+    const row = baseRow({
+      apiKeyHash: '1234567890abcdef',
+      apiKeyLabel: 'sk********ef',
+      apiKeyMasked: 'sk********ef',
+      apiKeyFull: 'sk-very-secret-key',
+    });
+
+    const maskedMarkup = renderPanel(row);
+    const fullMarkup = renderPanel(row, { accountDisplayMode: 'full' });
+
+    expect(maskedMarkup).toContain('API Key: sk********ef');
+    expect(maskedMarkup).not.toContain('sk-very-secret-key');
+    expect(fullMarkup).toContain('API Key: sk-very-secret-key');
   });
 
   it('switches realtime source labels between masked and full display', () => {

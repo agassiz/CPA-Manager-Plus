@@ -16,7 +16,11 @@ import type {
 } from '@/services/api/usageService';
 import type { CredentialInfo } from '@/types/sourceInfo';
 import { buildSourceInfoMap, resolveSourceDisplay } from '@/utils/sourceResolver';
-import { normalizeAuthIndex, type UsageDetailWithEndpoint } from '@/utils/usage';
+import {
+  normalizeAuthIndex,
+  normalizeUsageSourceId,
+  type UsageDetailWithEndpoint,
+} from '@/utils/usage';
 import { formatApiKeyHashLabel, joinUnique, maskAuthIndex, maskEmailLike, readString } from './base';
 import { sanitizeApiKeyDisplayText, type ApiKeyDisplayInfo } from './apiKeys';
 import { buildDayLabel, buildHourLabel, buildLocalDayKey, padNumber } from './range';
@@ -831,7 +835,8 @@ export const buildUsageDetailsFromAnalyticsEvents = (
   items.map((item) => ({
     timestamp: new Date(item.timestamp_ms).toISOString(),
     provider: readString(item.provider),
-    source: readString(item.source),
+    source: normalizeUsageSourceId(item.source),
+    client_ip: readString(item.client_ip),
     auth_index: item.auth_index || null,
     api_key_hash: readString(item.api_key_hash),
     account_snapshot: readString(item.account_snapshot),

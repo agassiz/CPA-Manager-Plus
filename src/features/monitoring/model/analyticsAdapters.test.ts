@@ -3,7 +3,7 @@ import type {
   MonitoringAnalyticsChannelShareRow,
   MonitoringAnalyticsEventRow,
 } from '@/services/api/usageService';
-import { buildSourceInfoMap } from '@/utils/sourceResolver';
+import { buildSourceInfoMap, resolveSourceDisplay } from '@/utils/sourceResolver';
 import {
   buildAnalyticsFilters,
   buildMonitoringAccountFilterValue,
@@ -26,6 +26,7 @@ describe('buildUsageDetailsFromAnalyticsEvents', () => {
         method: 'POST',
         path: '/v1/chat/completions',
         provider: 'codex',
+        client_ip: '203.0.113.12',
         auth_index: 'auth-1',
         source: 'source.json',
         source_hash: 'source-hash',
@@ -55,6 +56,7 @@ describe('buildUsageDetailsFromAnalyticsEvents', () => {
     expect(details[0]).toMatchObject({
       __modelName: 'alias-model',
       __resolvedModel: 'upstream-model',
+      client_ip: '203.0.113.12',
       auth_project_id_snapshot: 'project-1',
       reasoning_effort: 'medium',
       latency_ms: 123,
@@ -104,6 +106,51 @@ describe('buildUsageDetailsFromAnalyticsEvents', () => {
     expect(details[0].tokens.cached_tokens).toBe(5);
     expect(details[0].tokens.cache_read_tokens).toBe(4);
     expect(details[0].tokens.cache_creation_tokens).toBe(1);
+  });
+
+  it('normalizes backend-masked sources so Codex provider names can be resolved', () => {
+    const events: MonitoringAnalyticsEventRow[] = [
+      {
+        event_hash: 'event-codex-name',
+        timestamp_ms: Date.UTC(2026, 7, 5, 0, 32, 31),
+        model: 'gpt-5.6-sol',
+        endpoint: 'POST /v1/responses',
+        method: 'POST',
+        path: '/v1/responses',
+        provider: 'codex',
+        auth_index: '',
+        source: 'sk-6...xwD1',
+        source_hash: 'source-hash',
+        api_key_hash: 'api-key-hash',
+        account_snapshot: '',
+        auth_label_snapshot: '',
+        auth_provider_snapshot: 'codex',
+        input_tokens: 1,
+        output_tokens: 1,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 2,
+        latency_ms: 1,
+        failed: false,
+      },
+    ];
+
+    const [detail] = buildUsageDetailsFromAnalyticsEvents(events);
+    const sourceInfoMap = buildSourceInfoMap({
+      codexApiKeys: [
+        {
+          name: 'Codex Team A',
+          apiKey: 'sk-6123456789xwD1',
+          baseUrl: 'https://api.codex.example/v1',
+        },
+      ],
+    });
+
+    expect(resolveSourceDisplay(detail.source, '', sourceInfoMap, new Map()).displayName).toBe(
+      'Codex Team A'
+    );
   });
 });
 

@@ -932,6 +932,7 @@ export interface MonitoringAnalyticsRecentFailure {
 
 export interface MonitoringAnalyticsEventRow {
   request_id?: string;
+  client_ip?: string;
   event_hash: string;
   timestamp_ms: number;
   model: string;
@@ -2127,6 +2128,7 @@ const buildFallbackMonitoringEvents = (
       source: monitoringText(detail.source),
       source_hash: sourceHash,
       api_key_hash: apiKeyHash,
+      client_ip: monitoringText(detail.client_ip),
       provider: monitoringText(detail.provider),
       account_snapshot: monitoringText(detail.account_snapshot),
       auth_label_snapshot: monitoringText(detail.auth_label_snapshot || detail.auth_file_snapshot),

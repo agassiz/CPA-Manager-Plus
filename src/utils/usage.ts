@@ -54,6 +54,7 @@ export interface UsageTokens {
 
 export interface UsageDetail {
   timestamp: string;
+  client_ip?: string;
   provider?: string;
   source: string;
   auth_index: string | number | null;

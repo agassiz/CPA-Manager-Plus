@@ -140,6 +140,8 @@
     "model_prices_short": "定價",
     "config_management": "設定面板",
     "logs": "記錄檢視",
+    "security_audit": "安全審計",
+    "security_audit_short": "安全",
     "system_info": "系統資訊"
   },
   "dashboard": {
@@ -1596,6 +1598,8 @@
     "service_tier_fast": "快速",
     "executor_type": "執行器類型",
     "executor_type_short": "執行器",
+    "security_policy": "安全策略",
+    "security_audit_error": "安全審計異常",
     "fail_status_code": "失敗狀態碼",
     "fail_status_code_short": "HTTP",
     "fail_body": "失敗內容",
@@ -1988,6 +1992,7 @@
     "column_model": "模型",
     "column_status": "狀態",
     "column_endpoint": "介面",
+    "column_client_ip": "用戶端 IP",
     "column_provider_channel": "提供方 / 渠道",
     "column_error": "錯誤",
     "request_type": "請求類型",

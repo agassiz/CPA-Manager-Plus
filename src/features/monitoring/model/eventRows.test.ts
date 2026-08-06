@@ -43,6 +43,12 @@ describe('buildEventRows', () => {
     expect(row.tokensPerSecond).toBeCloseTo(20 / 1.5);
   });
 
+  it('keeps the client IP for the realtime table', () => {
+    const [row] = buildRows({ client_ip: '203.0.113.12' });
+
+    expect(row.clientIp).toBe('203.0.113.12');
+  });
+
   it('does not let TTFT change output tokens per second', () => {
     const [withoutTTFT] = buildRows({ ttft_ms: undefined });
     const [smallTTFT] = buildRows({ ttft_ms: 100 });
@@ -126,5 +132,19 @@ describe('buildEventRows', () => {
 
     expect(row.source).toBe('Codex Team A');
     expect(row.sourceMasked).toBe('Codex Team A');
+  });
+
+  it('prefers API key auth labels over masked key account snapshots', () => {
+    const [row] = buildRows({
+      source: 'm:sk******D1',
+      auth_index: '8ab16cb30d5b41f3',
+      account_snapshot: 'sk-6...xwD1',
+      auth_label_snapshot: 'codex-测试',
+      auth_provider_snapshot: 'codex',
+    });
+
+    expect(row.source).toBe('codex-测试');
+    expect(row.sourceMasked).toBe('codex-测试');
+    expect(row.account).toBe('sk-6...xwD1');
   });
 });

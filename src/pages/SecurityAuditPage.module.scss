@@ -1,0 +1,29 @@
+@use '../styles/variables.scss' as *;
+
+.page { display: flex; flex-direction: column; gap: $spacing-lg; width: 100%; }
+.header { display: flex; justify-content: space-between; gap: $spacing-lg; align-items: flex-start; h1 { margin: 0; color: var(--text-primary); } p { margin: $spacing-xs 0 0; color: var(--text-secondary); } }
+.actions { display: flex; gap: $spacing-sm; align-items: center; }
+.tabs { display: flex; gap: $spacing-xs; border-bottom: 1px solid var(--app-border); button { border: 0; background: transparent; color: var(--text-secondary); padding: 10px 14px; font-weight: 600; border-bottom: 2px solid transparent; } button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); } }
+.stack { display: flex; flex-direction: column; gap: $spacing-lg; }
+.cardBody { padding: $spacing-lg; display: flex; flex-direction: column; gap: $spacing-md; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $spacing-md; }
+.modeHint, .databasePath { padding: $spacing-sm $spacing-md; border-radius: $radius-md; background: var(--surface-subtle); color: var(--text-secondary); font-size: 13px; }
+.databasePath { font-family: monospace; overflow-wrap: anywhere; }
+.ruleRow { display: grid; grid-template-columns: auto minmax(130px, .55fr) minmax(240px, 1fr) auto; gap: $spacing-sm; align-items: center; }
+.monospace { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.scanners { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: $spacing-sm; label { color: var(--text-secondary); font-size: 13px; } }
+.tableWrap { overflow-x: auto; table { width: 100%; border-collapse: collapse; } th, td { padding: 10px 12px; border-bottom: 1px solid var(--app-border); text-align: left; vertical-align: top; font-size: 13px; } th { color: var(--text-secondary); white-space: nowrap; } }
+.preview { max-width: 360px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.badge { display: inline-flex; border-radius: $radius-full; padding: 2px 8px; background: var(--surface-subtle); font-weight: 600; }
+.block, .error { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
+.flag { color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 12%, transparent); }
+.pass { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+.muted, .empty { color: var(--text-secondary); }
+.empty { text-align: center; padding: $spacing-xl; }
+
+@media (max-width: $breakpoint-mobile) {
+  .header { flex-direction: column; }
+  .grid, .scanners { grid-template-columns: 1fr; }
+  .ruleRow { grid-template-columns: auto 1fr; > :nth-child(3) { grid-column: 1 / -1; } }
+}
+

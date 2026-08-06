@@ -67,12 +67,15 @@ export const buildEventRows = (
         detail.auth_provider_snapshot ?? detail.authProviderSnapshot
       );
       const snapshotDisplay = snapshotAccount || snapshotLabel;
+      const apiKeySnapshotLabel =
+        detail.source.startsWith('k:') || detail.source.startsWith('m:') ? snapshotLabel : '';
       const configuredSourceName = isConfiguredProviderSource(sourceMeta.identityKey)
         ? sourceMeta.displayName
         : '';
       const sourceLabel =
         configuredSourceName ||
         authMeta?.label ||
+        apiKeySnapshotLabel ||
         snapshotDisplay ||
         sourceMeta.displayName ||
         authIndex;
@@ -157,6 +160,7 @@ export const buildEventRows = (
         endpoint,
         endpointMethod,
         endpointPath,
+        clientIp: readString(detail.client_ip),
         sourceKey,
         source: sourceLabel,
         sourceMasked,
@@ -169,6 +173,7 @@ export const buildEventRows = (
         apiKeyHash,
         apiKeyLabel,
         apiKeyMasked,
+        apiKeyFull: apiKeyDisplay?.full || undefined,
         provider: authMeta?.provider || snapshotProvider || sourceMeta.type || '-',
         planType: authMeta?.planType || '-',
         channel: channelLabel,
@@ -206,6 +211,7 @@ export const buildEventRows = (
           channelMeta?.host,
           endpointPath,
           endpointMethod,
+          detail.client_ip,
           authMeta?.provider || snapshotProvider,
           authMeta?.planType,
           resolvedModel,

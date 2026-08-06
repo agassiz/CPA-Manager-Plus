@@ -151,6 +151,7 @@ export type MonitoringEventRow = {
   endpoint: string;
   endpointMethod: string;
   endpointPath: string;
+  clientIp?: string;
   sourceKey: string;
   source: string;
   sourceMasked: string;
@@ -163,6 +164,7 @@ export type MonitoringEventRow = {
   apiKeyHash: string;
   apiKeyLabel: string;
   apiKeyMasked: string;
+  apiKeyFull?: string;
   provider: string;
   planType: string;
   channel: string;

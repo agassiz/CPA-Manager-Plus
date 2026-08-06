@@ -33,6 +33,7 @@ import {
   IconSidebarStore,
   IconSidebarSystem,
   IconSidebarUsage,
+	IconShield,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -72,6 +73,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   config: <IconSidebarConfig size={SIDEBAR_ICON_SIZE} />,
   logs: <IconSidebarLogs size={SIDEBAR_ICON_SIZE} />,
   system: <IconSidebarSystem size={SIDEBAR_ICON_SIZE} />,
+  securityAudit: <IconShield size={SIDEBAR_ICON_SIZE} />,
 };
 
 function PluginSidebarIcon({ src }: { src: string }) {
@@ -526,6 +528,12 @@ export function MainLayout() {
       })
     : [];
   const operationFeatureNavItems: NavItem[] = [
+    {
+      path: '/security-audit',
+      label: t('nav.security_audit', { defaultValue: '安全审计' }),
+      shortLabel: t('nav.security_audit_short', { defaultValue: '安全' }),
+      icon: sidebarIcons.securityAudit,
+    },
     ...(featureAvailability.requestMonitoringAvailable
       ? [
           {

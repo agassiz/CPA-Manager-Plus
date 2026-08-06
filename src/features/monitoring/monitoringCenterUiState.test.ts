@@ -98,6 +98,7 @@ describe('monitoringCenterUiState', () => {
   it('keeps source and endpoint in default realtime columns without auth index', () => {
     expect(DEFAULT_REALTIME_COLUMNS).toContain('source');
     expect(DEFAULT_REALTIME_COLUMNS).toContain('endpoint');
+    expect(DEFAULT_REALTIME_COLUMNS).toContain('clientIp');
     expect(DEFAULT_REALTIME_COLUMNS).not.toContain('authIndex');
     expect(REALTIME_COLUMN_KEYS).toEqual(
       expect.arrayContaining(['source', 'endpoint', 'authIndex'])
@@ -111,6 +112,26 @@ describe('monitoringCenterUiState', () => {
         'model',
         'endpoint',
         'authIndex',
+        'reasoning',
+        'recent',
+        'status',
+        'successRate',
+        'totalCalls',
+        'tps',
+        'latency',
+        'time',
+        'usage',
+        'cost',
+      ])
+    ).toEqual([...DEFAULT_REALTIME_COLUMNS]);
+  });
+
+  it('migrates the previous realtime default columns to include client IP', () => {
+    expect(
+      normalizeRealtimeColumns([
+        'source',
+        'model',
+        'endpoint',
         'reasoning',
         'recent',
         'status',
