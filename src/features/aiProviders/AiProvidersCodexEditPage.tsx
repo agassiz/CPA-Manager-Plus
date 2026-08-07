@@ -17,7 +17,6 @@ import { modelsApi, providersApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { normalizeAuthIndex } from '@/utils/authIndex';
 import {
   areKeyValueEntriesEqual,
   areModelEntriesEqual,
@@ -75,7 +74,6 @@ const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) 
 type CodexFormBaseline = {
   name: string;
   apiKey: string;
-  authIndex: string;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -90,7 +88,6 @@ type CodexFormBaseline = {
 const buildCodexBaseline = (form: ProviderFormState): CodexFormBaseline => ({
   name: String(form.name ?? '').trim(),
   apiKey: String(form.apiKey ?? '').trim(),
-  authIndex: normalizeAuthIndex(form.authIndex) ?? '',
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -181,7 +178,6 @@ export function AiProvidersCodexEditPage() {
       models: form.modelEntries,
       formHeaders: form.headers,
       apiKey: form.apiKey,
-      authIndex: form.authIndex,
     },
     connectivityMessages
   );
@@ -286,7 +282,6 @@ export function AiProvidersCodexEditPage() {
   const isDirty =
     baseline.name !== String(form.name ?? '').trim() ||
     baseline.apiKey !== form.apiKey.trim() ||
-    baseline.authIndex !== (normalizeAuthIndex(form.authIndex) ?? '') ||
     baseline.priority !== normalizedPriority ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
@@ -394,8 +389,7 @@ export function AiProvidersCodexEditPage() {
       const list = await modelsApi.fetchV1ModelsViaApiCall(
         form.baseUrl ?? '',
         hasCustomAuthorization ? undefined : apiKey,
-        headerObject,
-        normalizeAuthIndex(form.authIndex) ?? undefined
+        headerObject
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -409,7 +403,7 @@ export function AiProvidersCodexEditPage() {
         setModelDiscoveryFetching(false);
       }
     }
-  }, [form.apiKey, form.authIndex, form.baseUrl, form.headers, t]);
+  }, [form.apiKey, form.baseUrl, form.headers, t]);
 
   useEffect(() => {
     if (!modelDiscoveryOpen) {
@@ -433,8 +427,7 @@ export function AiProvidersCodexEditPage() {
       (key) => key.toLowerCase() === 'authorization'
     );
     const hasApiKeyField = Boolean(form.apiKey.trim());
-    const hasAuthIndex = Boolean(normalizeAuthIndex(form.authIndex));
-    const canAutoFetch = hasApiKeyField || hasCustomAuthorization || hasAuthIndex;
+    const canAutoFetch = hasApiKeyField || hasCustomAuthorization;
 
     if (!canAutoFetch) return;
 
@@ -442,7 +435,7 @@ export function AiProvidersCodexEditPage() {
       .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
       .map(([key, value]) => `${key}:${value}`)
       .join('|');
-    const signature = `${nextEndpoint}||${form.apiKey.trim()}||${normalizeAuthIndex(form.authIndex) ?? ''}||${headerSignature}`;
+    const signature = `${nextEndpoint}||${form.apiKey.trim()}||${headerSignature}`;
     if (autoFetchSignatureRef.current === signature) return;
     autoFetchSignatureRef.current = signature;
 
@@ -450,7 +443,6 @@ export function AiProvidersCodexEditPage() {
   }, [
     fetchCodexModelDiscovery,
     form.apiKey,
-    form.authIndex,
     form.baseUrl,
     form.headers,
     modelDiscoveryOpen,
@@ -531,7 +523,6 @@ export function AiProvidersCodexEditPage() {
         headers: buildHeaderObject(form.headers),
         models: entriesToModels(form.modelEntries),
         excludedModels: parseExcludedModels(form.excludedText),
-        authIndex: normalizeAuthIndex(form.authIndex) ?? undefined,
       };
 
       const nextList =
@@ -637,12 +628,6 @@ export function AiProvidersCodexEditPage() {
               autoComplete="new-password"
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
-              disabled={disableControls || saving || connectivity.isTestingAny}
-            />
-            <Input
-              label={t('providersPage.detail.fields.authIndex')}
-              value={form.authIndex ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
               disabled={disableControls || saving || connectivity.isTestingAny}
             />
             <div className={styles.providerInlineFields}>

@@ -168,14 +168,6 @@ export function AdditionalProviderSection({
                   <span className={styles.fieldValue}>{resource.baseUrl}</span>
                 </div>
               ) : null}
-              {resource.authIndex ? (
-                <div className={styles.fieldRow}>
-                  <span className={styles.fieldLabel}>
-                    {t('providersPage.detail.fields.authIndex')}:
-                  </span>
-                  <span className={styles.fieldValue}>{resource.authIndex}</span>
-                </div>
-              ) : null}
               {headerEntries.length > 0 ? (
                 <div className={styles.headerBadgeList}>
                   {headerEntries.map(([key, value]) => (

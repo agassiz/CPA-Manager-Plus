@@ -24,7 +24,6 @@ export interface UseModelDiscoveryArgs {
   apiKeyEntries?: ApiKeyEntryInput[];
   apiKey?: string;
   fallbackApiKey?: string;
-  authIndex?: string;
 }
 
 export interface UseModelDiscoveryResult {
@@ -38,7 +37,7 @@ export interface UseModelDiscoveryResult {
 }
 
 export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscoveryResult {
-  const { brand, baseUrl, formHeaders, apiKeyEntries, apiKey, fallbackApiKey, authIndex } = args;
+  const { brand, baseUrl, formHeaders, apiKeyEntries, apiKey, fallbackApiKey } = args;
 
   const available = isModelDiscoveryBrand(brand);
   const [loading, setLoading] = useState(false);
@@ -52,7 +51,6 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
     setError(null);
     try {
       const baseHeaders = buildHeaderObject(formHeaders);
-      const resolvedAuthIndex = (authIndex ?? '').trim() || undefined;
       let next: ModelInfo[] = [];
       if (brand === 'gemini') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
@@ -60,7 +58,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseUrl,
           key,
           baseHeaders,
-          resolvedAuthIndex
+          undefined
         );
       } else if (brand === 'codex' || brand === 'xai') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
@@ -68,7 +66,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseUrl,
           key,
           baseHeaders,
-          resolvedAuthIndex
+          undefined
         );
       } else if (brand === 'claude' || brand === 'claudeApi') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
@@ -76,22 +74,20 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseUrl,
           key,
           baseHeaders,
-          resolvedAuthIndex
+          undefined
         );
       } else if (brand === 'openaiCompatibility') {
         const firstEntry = (apiKeyEntries ?? []).find(
           (e) =>
-            (e.apiKey ?? '').trim() || (e.existingApiKey ?? '').trim() || (e.authIndex ?? '').trim()
+            (e.apiKey ?? '').trim() || (e.existingApiKey ?? '').trim()
         );
         const entryKey =
           (firstEntry?.apiKey ?? '').trim() || (firstEntry?.existingApiKey ?? '').trim();
-        const entryAuthIndex = (firstEntry?.authIndex ?? '').trim() || resolvedAuthIndex;
         try {
           next = await modelsApi.fetchModelsViaApiCall(
             baseUrl,
             entryKey,
-            baseHeaders,
-            entryAuthIndex
+            baseHeaders
           );
         } catch (firstErr) {
           // Some OpenAI-compatible endpoints expose /models without auth, or
@@ -113,7 +109,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
     } finally {
       setLoading(false);
     }
-  }, [available, apiKey, apiKeyEntries, authIndex, baseUrl, brand, fallbackApiKey, formHeaders]);
+  }, [available, apiKey, apiKeyEntries, baseUrl, brand, fallbackApiKey, formHeaders]);
 
   const reset = useCallback(() => {
     setModels([]);
@@ -125,17 +121,16 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
   const inputSignature = useMemo(() => {
     const headerSig = formHeaders.map((h) => `${h.key}:${h.value}`).join('|');
     const entriesSig = (apiKeyEntries ?? [])
-      .map((e) => `${e.apiKey ?? ''}::${e.existingApiKey ?? ''}::${e.authIndex ?? ''}`)
+      .map((e) => `${e.apiKey ?? ''}::${e.existingApiKey ?? ''}`)
       .join('|');
     return [
       baseUrl,
       apiKey ?? '',
       fallbackApiKey ?? '',
-      authIndex ?? '',
       headerSig,
       entriesSig,
     ].join('||');
-  }, [apiKey, apiKeyEntries, authIndex, baseUrl, fallbackApiKey, formHeaders]);
+  }, [apiKey, apiKeyEntries, baseUrl, fallbackApiKey, formHeaders]);
 
   const lastSignatureRef = useRef(inputSignature);
   useEffect(() => {

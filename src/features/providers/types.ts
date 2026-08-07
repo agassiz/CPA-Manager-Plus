@@ -90,6 +90,7 @@ export interface ProviderResource {
   apiKeyPreview: string | null;
   /** 用于 selector 的真实 apiKey;OpenAI 因为多密钥这里返回 null */
   apiKey: string | null;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex: string | null;
   baseUrl: string | null;
   proxyUrl: string | null;
@@ -162,6 +163,7 @@ export interface ApiKeyEntryInput {
   apiKey: string;
   existingApiKey?: string;
   proxyUrl: string;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
 }
 
@@ -177,7 +179,7 @@ export interface ProviderEntryFormInput {
   apiKey: string;
   /** OpenAI 必填,其余 brand 不展示 */
   name: string;
-  /** 可选的后端认证索引 */
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
   baseUrl: string;
   proxyUrl: string;

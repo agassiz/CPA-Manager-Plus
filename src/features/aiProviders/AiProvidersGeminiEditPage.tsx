@@ -17,7 +17,6 @@ import { modelsApi, providersApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { GeminiKeyConfig } from '@/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { normalizeAuthIndex } from '@/utils/authIndex';
 import {
   areKeyValueEntriesEqual,
   areModelEntriesEqual,
@@ -71,7 +70,6 @@ const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) 
 
 type GeminiFormBaseline = {
   apiKey: string;
-  authIndex: string;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -84,7 +82,6 @@ type GeminiFormBaseline = {
 
 const buildGeminiBaseline = (form: GeminiFormState): GeminiFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
-  authIndex: normalizeAuthIndex(form.authIndex) ?? '',
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -246,7 +243,6 @@ export function AiProvidersGeminiEditPage() {
       models: form.modelEntries,
       formHeaders: form.headers,
       apiKey: form.apiKey,
-      authIndex: form.authIndex,
     },
     connectivityMessages
   );
@@ -326,8 +322,7 @@ export function AiProvidersGeminiEditPage() {
       const list = await modelsApi.fetchGeminiModelsViaApiCall(
         form.baseUrl ?? '',
         form.apiKey.trim() || undefined,
-        headerObject,
-        normalizeAuthIndex(form.authIndex) ?? undefined
+        headerObject
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -353,7 +348,7 @@ export function AiProvidersGeminiEditPage() {
         setModelDiscoveryFetching(false);
       }
     }
-  }, [form.apiKey, form.authIndex, form.baseUrl, form.headers, t]);
+  }, [form.apiKey, form.baseUrl, form.headers, t]);
 
   useEffect(() => {
     if (!modelDiscoveryOpen) {
@@ -378,8 +373,7 @@ export function AiProvidersGeminiEditPage() {
       (key) => key.toLowerCase() === 'authorization'
     );
     const hasApiKeyField = Boolean(form.apiKey.trim());
-    const hasAuthIndex = Boolean(normalizeAuthIndex(form.authIndex));
-    const canAutoFetch = hasApiKeyField || hasCustomXGoogApiKey || hasAuthorization || hasAuthIndex;
+    const canAutoFetch = hasApiKeyField || hasCustomXGoogApiKey || hasAuthorization;
 
     if (!canAutoFetch) return;
 
@@ -387,7 +381,7 @@ export function AiProvidersGeminiEditPage() {
       .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
       .map(([key, value]) => `${key}:${value}`)
       .join('|');
-    const signature = `${nextEndpoint}||${form.apiKey.trim()}||${normalizeAuthIndex(form.authIndex) ?? ''}||${headerSignature}`;
+    const signature = `${nextEndpoint}||${form.apiKey.trim()}||${headerSignature}`;
     if (autoFetchSignatureRef.current === signature) return;
     autoFetchSignatureRef.current = signature;
 
@@ -395,7 +389,6 @@ export function AiProvidersGeminiEditPage() {
   }, [
     fetchGeminiModelDiscovery,
     form.apiKey,
-    form.authIndex,
     form.baseUrl,
     form.headers,
     modelDiscoveryOpen,
@@ -479,7 +472,6 @@ export function AiProvidersGeminiEditPage() {
   );
   const isDirty =
     baseline.apiKey !== form.apiKey.trim() ||
-    baseline.authIndex !== (normalizeAuthIndex(form.authIndex) ?? '') ||
     baseline.priority !== normalizedPriority ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
@@ -525,7 +517,6 @@ export function AiProvidersGeminiEditPage() {
         models: entriesToModels(normalizedModelEntries),
         excludedModels: parseExcludedModels(form.excludedText),
         disableCooling: Boolean(form.disableCooling),
-        authIndex: normalizeAuthIndex(form.authIndex) ?? undefined,
       };
 
       const nextList =
@@ -621,12 +612,6 @@ export function AiProvidersGeminiEditPage() {
               placeholder={t('ai_providers.gemini_add_modal_key_placeholder')}
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
-              disabled={disableControls || saving || connectivity.isTestingAny}
-            />
-            <Input
-              label={t('providersPage.detail.fields.authIndex')}
-              value={form.authIndex ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, authIndex: e.target.value }))}
               disabled={disableControls || saving || connectivity.isTestingAny}
             />
             <div className={styles.providerInlineFields}>

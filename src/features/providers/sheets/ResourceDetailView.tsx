@@ -111,7 +111,6 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
   ];
 
   const metadata: Array<[string, string]> = [
-    ['authIndex', resource.authIndex ?? t('providersPage.status.notSet')],
     ['excludedModels', String(resource.excludedModelCount)],
     ['apiKeyEntries', String(resource.apiKeyEntryCount)],
   ];

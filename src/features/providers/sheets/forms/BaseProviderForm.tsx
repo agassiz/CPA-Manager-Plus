@@ -69,7 +69,6 @@ function buildInitialForm(
     return {
       apiKey: '',
       name: '',
-      authIndex: '',
       baseUrl:
         brand === 'claudeApi' ? CLAUDE_API_BASE_URL : brand === 'xai' ? XAI_API_BASE_URL : '',
       proxyUrl: '',
@@ -104,7 +103,6 @@ function buildInitialForm(
     return {
       apiKey: '',
       name: cfg.name ?? '',
-      authIndex: cfg.authIndex ?? '',
       baseUrl: cfg.baseUrl ?? '',
       proxyUrl: '',
       prefix: cfg.prefix ?? '',
@@ -129,11 +127,10 @@ function buildInitialForm(
       chatCompletionsOnly: cfg.chatCompletionsOnly === true,
       apiKeyEntries: cfg.apiKeyEntries?.length
         ? cfg.apiKeyEntries.map((entry) => ({
-            apiKey: '',
-            existingApiKey: entry.apiKey,
-            proxyUrl: entry.proxyUrl ?? '',
-            authIndex: entry.authIndex,
-          }))
+          apiKey: '',
+          existingApiKey: entry.apiKey,
+          proxyUrl: entry.proxyUrl ?? '',
+        }))
         : [emptyApiKeyEntry()],
     };
   }
@@ -145,7 +142,6 @@ function buildInitialForm(
     // 编辑时显示为密码掩码，点击眼睛可以查看；保存时仍按原值更新。
     apiKey: cfg.apiKey ?? '',
     name: cfg.name ?? '',
-    authIndex: cfg.authIndex ?? '',
     baseUrl: cfg.baseUrl ?? '',
     proxyUrl: cfg.proxyUrl ?? '',
     prefix: cfg.prefix ?? '',
@@ -225,11 +221,6 @@ export function BaseProviderForm({
     return (resource.raw as { apiKey?: string } | undefined)?.apiKey ?? '';
   }, [brand, mode, resource]);
 
-  const fallbackAuthIndex = useMemo(() => {
-    if (mode !== 'edit' || !resource) return '';
-    return (resource.raw as { authIndex?: string } | undefined)?.authIndex ?? '';
-  }, [mode, resource]);
-
   const connectivityMessages = useMemo<ConnectivityErrorMessages>(
     () => ({
       baseUrlRequired: t('providersPage.connectivity.baseUrlRequired'),
@@ -252,7 +243,6 @@ export function BaseProviderForm({
       apiKeyEntries: form.apiKeyEntries,
       apiKey: form.apiKey,
       fallbackApiKey,
-      authIndex: fallbackAuthIndex,
     },
     connectivityMessages
   );
@@ -264,7 +254,6 @@ export function BaseProviderForm({
     apiKeyEntries: form.apiKeyEntries,
     apiKey: form.apiKey,
     fallbackApiKey,
-    authIndex: fallbackAuthIndex,
   });
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
 
@@ -506,22 +495,6 @@ export function BaseProviderForm({
                 {showSingleApiKey ? <IconEyeOff size={16} /> : <IconEye size={16} />}
               </button>
             </div>
-          </div>
-        ) : null}
-
-        {descriptor.supportsApiKey ? (
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-authIndex`}>
-              {t('providersPage.detail.fields.authIndex')}
-            </label>
-            <input
-              id={`${fid}-authIndex`}
-              className={styles.input}
-              value={form.authIndex ?? ''}
-              onChange={(e) => updateField('authIndex', e.target.value)}
-              placeholder="auth-index"
-              disabled={mutating}
-            />
           </div>
         ) : null}
 

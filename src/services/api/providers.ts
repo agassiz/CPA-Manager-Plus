@@ -21,6 +21,8 @@ const serializeHeaders = (headers?: Record<string, string>) => (headers && Objec
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
+// Legacy configuration responses could contain runtime auth indexes. Treat them
+// as known fields solely so saves remove them instead of preserving stale values.
 const AUTH_INDEX_FIELDS = ['auth-index', 'authIndex', 'auth_index'] as const;
 
 const PROVIDER_KEY_FIELDS = [
@@ -143,8 +145,6 @@ const getStringField = (record: Record<string, unknown>, keys: readonly string[]
 };
 
 const providerKeyIdentity = (record: Record<string, unknown>) => {
-  const authIndex = getStringField(record, AUTH_INDEX_FIELDS);
-  if (authIndex) return `auth-index\u0000${authIndex}`;
   const apiKey = getStringField(record, ['api-key', 'apiKey']);
   if (!apiKey) return '';
   const baseUrl = getStringField(record, ['base-url', 'baseUrl', 'base_url']);
@@ -158,7 +158,6 @@ const modelIdentity = (record: Record<string, unknown>) =>
   getStringField(record, ['name', 'id', 'model']);
 
 const apiKeyEntryIdentity = (record: Record<string, unknown>) =>
-  getStringField(record, AUTH_INDEX_FIELDS) ||
   getStringField(record, ['api-key', 'apiKey', 'key']);
 
 const cloneWithoutKnownFields = (
@@ -391,17 +390,10 @@ const serializeModelAliases = (models?: ModelAlias[], includeOpenAIFields = fals
         .filter(Boolean)
     : undefined;
 
-const serializeAuthIndex = (value?: string) => {
-  const trimmed = String(value ?? '').trim();
-  return trimmed || undefined;
-};
-
 const serializeApiKeyEntry = (entry: ApiKeyEntry) => {
   const payload: Record<string, unknown> = {};
   const apiKey = entry.apiKey?.trim();
   if (apiKey) payload['api-key'] = apiKey;
-  const authIndex = serializeAuthIndex(entry.authIndex);
-  if (authIndex) payload['auth-index'] = authIndex;
   if (entry.proxyUrl) payload['proxy-url'] = entry.proxyUrl;
   const headers = serializeHeaders(entry.headers);
   if (headers) payload.headers = headers;
@@ -413,8 +405,6 @@ const serializeProviderKey = (config: ProviderKeyConfig) => {
   if (config.name?.trim()) payload.name = config.name.trim();
   const apiKey = config.apiKey?.trim();
   if (apiKey) payload['api-key'] = apiKey;
-  const authIndex = serializeAuthIndex(config.authIndex);
-  if (authIndex) payload['auth-index'] = authIndex;
   if (config.priority !== undefined) payload.priority = config.priority;
   if (config.prefix?.trim()) payload.prefix = config.prefix.trim();
   if (config.baseUrl) payload['base-url'] = config.baseUrl;
@@ -468,8 +458,6 @@ const serializeVertexKey = (config: ProviderKeyConfig) => {
   const payload: Record<string, unknown> = {};
   const apiKey = config.apiKey?.trim();
   if (apiKey) payload['api-key'] = apiKey;
-  const authIndex = serializeAuthIndex(config.authIndex);
-  if (authIndex) payload['auth-index'] = authIndex;
   if (config.priority !== undefined) payload.priority = config.priority;
   if (config.prefix?.trim()) payload.prefix = config.prefix.trim();
   if (config.baseUrl) payload['base-url'] = config.baseUrl;
@@ -489,8 +477,6 @@ const serializeGeminiKey = (config: GeminiKeyConfig) => {
   const payload: Record<string, unknown> = {};
   const apiKey = config.apiKey?.trim();
   if (apiKey) payload['api-key'] = apiKey;
-  const authIndex = serializeAuthIndex(config.authIndex);
-  if (authIndex) payload['auth-index'] = authIndex;
   if (config.priority !== undefined) payload.priority = config.priority;
   if (config.prefix?.trim()) payload.prefix = config.prefix.trim();
   if (config.baseUrl) payload['base-url'] = config.baseUrl;
@@ -514,8 +500,6 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
       ? provider.apiKeyEntries.map((entry) => serializeApiKeyEntry(entry))
       : []
   };
-  const authIndex = serializeAuthIndex(provider.authIndex);
-  if (authIndex) payload['auth-index'] = authIndex;
   if (provider.prefix?.trim()) payload.prefix = provider.prefix.trim();
   if (provider.disabled !== undefined) payload.disabled = provider.disabled;
   const headers = serializeHeaders(provider.headers);

@@ -14,7 +14,6 @@ import type { ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import type { ModelEntry, ProviderFormState } from '@/components/providers/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { normalizeAuthIndex } from '@/utils/authIndex';
 import {
   areKeyValueEntriesEqual,
   areModelEntriesEqual,
@@ -57,7 +56,6 @@ export type ClaudeEditOutletContext = {
 const buildEmptyForm = (): ProviderFormState => ({
   name: '',
   apiKey: '',
-  authIndex: '',
   priority: undefined,
   prefix: '',
   baseUrl: '',
@@ -115,7 +113,6 @@ const normalizeCloakConfig = (cloak: ProviderFormState['cloak']) => {
 const buildClaudeBaseline = (form: ProviderFormState): ClaudeEditBaseline => ({
   name: String(form.name ?? '').trim(),
   apiKey: String(form.apiKey ?? '').trim(),
-  authIndex: normalizeAuthIndex(form.authIndex) ?? '',
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -347,7 +344,6 @@ export function AiProvidersClaudeEditLayout() {
     baseline !== null &&
     (baseline.name !== String(form.name ?? '').trim() ||
       baseline.apiKey !== form.apiKey.trim() ||
-      baseline.authIndex !== (normalizeAuthIndex(form.authIndex) ?? '') ||
       baseline.priority !== normalizedPriority ||
       baseline.prefix !== String(form.prefix ?? '').trim() ||
       baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
@@ -465,7 +461,6 @@ export function AiProvidersClaudeEditLayout() {
         cloak: form.cloak,
         experimentalCCHSigning: form.experimentalCCHSigning ?? false,
         disableCooling: form.disableCooling === true,
-        authIndex: normalizeAuthIndex(form.authIndex) ?? undefined,
       };
 
       const nextList =

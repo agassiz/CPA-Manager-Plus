@@ -24,7 +24,6 @@ export type ClaudeCloakBaseline = {
 export type ClaudeEditBaseline = {
   name: string;
   apiKey: string;
-  authIndex: string;
   priority: number | null;
   prefix: string;
   baseUrl: string;

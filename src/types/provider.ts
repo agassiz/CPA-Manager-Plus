@@ -16,6 +16,7 @@ export interface ApiKeyEntry {
   apiKey: string;
   proxyUrl?: string;
   headers?: Record<string, string>;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
 }
 
@@ -37,6 +38,7 @@ export interface GeminiKeyConfig {
   headers?: Record<string, string>;
   excludedModels?: string[];
   disableCooling?: boolean;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
 }
 
@@ -55,6 +57,7 @@ export interface ProviderKeyConfig {
   cloak?: CloakConfig;
   experimentalCCHSigning?: boolean;
   experimentalCchSigning?: boolean;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
 }
 
@@ -70,6 +73,7 @@ export interface OpenAIProviderConfig {
   priority?: number;
   testModel?: string;
   disableCooling?: boolean;
+  /** Legacy UI compatibility only; not persisted in provider configuration. */
   authIndex?: string;
   sourceIndex?: number;
   [key: string]: unknown;

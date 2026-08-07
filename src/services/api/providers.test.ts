@@ -21,8 +21,8 @@ beforeEach(() => {
   mocks.put.mockReset();
 });
 
-describe('providersApi auth-index preservation', () => {
-  it('serializes auth-index-only provider keys and preserves unknown raw fields', async () => {
+describe('providersApi provider config serialization', () => {
+  it('removes legacy auth-index fields while preserving unknown raw fields', async () => {
     mocks.get.mockResolvedValue({
       'codex-api-key': [
         {
@@ -38,8 +38,7 @@ describe('providersApi auth-index preservation', () => {
 
     await providersApi.saveCodexConfigs([
       {
-        apiKey: '',
-        authIndex: 'auth-1',
+        apiKey: 'old-key',
         baseUrl: 'https://new.example.com/v1',
         models: [{ name: 'new-model', alias: 'alias' }],
       },
@@ -48,7 +47,7 @@ describe('providersApi auth-index preservation', () => {
     expect(mocks.put).toHaveBeenCalledWith('/codex-api-key', [
       {
         'raw-field': 'keep',
-        'auth-index': 'auth-1',
+        'api-key': 'old-key',
         'base-url': 'https://new.example.com/v1',
         models: [{ name: 'new-model', alias: 'alias', 'raw-model-field': true }],
       },
@@ -76,7 +75,7 @@ describe('providersApi auth-index preservation', () => {
     ]);
   });
 
-  it('serializes OpenAI auth-index entries and preserves raw provider fields', async () => {
+  it('removes legacy OpenAI auth-index entries and preserves raw provider fields', async () => {
     mocks.get.mockResolvedValue({
       'openai-compatibility': [
         {
@@ -99,7 +98,7 @@ describe('providersApi auth-index preservation', () => {
       {
         name: 'openai-compatible',
         baseUrl: 'https://api.example.com/v1',
-        apiKeyEntries: [{ apiKey: '', authIndex: 'auth-2' }],
+        apiKeyEntries: [{ apiKey: 'old-key' }],
         chatCompletionsOnly: true,
       },
     ]);
@@ -110,7 +109,7 @@ describe('providersApi auth-index preservation', () => {
         name: 'openai-compatible',
         'base-url': 'https://api.example.com/v1',
         'chat-completions-only': true,
-        'api-key-entries': [{ 'raw-entry-field': 'keep-entry', 'auth-index': 'auth-2' }],
+        'api-key-entries': [{ 'raw-entry-field': 'keep-entry', 'api-key': 'old-key' }],
       },
     ]);
   });
@@ -159,9 +158,9 @@ describe('providersApi auth-index preservation', () => {
     mocks.get.mockRejectedValue(new Error('forbidden'));
     mocks.put.mockResolvedValue({});
 
-    await providersApi.saveGeminiKeys([{ apiKey: '', authIndex: 'auth-3' }]);
+    await providersApi.saveGeminiKeys([{ apiKey: 'gemini-key' }]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/gemini-api-key', [{ 'auth-index': 'auth-3' }]);
+    expect(mocks.put).toHaveBeenCalledWith('/gemini-api-key', [{ 'api-key': 'gemini-key' }]);
   });
 
   it('serializes Claude cache optimization fields', async () => {

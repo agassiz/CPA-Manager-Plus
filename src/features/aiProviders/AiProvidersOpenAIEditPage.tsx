@@ -14,7 +14,6 @@ import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useNotificationStore } from '@/stores';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import type { ApiKeyEntry } from '@/types';
-import { normalizeAuthIndex } from '@/utils/authIndex';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
 import { buildApiKeyEntry, buildOpenAIChatCompletionsEndpoint } from '@/components/providers/utils';
 import type { OpenAIEditOutletContext } from './AiProvidersOpenAIEditLayout';
@@ -144,9 +143,7 @@ export function AiProvidersOpenAIEditPage() {
     !invalidIndex &&
     !isTestingKeys;
   const hasConfiguredModels = form.modelEntries.some((entry) => entry.name.trim());
-  const hasTestableKeys = form.apiKeyEntries.some(
-    (entry) => entry.apiKey?.trim() || normalizeAuthIndex(entry.authIndex)
-  );
+  const hasTestableKeys = form.apiKeyEntries.some((entry) => entry.apiKey?.trim());
   const modelSelectOptions = useMemo(() => {
     const seen = new Set<string>();
     return form.modelEntries.reduce<Array<{ value: string; label: string }>>((acc, entry) => {
@@ -204,8 +201,7 @@ export function AiProvidersOpenAIEditPage() {
       }
 
       const keyEntry = form.apiKeyEntries[keyIndex];
-      const keyAuthIndex = normalizeAuthIndex(keyEntry?.authIndex) ?? undefined;
-      if (!keyEntry?.apiKey?.trim() && !keyAuthIndex) {
+      if (!keyEntry?.apiKey?.trim()) {
         setDraftKeyTestStatus(keyIndex, {
           status: 'error',
           message: t('notification.openai_test_key_required'),
@@ -225,9 +221,7 @@ export function AiProvidersOpenAIEditPage() {
         ...customHeaders,
       };
       if (!hasHeader(headers, 'authorization')) {
-        headers.Authorization = keyAuthIndex
-          ? 'Bearer $TOKEN$'
-          : `Bearer ${keyEntry.apiKey.trim()}`;
+        headers.Authorization = `Bearer ${keyEntry.apiKey.trim()}`;
       }
 
       // Set loading state for this key
@@ -236,7 +230,6 @@ export function AiProvidersOpenAIEditPage() {
       try {
         const result = await apiCallApi.request(
           {
-            authIndex: keyAuthIndex,
             method: 'POST',
             url: endpoint,
             header: Object.keys(headers).length ? headers : undefined,
@@ -327,9 +320,7 @@ export function AiProvidersOpenAIEditPage() {
     }
 
     const validKeyIndexes = form.apiKeyEntries
-      .map((entry, index) =>
-        entry.apiKey?.trim() || normalizeAuthIndex(entry.authIndex) ? index : -1
-      )
+      .map((entry, index) => (entry.apiKey?.trim() ? index : -1))
       .filter((index) => index >= 0);
     if (validKeyIndexes.length === 0) {
       const message = t('notification.openai_test_key_required');
@@ -456,9 +447,7 @@ export function AiProvidersOpenAIEditPage() {
           {/* 数据行 */}
           {list.map((entry, index) => {
             const keyStatus = keyTestStatuses[index]?.status ?? 'idle';
-            const canTestKey =
-              Boolean(entry.apiKey?.trim() || normalizeAuthIndex(entry.authIndex)) &&
-              hasConfiguredModels;
+            const canTestKey = Boolean(entry.apiKey?.trim()) && hasConfiguredModels;
 
             return (
               <div key={index} className={styles.keyTableRow}>
@@ -516,14 +505,6 @@ export function AiProvidersOpenAIEditPage() {
                         )}
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      value={entry.authIndex ?? ''}
-                      onChange={(e) => updateEntry(index, 'authIndex', e.target.value)}
-                      disabled={saving || disableControls || isTestingKeys}
-                      className={`input ${styles.keyTableInput}`}
-                      placeholder={t('providersPage.detail.fields.authIndex')}
-                    />
                   </div>
                 </div>
 

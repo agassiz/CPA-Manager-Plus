@@ -81,7 +81,6 @@ const getKeyConfigSearchValues = (
 ): string[] =>
   compactSearchValues([
     config.apiKey,
-    config.authIndex,
     config.proxyUrl,
     config.prefix,
     ...Object.entries(config.headers ?? {}).flat(),
@@ -90,12 +89,10 @@ const getKeyConfigSearchValues = (
 
 const getOpenAIProviderSearchValues = (config: OpenAIProviderConfig): string[] =>
   compactSearchValues([
-    config.authIndex,
     config.prefix,
     ...Object.entries(config.headers ?? {}).flat(),
     ...(config.apiKeyEntries ?? []).flatMap((entry) => [
       entry.apiKey,
-      entry.authIndex,
       entry.proxyUrl,
       ...Object.entries(entry.headers ?? {}).flat(),
     ]),
@@ -915,7 +912,6 @@ export function AiProvidersPage() {
           searchValues: compactSearchValues([
             resource.identifier,
             resource.apiKey,
-            resource.authIndex,
             resource.proxyUrl,
             resource.prefix,
             ...credentials.flatMap((entry) => [entry.apiKey, entry.proxyUrl]),

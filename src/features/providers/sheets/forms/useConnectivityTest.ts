@@ -60,7 +60,6 @@ export interface UseConnectivityTestArgs {
   apiKeyEntries?: ApiKeyEntryInput[];
   apiKey?: string;
   fallbackApiKey?: string;
-  authIndex?: string;
 }
 
 export interface ConnectivityErrorMessages {
@@ -98,7 +97,6 @@ export function useConnectivityTest(
     apiKeyEntries,
     apiKey,
     fallbackApiKey,
-    authIndex,
   } = args;
 
   const entriesCount = apiKeyEntries?.length ?? 0;
@@ -117,7 +115,6 @@ export function useConnectivityTest(
         [
           entry.apiKey ?? '',
           entry.existingApiKey ?? '',
-          entry.authIndex ?? '',
           entry.proxyUrl ?? '',
         ].join('||')
       ),
@@ -153,11 +150,10 @@ export function useConnectivityTest(
       (testModel ?? '').trim(),
       apiKey ?? '',
       fallbackApiKey ?? '',
-      authIndex ?? '',
       h,
       m,
     ].join('||');
-  }, [apiKey, authIndex, baseUrl, fallbackApiKey, testModel, formHeaders, models]);
+  }, [apiKey, baseUrl, fallbackApiKey, testModel, formHeaders, models]);
 
   const lastSignatureRef = useRef(signature);
   useEffect(() => {
@@ -199,9 +195,7 @@ export function useConnectivityTest(
       }
       const entry = apiKeyEntries?.[idx];
       const entryKey = (entry?.apiKey ?? '').trim() || (entry?.existingApiKey ?? '').trim();
-      const resolvedAuthIndex =
-        (entry?.authIndex ?? '').trim() || (authIndex ?? '').trim() || undefined;
-      if (!entryKey && !resolvedAuthIndex) {
+      if (!entryKey) {
         updateOpenaiStatus(idx, {
           state: 'error',
           message: messages.apiKeyRequired,
@@ -224,8 +218,6 @@ export function useConnectivityTest(
       if (!hasHeader(headerObj, 'authorization')) {
         if (entryKey) {
           headerObj.Authorization = `Bearer ${entryKey}`;
-        } else if (resolvedAuthIndex) {
-          headerObj.Authorization = 'Bearer $TOKEN$';
         }
       }
 
@@ -234,7 +226,6 @@ export function useConnectivityTest(
       try {
         const result = await apiCallApi.request(
           {
-            authIndex: resolvedAuthIndex,
             method: 'POST',
             url: endpoint,
             header: headerObj,
@@ -264,7 +255,6 @@ export function useConnectivityTest(
     },
     [
       apiKeyEntries,
-      authIndex,
       baseUrl,
       brand,
       formHeaders,
@@ -308,9 +298,8 @@ export function useConnectivityTest(
     const persistedKey = (fallbackApiKey ?? '').trim();
     const hasAuthorization = hasHeader(customHeaders, 'authorization');
     const resolvedKey = explicitKey || persistedKey;
-    const resolvedAuthIndex = (authIndex ?? '').trim() || undefined;
 
-    if (!resolvedKey && !hasAuthorization && !resolvedAuthIndex) {
+    if (!resolvedKey && !hasAuthorization) {
       setCodexStatus({ state: 'error', message: messages.apiKeyRequired });
       return;
     }
@@ -322,8 +311,6 @@ export function useConnectivityTest(
     if (!hasHeader(headerObj, 'authorization')) {
       if (resolvedKey) {
         headerObj.Authorization = `Bearer ${resolvedKey}`;
-      } else if (resolvedAuthIndex) {
-        headerObj.Authorization = 'Bearer $TOKEN$';
       }
     }
 
@@ -332,7 +319,6 @@ export function useConnectivityTest(
     try {
       const result = await apiCallApi.request(
         {
-          authIndex: resolvedAuthIndex,
           method: 'POST',
           url: endpoint,
           header: headerObj,
@@ -356,7 +342,7 @@ export function useConnectivityTest(
     } finally {
       setInFlight((n) => n - 1);
     }
-  }, [apiKey, authIndex, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
 
   const runGemini = useCallback(async (): Promise<void> => {
     if (brand !== 'gemini') return;
@@ -378,9 +364,8 @@ export function useConnectivityTest(
     const persistedKey = (fallbackApiKey ?? '').trim();
     const hasApiKeyHeader = hasHeader(customHeaders, 'x-goog-api-key');
     const resolvedKey = explicitKey || persistedKey;
-    const resolvedAuthIndex = (authIndex ?? '').trim() || undefined;
 
-    if (!resolvedKey && !hasApiKeyHeader && !resolvedAuthIndex) {
+    if (!resolvedKey && !hasApiKeyHeader) {
       setGeminiStatus({ state: 'error', message: messages.apiKeyRequired });
       return;
     }
@@ -392,8 +377,6 @@ export function useConnectivityTest(
     if (!hasHeader(headerObj, 'x-goog-api-key')) {
       if (resolvedKey) {
         headerObj['x-goog-api-key'] = resolvedKey;
-      } else if (resolvedAuthIndex) {
-        headerObj['x-goog-api-key'] = '$TOKEN$';
       }
     }
 
@@ -402,7 +385,6 @@ export function useConnectivityTest(
     try {
       const result = await apiCallApi.request(
         {
-          authIndex: resolvedAuthIndex,
           method: 'POST',
           url: endpoint,
           header: headerObj,
@@ -425,7 +407,7 @@ export function useConnectivityTest(
     } finally {
       setInFlight((n) => n - 1);
     }
-  }, [apiKey, authIndex, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
 
   const runClaude = useCallback(async (): Promise<void> => {
     if (brand !== 'claude' && brand !== 'claudeApi') return;
@@ -447,9 +429,8 @@ export function useConnectivityTest(
     const headerKey = resolveBearerToken(customHeaders);
     const hasApiKeyHeader = hasHeader(customHeaders, 'x-api-key');
     const resolvedKey = explicitKey || persistedKey || headerKey;
-    const resolvedAuthIndex = (authIndex ?? '').trim() || undefined;
 
-    if (!resolvedKey && !hasApiKeyHeader && !resolvedAuthIndex) {
+    if (!resolvedKey && !hasApiKeyHeader) {
       setClaudeStatus({ state: 'error', message: messages.apiKeyRequired });
       return;
     }
@@ -463,8 +444,6 @@ export function useConnectivityTest(
     }
     if (!hasApiKeyHeader && resolvedKey) {
       headerObj['x-api-key'] = resolvedKey;
-    } else if (!hasApiKeyHeader && resolvedAuthIndex) {
-      headerObj['x-api-key'] = '$TOKEN$';
     }
 
     setClaudeStatus({ state: 'loading', message: '' });
@@ -472,7 +451,6 @@ export function useConnectivityTest(
     try {
       const result = await apiCallApi.request(
         {
-          authIndex: resolvedAuthIndex,
           method: 'POST',
           url: endpoint,
           header: headerObj,
@@ -496,7 +474,7 @@ export function useConnectivityTest(
     } finally {
       setInFlight((n) => n - 1);
     }
-  }, [apiKey, authIndex, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
 
   return {
     openaiStatuses,

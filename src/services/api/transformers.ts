@@ -119,22 +119,13 @@ const normalizePrefix = (value: unknown): string | undefined => {
   return trimmed ? trimmed : undefined;
 };
 
-const normalizeAuthIndex = (value: unknown): string | undefined => {
-  if (value === undefined || value === null) return undefined;
-  const trimmed = String(value).trim();
-  return trimmed ? trimmed : undefined;
-};
-
 const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
   if (entry === undefined || entry === null) return null;
   const record = isRecord(entry) ? entry : null;
   const apiKey =
     record?.['api-key'] ?? record?.apiKey ?? record?.key ?? (typeof entry === 'string' ? entry : '');
   const trimmed = String(apiKey || '').trim();
-  const authIndex = normalizeAuthIndex(
-    record?.['auth-index'] ?? record?.authIndex ?? record?.['auth_index']
-  );
-  if (!trimmed && !authIndex) return null;
+  if (!trimmed) return null;
 
   const proxyUrl = record ? record['proxy-url'] ?? record.proxyUrl : undefined;
   const headers = record ? normalizeHeaders(record.headers) : undefined;
@@ -144,7 +135,6 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
     proxyUrl: proxyUrl ? String(proxyUrl) : undefined,
     headers
   };
-  if (authIndex) result.authIndex = authIndex;
   return result;
 };
 
@@ -153,10 +143,7 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   const record = isRecord(item) ? item : null;
   const apiKey = record?.['api-key'] ?? record?.apiKey ?? (typeof item === 'string' ? item : '');
   const trimmed = String(apiKey || '').trim();
-  const authIndex = normalizeAuthIndex(
-    record?.['auth-index'] ?? record?.authIndex ?? record?.['auth_index']
-  );
-  if (!trimmed && !authIndex) return null;
+  if (!trimmed) return null;
 
   const config: ProviderKeyConfig = { apiKey: trimmed };
   const name = record?.name ?? record?.['name'];
@@ -199,8 +186,6 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
     record?.['disable-cooling'] ?? record?.disableCooling ?? record?.disable_cooling
   );
   if (disableCooling !== undefined) config.disableCooling = disableCooling;
-  if (authIndex) config.authIndex = authIndex;
-
   const cloakRaw = record?.cloak;
   if (isRecord(cloakRaw)) {
     const cloak: CloakConfig = {};
@@ -242,10 +227,7 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
     apiKey = item;
   }
   const trimmed = String(apiKey || '').trim();
-  const authIndex = normalizeAuthIndex(
-    record?.['auth-index'] ?? record?.authIndex ?? record?.['auth_index']
-  );
-  if (!trimmed && !authIndex) return null;
+  if (!trimmed) return null;
 
   const config: GeminiKeyConfig = { apiKey: trimmed };
   const priority = record?.priority ?? record?.['priority'];
@@ -271,7 +253,6 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
     record?.['disable-cooling'] ?? record?.disableCooling ?? record?.disable_cooling
   );
   if (disableCooling !== undefined) config.disableCooling = disableCooling;
-  if (authIndex) config.authIndex = authIndex;
   return config;
 };
 
@@ -323,10 +304,6 @@ const normalizeOpenAIProvider = (
   );
   if (disableCooling !== undefined) result.disableCooling = disableCooling;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;
-  const authIndex = normalizeAuthIndex(
-    provider['auth-index'] ?? provider.authIndex ?? provider['auth_index']
-  );
-  if (authIndex) result.authIndex = authIndex;
   return result;
 };
 
