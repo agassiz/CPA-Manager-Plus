@@ -1583,6 +1583,7 @@
     "output_tokens": "輸出 Tokens",
     "output_tokens_short": "輸出",
     "reasoning_tokens": "推理 Tokens",
+    "reasoning_tokens_short": "思考",
     "cached_tokens": "快取 Tokens",
     "cache_total_tokens": "讀寫快取 Tokens",
     "cache_total_tokens_short": "快取 Tokens",

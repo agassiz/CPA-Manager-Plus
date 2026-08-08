@@ -316,9 +316,15 @@ const buildRealtimeTokenSummaryLines = (row: MonitoringEventRow, t: TFunction) =
   const cacheWriteTokens = row.cacheCreationTokens;
   const cacheHitDenominator = row.inputTokens + cacheWriteTokens + cacheReadTokens;
   const cacheHitRate = cacheHitDenominator > 0 ? cacheReadTokens / cacheHitDenominator : 0;
+  const outputTotalTokens = row.outputTokens + row.reasoningTokens;
   const inputOutputLine = [
     `${shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens', 'Input')} ${formatCompactNumber(row.inputTokens)}`,
-    `${shortLabel(t, 'monitoring.output_tokens_short', 'monitoring.output_tokens', 'Output')} ${formatCompactNumber(row.outputTokens)}`,
+    `${shortLabel(t, 'monitoring.output_tokens_short', 'monitoring.output_tokens', 'Output')} ${formatCompactNumber(outputTotalTokens)}`,
+    ...(row.reasoningTokens > 0
+      ? [
+          `${shortLabel(t, 'monitoring.reasoning_tokens_short', 'monitoring.reasoning_tokens', 'Reasoning')} ${formatCompactNumber(row.reasoningTokens)}`,
+        ]
+      : []),
   ].join(' · ');
   const cacheLine = [
     `${t('monitoring.cache_hit_rate')} ${formatPercent(cacheHitRate)}`,

@@ -42,6 +42,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.log_rows': 'Rows',
     'monitoring.reasoning_effort': 'Effort',
     'monitoring.reasoning_effort_short': 'Effort',
+    'monitoring.reasoning_tokens_short': 'Reasoning',
     'monitoring.recent_failures': 'Failures',
     'monitoring.recent_status': 'Recent',
     'monitoring.realtime_columns_config': 'Field Settings',
@@ -227,7 +228,7 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('Elapsed');
     expect(markup).toContain('1.5 s');
     expect(markup).toContain('20');
-    expect(markup).toContain('Input 10 · Output 20');
+    expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
     expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4 · Cache Write 1');
     expect(markup).toContain('role="tooltip"');
     expect(markup).toContain('aria-describedby=');
@@ -258,7 +259,7 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).not.toContain('>Failed</span>');
     expect(markup).toContain('HTTP 403');
     expect(markup).toContain('security_audit_blocked: Qwen3Guard rejected the request');
-    expect(markup).toContain('Input 0 · Output 0');
+    expect(markup).toContain('Input 0 · Output 3 · Reasoning 3');
   });
 
   it('renders safe defaults when optional usage fields are missing', () => {
@@ -273,7 +274,7 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toMatch(/TTFT<\/span><span class="[^"]+">｜<\/span><span class="[^"]+">Elapsed/);
     expect(markup).toContain(expectedDate);
     expect(markup).toContain(expectedTime);
-    expect(markup).toContain('Input 10 · Output 20');
+    expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
     expect(markup).toContain('Cache Hit Rate 33.3% · Cache Read 5 · Cache Write 0');
     expect(markup).not.toContain('Cache Read 0');
     expect(markup).not.toContain('Create 0');

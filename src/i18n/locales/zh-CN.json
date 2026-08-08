@@ -1565,6 +1565,7 @@
     "output_tokens": "输出 Tokens",
     "output_tokens_short": "输出",
     "reasoning_tokens": "推理 Tokens",
+    "reasoning_tokens_short": "思考",
     "cached_tokens": "缓存 Tokens",
     "cache_total_tokens": "读写缓存 Tokens",
     "cache_total_tokens_short": "缓存 Tokens",
