@@ -43,9 +43,7 @@ const mountUseVisualConfig = (): UseVisualConfigHarness => {
 describe('useVisualConfig', () => {
   it('round-trips the Responses compact fallback model', () => {
     const harness = mountUseVisualConfig();
-    const yaml = ['codex:', '  responses-compact-fallback-model: claude-sonnet-4-6', ''].join(
-      '\n'
-    );
+    const yaml = ['codex:', '  responses-compact-fallback-model: claude-sonnet-4-6', ''].join('\n');
 
     act(() => {
       const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
@@ -56,14 +54,61 @@ describe('useVisualConfig', () => {
     );
 
     act(() => {
-      harness
-        .getCurrent()
-        .setVisualValues({ responsesCompactFallbackModel: 'claude-opus-4-6' });
+      harness.getCurrent().setVisualValues({ responsesCompactFallbackModel: 'claude-opus-4-6' });
     });
 
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).toContain('codex:');
     expect(savedYaml).toContain('responses-compact-fallback-model: claude-opus-4-6');
+
+    harness.unmount();
+  });
+
+  it('round-trips Codex model context window overrides and rejects invalid entries', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'codex:',
+      '  model-context-window-overrides:',
+      '    claude-opus-4-8: 272000',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexModelContextWindowOverrides).toHaveLength(1);
+    expect(harness.getCurrent().visualValues.codexModelContextWindowOverrides[0]).toMatchObject({
+      model: 'claude-opus-4-8',
+      contextWindow: '272000',
+    });
+
+    act(() => {
+      harness.getCurrent().setVisualValues({
+        codexModelContextWindowOverrides: [
+          { id: 'gpt', model: 'gpt-5.5', contextWindow: '200000' },
+        ],
+      });
+    });
+    expect(
+      harness.getCurrent().visualValidationErrors.codexModelContextWindowOverrides
+    ).toBeUndefined();
+    expect(harness.getCurrent().visualDirty).toBe(true);
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).toContain('model-context-window-overrides:');
+    expect(savedYaml).toContain('gpt-5.5: 200000');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({
+        codexModelContextWindowOverrides: [
+          { id: 'invalid-1', model: 'gpt-5.5', contextWindow: '0' },
+          { id: 'invalid-2', model: 'gpt-5.5', contextWindow: '200000' },
+        ],
+      });
+    });
+    expect(harness.getCurrent().visualValidationErrors.codexModelContextWindowOverrides).toBe(
+      'invalid_context_window_overrides'
+    );
 
     harness.unmount();
   });

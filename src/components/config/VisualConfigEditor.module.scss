@@ -351,7 +351,6 @@
   @media (max-width: 1024px) {
     min-width: 232px;
     flex: 0 0 auto;
-
   }
 }
 
@@ -458,6 +457,66 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.contextWindowOverrides {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-subtle) 84%, transparent);
+}
+
+.contextWindowOverridesHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contextWindowOverridesTitle {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.contextWindowOverridesHint,
+.contextWindowOverridesEmpty {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.contextWindowOverridesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contextWindowOverrideRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.45fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.contextWindowOverridesError {
+  color: var(--danger-color, #d14343);
+  font-size: 12px;
+}
+
+@include mobile {
+  .contextWindowOverridesHeader,
+  .contextWindowOverrideRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextWindowOverridesHeader {
+    display: grid;
+  }
 }
 
 .divider {

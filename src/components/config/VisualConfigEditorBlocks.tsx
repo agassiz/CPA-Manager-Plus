@@ -1,16 +1,10 @@
-import {
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import styles from './VisualConfigEditor.module.scss';
 import type {
+  CodexContextWindowOverride,
   PayloadFilterRule,
   PayloadHeaderEntry,
   PayloadModelEntry,
@@ -28,6 +22,85 @@ import {
 } from '@/hooks/useVisualConfig';
 
 export { ApiKeysCardEditor } from './ApiKeysCardEditor';
+
+export const CodexContextWindowOverridesEditor = memo(function CodexContextWindowOverridesEditor({
+  value,
+  disabled,
+  error,
+  onChange,
+}: {
+  value: CodexContextWindowOverride[];
+  disabled?: boolean;
+  error?: string;
+  onChange: (next: CodexContextWindowOverride[]) => void;
+}) {
+  const { t } = useTranslation();
+  const addOverride = () =>
+    onChange([...value, { id: makeClientId(), model: '', contextWindow: '' }]);
+  const updateOverride = (id: string, patch: Partial<CodexContextWindowOverride>) =>
+    onChange(value.map((override) => (override.id === id ? { ...override, ...patch } : override)));
+  const removeOverride = (id: string) => onChange(value.filter((override) => override.id !== id));
+
+  return (
+    <div className={styles.contextWindowOverrides}>
+      <div className={styles.contextWindowOverridesHeader}>
+        <div>
+          <div className={styles.contextWindowOverridesTitle}>
+            {t('config_management.visual.sections.network.codex_context_window_overrides')}
+          </div>
+          <div className={styles.contextWindowOverridesHint}>
+            {t('config_management.visual.sections.network.codex_context_window_overrides_hint')}
+          </div>
+        </div>
+        <Button variant="secondary" size="xs" onClick={addOverride} disabled={disabled}>
+          {t('config_management.visual.common.add')}
+        </Button>
+      </div>
+
+      {value.length === 0 ? (
+        <div className={styles.contextWindowOverridesEmpty}>
+          {t('config_management.visual.sections.network.codex_context_window_overrides_empty')}
+        </div>
+      ) : (
+        <div className={styles.contextWindowOverridesList}>
+          {value.map((override) => (
+            <div key={override.id} className={styles.contextWindowOverrideRow}>
+              <input
+                className="input"
+                value={override.model}
+                placeholder="claude-opus-4-8"
+                disabled={disabled}
+                onChange={(event) => updateOverride(override.id, { model: event.target.value })}
+              />
+              <input
+                className="input"
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={override.contextWindow}
+                placeholder="272000"
+                disabled={disabled}
+                onChange={(event) =>
+                  updateOverride(override.id, { contextWindow: event.target.value })
+                }
+              />
+              <Button
+                variant="danger"
+                size="xs"
+                onClick={() => removeOverride(override.id)}
+                disabled={disabled}
+              >
+                {t('config_management.visual.common.delete')}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      {error ? <div className={styles.contextWindowOverridesError}>{error}</div> : null}
+    </div>
+  );
+});
 
 type UsageModelGroup = {
   priority: number;
@@ -112,10 +185,7 @@ export const UsageModelsEditor = memo(function UsageModelsEditor({
 
   const addGroup = () => {
     const nextPriority = groups.length;
-    onChange([
-      ...value,
-      createUsageModel(nextPriority, 1),
-    ]);
+    onChange([...value, createUsageModel(nextPriority, 1)]);
   };
 
   const addModel = (groupPriority = 0) => {
@@ -185,9 +255,7 @@ export const UsageModelsEditor = memo(function UsageModelsEditor({
       </div>
 
       {groups.length === 0 ? (
-        <div className={styles.emptyState}>
-          {t('config_management.visual.usage_models.empty')}
-        </div>
+        <div className={styles.emptyState}>{t('config_management.visual.usage_models.empty')}</div>
       ) : (
         <div className={styles.usageModelsLayout}>
           <div className={styles.usageModelGroups}>
@@ -353,9 +421,7 @@ export const UsageModelsEditor = memo(function UsageModelsEditor({
                         <textarea
                           className={`input ${styles.usageModelTextarea}`}
                           value={model.historySummaryOverrides}
-                          placeholder={t(
-                            'config_management.visual.usage_models.history_overrides'
-                          )}
+                          placeholder={t('config_management.visual.usage_models.history_overrides')}
                           disabled={disabled}
                           onChange={(event) =>
                             updateModel(model.id, {
@@ -384,8 +450,12 @@ export const UsageModelsEditor = memo(function UsageModelsEditor({
                   }`}
                 >
                   <div className={styles.usageModelPreviewName}>
-                    {model.displayName || model.name || t('config_management.visual.usage_models.unnamed')}
-                    {model.isNew ? <span>{t('config_management.visual.usage_models.new_badge')}</span> : null}
+                    {model.displayName ||
+                      model.name ||
+                      t('config_management.visual.usage_models.unnamed')}
+                    {model.isNew ? (
+                      <span>{t('config_management.visual.usage_models.new_badge')}</span>
+                    ) : null}
                   </div>
                   <div className={styles.usageModelPreviewDescription}>
                     {model.description || model.shortName || model.name}
@@ -710,8 +780,7 @@ const PayloadConditionsEditor = memo(function PayloadConditionsEditor({
       return (
         <Select
           value={
-            condition.value.toLowerCase() === 'true' ||
-            condition.value.toLowerCase() === 'false'
+            condition.value.toLowerCase() === 'true' || condition.value.toLowerCase() === 'false'
               ? condition.value.toLowerCase()
               : ''
           }
@@ -810,11 +879,11 @@ const PayloadConditionsEditor = memo(function PayloadConditionsEditor({
 const hasModelAdvancedFields = (model: PayloadModelEntry) =>
   Boolean(
     model.fromProtocol ||
-      (model.headers && model.headers.length > 0) ||
-      (model.match && model.match.length > 0) ||
-      (model.notMatch && model.notMatch.length > 0) ||
-      (model.exist && model.exist.length > 0) ||
-      (model.notExist && model.notExist.length > 0)
+    (model.headers && model.headers.length > 0) ||
+    (model.match && model.match.length > 0) ||
+    (model.notMatch && model.notMatch.length > 0) ||
+    (model.exist && model.exist.length > 0) ||
+    (model.notExist && model.notExist.length > 0)
   );
 
 export const PayloadRulesEditor = memo(function PayloadRulesEditor({

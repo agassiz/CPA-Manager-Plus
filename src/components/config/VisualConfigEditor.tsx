@@ -39,6 +39,7 @@ import type {
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
+  CodexContextWindowOverridesEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
   UsageModelsEditor,
@@ -252,6 +253,10 @@ export function VisualConfigEditor({
     t,
     validationErrors?.['streaming.nonstreamKeepaliveInterval']
   );
+  const codexContextWindowOverridesError = getValidationMessage(
+    t,
+    validationErrors?.codexModelContextWindowOverrides
+  );
 
   const handleApiKeysTextChange = useCallback(
     (apiKeysText: string) => onChange({ apiKeysText }),
@@ -279,6 +284,11 @@ export function VisualConfigEditor({
   );
   const handleUsageModelsChange = useCallback(
     (usageModels: VisualConfigValues['usageModels']) => onChange({ usageModels }),
+    [onChange]
+  );
+  const handleCodexContextWindowOverridesChange = useCallback(
+    (codexModelContextWindowOverrides: VisualConfigValues['codexModelContextWindowOverrides']) =>
+      onChange({ codexModelContextWindowOverrides }),
     [onChange]
   );
 
@@ -335,6 +345,7 @@ export function VisualConfigEditor({
           'maxRetryCredentials',
           'maxRetryInterval',
           'authAutoRefreshWorkers',
+          'codexModelContextWindowOverrides',
         ]),
       },
       {
@@ -982,6 +993,12 @@ export function VisualConfigEditor({
                   onChange={(event) =>
                     onChange({ responsesCompactFallbackModel: event.target.value })
                   }
+                />
+                <CodexContextWindowOverridesEditor
+                  value={values.codexModelContextWindowOverrides}
+                  disabled={disabled}
+                  error={codexContextWindowOverridesError}
+                  onChange={handleCodexContextWindowOverridesChange}
                 />
                 <Input
                   label={t('config_management.visual.sections.network.image_fallback_model')}

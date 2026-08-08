@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { isMap, parse as parseYaml, parseDocument } from 'yaml';
 import type {
+  CodexContextWindowOverride,
   DisableImageGenerationMode,
   UsageModelEntry,
   VisualConfigValues,
@@ -286,6 +287,52 @@ function parseUsageModels(raw: unknown): UsageModelEntry[] {
     );
 }
 
+function parseCodexModelContextWindowOverrides(raw: unknown): CodexContextWindowOverride[] {
+  const overrides = asRecord(raw);
+  if (!overrides) return [];
+
+  return Object.entries(overrides)
+    .map(([model, contextWindow]) => ({
+      id: makeClientId(),
+      model,
+      contextWindow: String(contextWindow ?? ''),
+    }))
+    .sort((left, right) => left.model.localeCompare(right.model));
+}
+
+function hasInvalidCodexModelContextWindowOverrides(
+  overrides: CodexContextWindowOverride[]
+): boolean {
+  const seenModels = new Set<string>();
+  for (const override of overrides) {
+    const model = override.model.trim();
+    const contextWindow = override.contextWindow.trim();
+    if (!model || seenModels.has(model) || !/^\d+$/.test(contextWindow)) return true;
+    const parsed = Number(contextWindow);
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) return true;
+    seenModels.add(model);
+  }
+  return false;
+}
+
+function serializeCodexModelContextWindowOverrides(
+  overrides: CodexContextWindowOverride[]
+): Record<string, number> {
+  return Object.fromEntries(
+    overrides
+      .map((override) => {
+        const model = override.model.trim();
+        const contextWindow = override.contextWindow.trim();
+        const value = Number(contextWindow);
+        if (!model || !/^\d+$/.test(contextWindow) || !Number.isSafeInteger(value) || value <= 0) {
+          return null;
+        }
+        return [model, value] as const;
+      })
+      .filter((entry): entry is readonly [string, number] => entry !== null)
+  );
+}
+
 function parseHistorySummaryOverrides(value: string): unknown {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -342,6 +389,24 @@ function areUsageModelsEqual(left: UsageModelEntry[], right: UsageModelEntry[]):
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 }
 
+function areCodexModelContextWindowOverridesEqual(
+  left: CodexContextWindowOverride[],
+  right: CodexContextWindowOverride[]
+): boolean {
+  const normalize = (overrides: CodexContextWindowOverride[]) =>
+    overrides
+      .map(({ id: _id, model, contextWindow }) => ({
+        model: model.trim(),
+        contextWindow: contextWindow.trim(),
+      }))
+      .sort(
+        (first, second) =>
+          first.model.localeCompare(second.model) ||
+          first.contextWindow.localeCompare(second.contextWindow)
+      );
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+
 export function getVisualConfigValidationErrors(
   values: VisualConfigValues
 ): VisualConfigValidationErrors {
@@ -353,6 +418,11 @@ export function getVisualConfigValidationErrors(
     maxRetryCredentials: getNonNegativeIntegerError(values.maxRetryCredentials),
     maxRetryInterval: getNonNegativeIntegerError(values.maxRetryInterval),
     authAutoRefreshWorkers: getNonNegativeIntegerError(values.authAutoRefreshWorkers),
+    codexModelContextWindowOverrides: hasInvalidCodexModelContextWindowOverrides(
+      values.codexModelContextWindowOverrides
+    )
+      ? 'invalid_context_window_overrides'
+      : undefined,
     kiroPerAccountRpmLimit: getNonNegativeIntegerError(values.kiroPerAccountRpmLimit),
     kiroFreeRpmLimit: getNonNegativeIntegerError(values.kiroFreeRpmLimit),
     kiroProRpmLimit: getNonNegativeIntegerError(values.kiroProRpmLimit),
@@ -655,6 +725,15 @@ function getNextDirtyFields(
       areUsageModelsEqual(nextValues.usageModels, baselineValues.usageModels)
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'codexModelContextWindowOverrides')) {
+    updateDirty(
+      'codexModelContextWindowOverrides',
+      areCodexModelContextWindowOverridesEqual(
+        nextValues.codexModelContextWindowOverrides,
+        baselineValues.codexModelContextWindowOverrides
+      )
+    );
+  }
   if (patch.streaming) {
     const streamingPatch = patch.streaming;
     if (Object.prototype.hasOwnProperty.call(streamingPatch, 'keepaliveSeconds')) {
@@ -812,6 +891,9 @@ export function useVisualConfig() {
           typeof codex?.['responses-compact-fallback-model'] === 'string'
             ? codex['responses-compact-fallback-model']
             : '',
+        codexModelContextWindowOverrides: parseCodexModelContextWindowOverrides(
+          codex?.['model-context-window-overrides']
+        ),
         codexForceSuperCategory: Boolean(codex?.['force-super-category']),
         codexBugMode: Boolean(codex?.['bug-mode'] ?? codex?.bugMode),
         passthroughHeaders: Boolean(parsed['passthrough-headers']),
@@ -1041,12 +1123,7 @@ export function useVisualConfig() {
         setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
         setBooleanInDoc(doc, ['force-model-prefix'], values.forceModelPrefix);
         if (
-          shouldWriteManagedField(
-            doc,
-            ['image-fallback-model'],
-            dirtyFields,
-            'imageFallbackModel'
-          )
+          shouldWriteManagedField(doc, ['image-fallback-model'], dirtyFields, 'imageFallbackModel')
         ) {
           setStringInDoc(doc, ['image-fallback-model'], values.imageFallbackModel);
         }
@@ -1143,9 +1220,11 @@ export function useVisualConfig() {
           values.codexForceSuperCategory ||
           values.codexBugMode ||
           values.responsesCompactFallbackModel.trim() ||
+          values.codexModelContextWindowOverrides.length > 0 ||
           dirtyFields.has('codexForceSuperCategory') ||
           dirtyFields.has('codexBugMode') ||
           dirtyFields.has('responsesCompactFallbackModel') ||
+          dirtyFields.has('codexModelContextWindowOverrides') ||
           dirtyFields.has('codexIdentityConfuse')
         ) {
           ensureMapInDoc(doc, ['codex']);
@@ -1187,6 +1266,23 @@ export function useVisualConfig() {
               ['codex', 'responses-compact-fallback-model'],
               values.responsesCompactFallbackModel
             );
+          }
+          if (
+            shouldWriteManagedField(
+              doc,
+              ['codex', 'model-context-window-overrides'],
+              dirtyFields,
+              'codexModelContextWindowOverrides'
+            )
+          ) {
+            const overrides = serializeCodexModelContextWindowOverrides(
+              values.codexModelContextWindowOverrides
+            );
+            if (Object.keys(overrides).length > 0) {
+              doc.setIn(['codex', 'model-context-window-overrides'], overrides);
+            } else if (docHas(doc, ['codex', 'model-context-window-overrides'])) {
+              doc.deleteIn(['codex', 'model-context-window-overrides']);
+            }
           }
           deleteIfMapEmpty(doc, ['codex']);
         }

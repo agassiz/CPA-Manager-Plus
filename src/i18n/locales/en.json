@@ -2308,6 +2308,9 @@
           "enable_gemini_cli_endpoint_desc": "Enable /v1internal:* compatibility endpoints",
           "codex_compact_fallback_model": "Codex App Compact Fallback Model",
           "codex_compact_fallback_model_hint": "When Codex App requests /responses/compact and the selected credential has no native compact API, generate a context summary through the normal Responses path. Leave empty to use the current chat model, or specify an override such as a Claude model.",
+          "codex_context_window_overrides": "Codex Model Context Overrides",
+          "codex_context_window_overrides_hint": "Exact-match the model slug returned to Codex and rewrite context_window and max_context_window. Unmatched models are unchanged.",
+          "codex_context_window_overrides_empty": "No overrides yet. Add a model slug and maximum context tokens.",
           "image_fallback_model": "Image Request Fallback Model",
           "image_fallback_model_hint": "Use this model when a model marked as non-vision in the embedded catalog receives an image. Shared by OpenAI, Codex, Claude, and Augment. Leave empty to default to gpt-5.6-luna."
         },
@@ -2497,6 +2500,7 @@
         "validation_blocked": "Fix validation errors before saving",
         "port_range": "Enter a valid port between 1 and 65535",
         "non_negative_integer": "Enter a non-negative whole number",
+        "invalid_context_window_overrides": "Each entry needs a unique model slug and a positive whole-number context token count",
         "payload_invalid_number": "Enter a valid number",
         "payload_invalid_boolean": "Choose true or false",
         "payload_invalid_json": "Enter valid JSON"

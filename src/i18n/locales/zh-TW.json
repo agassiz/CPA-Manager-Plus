@@ -2258,6 +2258,9 @@
           "codex_force_super_category": "強制 Codex 超級分類",
           "codex_force_super_category_desc": "必須有可用的超級分類",
           "codex_bug_mode": "Codex Bug 模式",
+          "codex_context_window_overrides": "Codex 模型上下文覆寫",
+          "codex_context_window_overrides_hint": "依 Codex 回傳的模型 slug 精確比對，並覆寫 context_window 與 max_context_window；未比對的模型不受影響。",
+          "codex_context_window_overrides_empty": "尚無覆寫項目。新增模型 slug 和最大上下文 token 數。",
           "passthrough_headers": "透傳上游回應 Header",
           "passthrough_headers_desc": "將過濾後的上游回應 Header 轉發給下游客戶端",
           "disable_claude_cloak_mode": "全域停用 Claude 請求偽裝",
@@ -2399,6 +2402,7 @@
         "validation_blocked": "請先修復表單驗證錯誤再儲存",
         "port_range": "請輸入 1 到 65535 之間的有效連接埠",
         "non_negative_integer": "請輸入非負整數",
+        "invalid_context_window_overrides": "每個項目必須包含唯一模型 slug 和正整數上下文 token 數",
         "payload_invalid_number": "請輸入有效數字",
         "payload_invalid_boolean": "請選擇 true 或 false",
         "payload_invalid_json": "請輸入有效的 JSON"

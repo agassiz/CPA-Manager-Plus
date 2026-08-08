@@ -13,6 +13,7 @@ export type VisualConfigFieldPath =
   | 'maxRetryCredentials'
   | 'maxRetryInterval'
   | 'authAutoRefreshWorkers'
+  | 'codexModelContextWindowOverrides'
   | 'kiroPerAccountRpmLimit'
   | 'kiroFreeRpmLimit'
   | 'kiroProRpmLimit'
@@ -24,7 +25,10 @@ export type VisualConfigFieldPath =
   | 'streaming.bootstrapRetries'
   | 'streaming.nonstreamKeepaliveInterval';
 
-export type VisualConfigValidationErrorCode = 'port_range' | 'non_negative_integer';
+export type VisualConfigValidationErrorCode =
+  | 'port_range'
+  | 'non_negative_integer'
+  | 'invalid_context_window_overrides';
 
 export type VisualConfigValidationErrors = Partial<
   Record<VisualConfigFieldPath, VisualConfigValidationErrorCode>
@@ -89,6 +93,12 @@ export type UsageModelEntry = {
   extra: Record<string, unknown>;
 };
 
+export type CodexContextWindowOverride = {
+  id: string;
+  model: string;
+  contextWindow: string;
+};
+
 export type VisualConfigValues = {
   host: string;
   port: string;
@@ -113,6 +123,7 @@ export type VisualConfigValues = {
   forceModelPrefix: boolean;
   imageFallbackModel: string;
   responsesCompactFallbackModel: string;
+  codexModelContextWindowOverrides: CodexContextWindowOverride[];
   codexForceSuperCategory: boolean;
   codexBugMode: boolean;
   passthroughHeaders: boolean;
@@ -199,6 +210,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   forceModelPrefix: false,
   imageFallbackModel: '',
   responsesCompactFallbackModel: '',
+  codexModelContextWindowOverrides: [],
   codexForceSuperCategory: false,
   codexBugMode: false,
   passthroughHeaders: false,

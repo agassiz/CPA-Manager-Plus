@@ -2261,6 +2261,9 @@
           "enable_gemini_cli_endpoint_desc": "启用 /v1internal:* 兼容端点",
           "codex_compact_fallback_model": "Codex App 压缩回退模型",
           "codex_compact_fallback_model_hint": "当 Codex App 请求 /responses/compact，而当前凭证没有原生压缩接口时，通过普通 Responses 链路生成上下文摘要。留空使用当前聊天模型；填写后使用指定模型，例如 Claude 模型。",
+          "codex_context_window_overrides": "Codex 模型上下文覆盖",
+          "codex_context_window_overrides_hint": "按 Codex 返回的模型 slug 精确匹配，并重写 context_window 与 max_context_window；未匹配模型不受影响。",
+          "codex_context_window_overrides_empty": "暂无覆盖项。添加模型 slug 和最大上下文 token 数。",
           "image_fallback_model": "图片请求回退模型",
           "image_fallback_model_hint": "内置静态模型目录标记为不支持图片的模型收到图片时改走此模型；OpenAI、Codex、Claude 和 Augment 共用，留空默认使用 gpt-5.6-luna。"
         },
@@ -2450,6 +2453,7 @@
         "validation_blocked": "请先修复表单校验错误再保存",
         "port_range": "请输入 1 到 65535 之间的有效端口",
         "non_negative_integer": "请输入非负整数",
+        "invalid_context_window_overrides": "每项必须包含唯一的模型 slug 和正整数上下文 token 数",
         "payload_invalid_number": "请输入有效数字",
         "payload_invalid_boolean": "请选择 true 或 false",
         "payload_invalid_json": "请输入有效的 JSON"
