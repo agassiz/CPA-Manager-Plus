@@ -1011,6 +1011,8 @@
     "refresh_button": "Обновить квоту",
     "fetch_all": "Получить все",
     "monthly_limit": "Месячный лимит биллинга",
+    "included_usage_label": "Включённое использование",
+    "included_usage": "Использовано {{used}}",
     "on_demand_cap": "Лимит on-demand",
     "usage_amount": "{{used}} / {{limit}}",
     "reset_unknown": "сброс неизвестен"

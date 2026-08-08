@@ -1029,6 +1029,8 @@
     "refresh_button": "Refresh Quota",
     "fetch_all": "Fetch All",
     "monthly_limit": "Monthly billing limit",
+    "included_usage_label": "Included usage",
+    "included_usage": "{{used}} used",
     "on_demand_cap": "On-demand cap",
     "usage_amount": "{{used}} / {{limit}}",
     "reset_unknown": "reset unknown"

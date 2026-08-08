@@ -1022,6 +1022,8 @@
     "refresh_button": "刷新额度",
     "fetch_all": "获取全部",
     "monthly_limit": "月度账单限额",
+    "included_usage_label": "包含额度",
+    "included_usage": "已使用 {{used}}",
     "on_demand_cap": "按需上限",
     "usage_amount": "{{used}} / {{limit}}",
     "reset_unknown": "重置时间未知"

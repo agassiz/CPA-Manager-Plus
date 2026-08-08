@@ -25,6 +25,7 @@ export type SuperCategoryGroupCardProps = {
   onDownload: (name: string) => void;
   onOpenPrefixProxyEditor: (file: AuthFileItem) => void;
   onDelete: (name: string) => void;
+  showDeleteAction: boolean;
   onToggleStatus: (file: AuthFileItem, enabled: boolean) => void;
   onToggleSelect: (name: string) => void;
 };
@@ -48,6 +49,7 @@ export function SuperCategoryGroupCard(props: SuperCategoryGroupCardProps) {
     onDownload,
     onOpenPrefixProxyEditor,
     onDelete,
+    showDeleteAction,
     onToggleStatus,
     onToggleSelect,
   } = props;
@@ -153,6 +155,7 @@ export function SuperCategoryGroupCard(props: SuperCategoryGroupCardProps) {
                 onDownload={onDownload}
                 onOpenPrefixProxyEditor={onOpenPrefixProxyEditor}
                 onDelete={onDelete}
+                showDeleteAction={showDeleteAction}
                 onToggleStatus={onToggleStatus}
                 onToggleSelect={onToggleSelect}
               />

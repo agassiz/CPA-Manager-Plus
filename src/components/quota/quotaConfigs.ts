@@ -1008,10 +1008,12 @@ const renderXaiItems = (
   const clampedUsed = usedPercent === null ? null : Math.max(0, Math.min(100, usedPercent));
   const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
   const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
-  const amountLabel = t('xai_quota.usage_amount', {
-    used: formatXaiCurrency(billing.usedCents),
-    limit: formatXaiCurrency(billing.monthlyLimitCents),
-  });
+  const amountLabel = billing.usesIncludedUsage
+    ? t('xai_quota.included_usage', { used: usedPercent === null ? '--' : `${Math.round(usedPercent)}%` })
+    : t('xai_quota.usage_amount', {
+        used: formatXaiCurrency(billing.usedCents),
+        limit: formatXaiCurrency(billing.monthlyLimitCents),
+      });
   const resetLabel = billing.billingPeriodEnd
     ? formatQuotaResetTime(billing.billingPeriodEnd)
     : t('xai_quota.reset_unknown');
@@ -1023,7 +1025,11 @@ const renderXaiItems = (
       h(
         'div',
         { className: styleMap.quotaRowHeader },
-        h('span', { className: styleMap.quotaModel }, t('xai_quota.monthly_limit')),
+        h(
+          'span',
+          { className: styleMap.quotaModel },
+          t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit')
+        ),
         h(
           'div',
           { className: styleMap.quotaMeta },

@@ -262,17 +262,21 @@ export const buildAuthFileTableQuotaItems = (
   if (quotaType === 'xai') {
     const billing = getXaiTableQuotaBilling(quota as XaiQuotaState);
     if (!billing) return [];
-    const amountLabel = t('xai_quota.usage_amount', {
-      used: formatXaiCurrencyCents(billing.usedCents),
-      limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
-    });
+    const amountLabel = billing.usesIncludedUsage
+      ? t('xai_quota.included_usage', {
+          used: billing.usedPercent === null ? '--' : `${Math.round(billing.usedPercent)}%`,
+        })
+      : t('xai_quota.usage_amount', {
+          used: formatXaiCurrencyCents(billing.usedCents),
+          limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
+        });
     const resetLabel = billing.billingPeriodEnd
       ? formatQuotaResetTime(billing.billingPeriodEnd)
       : t('xai_quota.reset_unknown');
     pushProgress(
       items,
       'monthly',
-      t('xai_quota.monthly_limit'),
+      t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'),
       usedPercentToRemaining(billing.usedPercent),
       `${amountLabel} · ${resetLabel}`
     );
@@ -567,15 +571,19 @@ export const getAuthFileTableQuotaItems = (
   return [
     {
       id: 'monthly-limit',
-      label: t('xai_quota.monthly_limit'),
+      label: t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'),
       percent: usedPercentToRemaining(billing.usedPercent),
       resetLabel: billing.billingPeriodEnd
         ? formatQuotaResetTime(billing.billingPeriodEnd)
         : t('xai_quota.reset_unknown'),
-      detailLabel: t('xai_quota.usage_amount', {
-        used: formatXaiCurrencyCents(billing.usedCents),
-        limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
-      }),
+      detailLabel: billing.usesIncludedUsage
+        ? t('xai_quota.included_usage', {
+            used: billing.usedPercent === null ? '--' : `${Math.round(billing.usedPercent)}%`,
+          })
+        : t('xai_quota.usage_amount', {
+            used: formatXaiCurrencyCents(billing.usedCents),
+            limit: formatXaiCurrencyCents(billing.monthlyLimitCents),
+          }),
     },
   ];
 };

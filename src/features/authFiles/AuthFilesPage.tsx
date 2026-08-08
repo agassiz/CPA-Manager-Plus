@@ -985,6 +985,16 @@ export function AuthFilesPage() {
       ? t('auth_files.delete_all_button')
       : `${t('common.delete')} ${getTypeLabel(t, normalizedFilter)}`;
   })();
+  const showHeaderDeleteButton =
+    selectionCount === 0 &&
+    !(
+      normalizedFilter === 'all' &&
+      !problemOnly &&
+      !disabledOnly &&
+      !healthyOnly &&
+      codexStatusFilter === 'all' &&
+      problemTypeFilter === 'all'
+    );
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1053,34 +1063,36 @@ export function AuthFilesPage() {
                 >
                   {t('auth_files.upload_button')}
                 </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() =>
-                    handleDeleteAll({
-                      filter: normalizedFilter,
-                      problemOnly,
-                      disabledOnly,
-                      healthyOnly,
-                      filteredFiles:
-                        codexStatusFilter !== 'all' || problemTypeFilter !== 'all'
-                          ? filtered
-                          : undefined,
-                      onResetFilterToAll: () => setFilter('all'),
-                      onResetProblemOnly: () => setProblemOnly(false),
-                      onResetDisabledOnly: () => setDisabledOnly(false),
-                      onResetHealthyOnly: () => setHealthyOnly(false),
-                      onResetResultFilters: () => {
-                        setCodexStatusFilter('all');
-                        setProblemTypeFilter('all');
-                      },
-                    })
-                  }
-                  disabled={disableControls || loading || deletingAll}
-                  loading={deletingAll}
-                >
-                  {deleteAllButtonLabel}
-                </Button>
+                {showHeaderDeleteButton ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() =>
+                      handleDeleteAll({
+                        filter: normalizedFilter,
+                        problemOnly,
+                        disabledOnly,
+                        healthyOnly,
+                        filteredFiles:
+                          codexStatusFilter !== 'all' || problemTypeFilter !== 'all'
+                            ? filtered
+                            : undefined,
+                        onResetFilterToAll: () => setFilter('all'),
+                        onResetProblemOnly: () => setProblemOnly(false),
+                        onResetDisabledOnly: () => setDisabledOnly(false),
+                        onResetHealthyOnly: () => setHealthyOnly(false),
+                        onResetResultFilters: () => {
+                          setCodexStatusFilter('all');
+                          setProblemTypeFilter('all');
+                        },
+                      })
+                    }
+                    disabled={disableControls || loading || deletingAll}
+                    loading={deletingAll}
+                  >
+                    {deleteAllButtonLabel}
+                  </Button>
+                ) : null}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1337,6 +1349,7 @@ export function AuthFilesPage() {
                     onDownload={handleDownload}
                     onOpenPrefixProxyEditor={openPrefixProxyEditor}
                     onDelete={handleDelete}
+                    showDeleteAction={selectionCount === 0}
                     onToggleStatus={handleStatusToggle}
                     onToggleSelect={toggleSelect}
                   />
@@ -1363,6 +1376,7 @@ export function AuthFilesPage() {
                       onDownload={handleDownload}
                       onOpenPrefixProxyEditor={openPrefixProxyEditor}
                       onDelete={handleDelete}
+                      showDeleteAction={selectionCount === 0}
                       onToggleStatus={handleStatusToggle}
                       onToggleSelect={toggleSelect}
                     />

@@ -812,13 +812,17 @@ const buildXaiAccountQuotaWindows = (
 ): AccountQuotaWindow[] => [
   {
     id: 'monthly-limit',
-    label: t('xai_quota.monthly_limit'),
+    label: t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'),
     remainingPercent: buildRemainingFromUsedPercent(billing.usedPercent),
     resetLabel: billing.billingPeriodEnd ? formatQuotaResetTime(billing.billingPeriodEnd) : '-',
-    usageLabel: t('xai_quota.usage_amount', {
-      used: formatXaiCurrency(billing.usedCents),
-      limit: formatXaiCurrency(billing.monthlyLimitCents),
-    }),
+    usageLabel: billing.usesIncludedUsage
+      ? t('xai_quota.included_usage', {
+          used: billing.usedPercent === null ? '--' : `${Math.round(billing.usedPercent)}%`,
+        })
+      : t('xai_quota.usage_amount', {
+          used: formatXaiCurrency(billing.usedCents),
+          limit: formatXaiCurrency(billing.monthlyLimitCents),
+        }),
   },
 ];
 

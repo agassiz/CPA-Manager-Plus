@@ -86,6 +86,30 @@ describe('AuthFileCard', () => {
     expect(renderCard(file, false)).toContain('upstream failed');
   });
 
+  it('批量选择期间隐藏单项删除按钮', () => {
+    const html = renderToStaticMarkup(
+      <AuthFileCard
+        file={{ name: 'codex-selected.json', type: 'codex' }}
+        compact
+        selected
+        resolvedTheme="light"
+        disableControls={false}
+        deleting={null}
+        statusUpdating={{}}
+        statusBarCache={new Map()}
+        onShowModels={vi.fn()}
+        onDownload={vi.fn()}
+        onOpenPrefixProxyEditor={vi.fn()}
+        onDelete={vi.fn()}
+        showDeleteAction={false}
+        onToggleStatus={vi.fn()}
+        onToggleSelect={vi.fn()}
+      />
+    );
+
+    expect(html).not.toContain('title="删除"');
+  });
+
   it('显示接口 error 字段中的运行时错误，并受 hideErrors 控制', () => {
     const file: AuthFileItem = {
       name: 'codex-runtime-error.json',

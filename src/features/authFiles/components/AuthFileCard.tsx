@@ -116,6 +116,7 @@ export type AuthFileCardProps = {
   onDownload: (name: string) => void;
   onOpenPrefixProxyEditor: (file: AuthFileItem) => void;
   onDelete: (name: string) => void;
+  showDeleteAction?: boolean;
   onToggleStatus: (file: AuthFileItem, enabled: boolean) => void;
   onToggleSelect: (name: string) => void;
 };
@@ -191,6 +192,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     onDownload,
     onOpenPrefixProxyEditor,
     onDelete,
+    showDeleteAction = true,
     onToggleStatus,
     onToggleSelect,
   } = props;
@@ -563,20 +565,22 @@ export function AuthFileCard(props: AuthFileCardProps) {
                           ) : null}
                         </Button>
                       )}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => onDelete(file.name)}
-                        className={styles.iconButton}
-                        title={t('auth_files.delete_button')}
-                        disabled={disableControls || deleting === file.name}
-                      >
-                        {deleting === file.name ? (
-                          <LoadingSpinner size={14} />
-                        ) : (
-                          <IconTrash2 className={styles.actionIcon} size={16} />
-                        )}
-                      </Button>
+                      {showDeleteAction ? (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => onDelete(file.name)}
+                          className={styles.iconButton}
+                          title={t('auth_files.delete_button')}
+                          disabled={disableControls || deleting === file.name}
+                        >
+                          {deleting === file.name ? (
+                            <LoadingSpinner size={14} />
+                          ) : (
+                            <IconTrash2 className={styles.actionIcon} size={16} />
+                          )}
+                        </Button>
+                      ) : null}
                     </>
                   )}
                 </div>

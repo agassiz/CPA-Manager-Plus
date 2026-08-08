@@ -1014,6 +1014,8 @@
     "refresh_button": "重新整理配額",
     "fetch_all": "取得全部",
     "monthly_limit": "月度帳單限額",
+    "included_usage_label": "包含額度",
+    "included_usage": "已使用 {{used}}",
     "on_demand_cap": "按需上限",
     "usage_amount": "{{used}} / {{limit}}",
     "reset_unknown": "重置時間未知"

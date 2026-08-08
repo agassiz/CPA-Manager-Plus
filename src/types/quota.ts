@@ -367,6 +367,7 @@ export interface XaiBillingCent {
 }
 
 export interface XaiBillingConfig {
+  creditUsagePercent?: number | string | null;
   monthlyLimit?: XaiBillingCent | number | string | null;
   monthly_limit?: XaiBillingCent | number | string | null;
   used?: XaiBillingCent | number | string | null;
@@ -376,10 +377,28 @@ export interface XaiBillingConfig {
   billing_period_start?: string;
   billingPeriodEnd?: string;
   billing_period_end?: string;
+  currentPeriod?: XaiUsagePeriod | null;
+  current_period?: XaiUsagePeriod | null;
+  productUsage?: XaiProductUsage[] | null;
+  product_usage?: XaiProductUsage[] | null;
+}
+
+export interface XaiUsagePeriod {
+  type?: string;
+  start?: string;
+  end?: string;
+}
+
+export interface XaiProductUsage {
+  product?: string;
+  usagePercent?: number | string | null;
+  usage_percent?: number | string | null;
 }
 
 export interface XaiBillingPayload {
   config?: XaiBillingConfig | null;
+  subscriptionTier?: string;
+  subscription_tier?: string;
 }
 
 export interface XaiBillingSummary {
@@ -389,6 +408,8 @@ export interface XaiBillingSummary {
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   usedPercent: number | null;
+  subscriptionTier?: string;
+  usesIncludedUsage?: boolean;
 }
 
 export interface XaiQuotaState {

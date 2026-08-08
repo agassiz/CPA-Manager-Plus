@@ -43,7 +43,9 @@ import {
   KIMI_REQUEST_HEADERS,
   KIMI_USAGE_URL,
   XAI_BILLING_URL,
+  XAI_CREDITS_BILLING_URL,
   XAI_REQUEST_HEADERS,
+  XAI_USER_URL,
 } from './constants';
 import {
   buildAntigravityQuotaGroups,
@@ -969,22 +971,36 @@ const normalizeXaiCentValue = (value: XaiBillingConfig['monthlyLimit']): number 
 };
 
 export const buildXaiBillingSummary = (
-  config: XaiBillingConfig | null | undefined
+  config: XaiBillingConfig | null | undefined,
+  subscriptionTier?: string | null
 ): XaiBillingSummary | null => {
   if (!config || typeof config !== 'object') return null;
 
   const monthlyLimitCents = normalizeXaiCentValue(config.monthlyLimit ?? config.monthly_limit);
   const usedCents = normalizeXaiCentValue(config.used);
   const onDemandCapCents = normalizeXaiCentValue(config.onDemandCap ?? config.on_demand_cap);
+  const currentPeriod = config.currentPeriod ?? config.current_period;
+  const productUsage = config.productUsage ?? config.product_usage;
+  const grokBuildUsagePercent = Array.isArray(productUsage)
+    ? productUsage.find((item) => normalizeStringValue(item?.product)?.toLowerCase() === 'grokbuild')
+    : undefined;
+  const includedUsagePercent = normalizeNumberValue(
+    grokBuildUsagePercent?.usagePercent ??
+      grokBuildUsagePercent?.usage_percent ??
+      config.creditUsagePercent
+  );
   const billingPeriodStart =
-    normalizeStringValue(config.billingPeriodStart ?? config.billing_period_start) ?? undefined;
+    normalizeStringValue(config.billingPeriodStart ?? config.billing_period_start ?? currentPeriod?.start) ??
+    undefined;
   const billingPeriodEnd =
-    normalizeStringValue(config.billingPeriodEnd ?? config.billing_period_end) ?? undefined;
+    normalizeStringValue(config.billingPeriodEnd ?? config.billing_period_end ?? currentPeriod?.end) ?? undefined;
+  const usesIncludedUsage = monthlyLimitCents === null || monthlyLimitCents <= 0;
 
   if (
     monthlyLimitCents === null &&
     usedCents === null &&
     onDemandCapCents === null &&
+    includedUsagePercent === null &&
     !billingPeriodEnd
   ) {
     return null;
@@ -993,7 +1009,9 @@ export const buildXaiBillingSummary = (
   const usedPercent =
     monthlyLimitCents !== null && monthlyLimitCents > 0 && usedCents !== null
       ? (usedCents / monthlyLimitCents) * 100
-      : null;
+      : includedUsagePercent === null
+        ? null
+        : Math.max(0, Math.min(100, includedUsagePercent));
 
   return {
     monthlyLimitCents,
@@ -1002,7 +1020,27 @@ export const buildXaiBillingSummary = (
     billingPeriodStart,
     billingPeriodEnd,
     usedPercent,
+    subscriptionTier: normalizeStringValue(subscriptionTier) ?? undefined,
+    usesIncludedUsage,
   };
+};
+
+const xaiUserIDFromPayload = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  return normalizeStringValue((payload as { userId?: unknown }).userId);
+};
+
+const xaiRequest = (authIndex: string, url: string, header: Record<string, string> = {}) =>
+  apiCallApi.request({
+    authIndex,
+    method: 'GET',
+    url,
+    header: { ...XAI_REQUEST_HEADERS, ...header },
+  });
+
+const xaiBillingSummaryFromResult = (result: Awaited<ReturnType<typeof apiCallApi.request>>) => {
+  const payload = parseXaiBillingPayload(result.body ?? result.bodyText);
+  return buildXaiBillingSummary(payload?.config, payload?.subscriptionTier ?? payload?.subscription_tier);
 };
 
 export const fetchXaiQuota = async (
@@ -1015,19 +1053,26 @@ export const fetchXaiQuota = async (
     throw new Error(t('xai_quota.missing_auth_index'));
   }
 
-  const result = await apiCallApi.request({
-    authIndex,
-    method: 'GET',
-    url: XAI_BILLING_URL,
-    header: { ...XAI_REQUEST_HEADERS },
-  });
-
-  if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+  const userResult = await xaiRequest(authIndex, XAI_USER_URL);
+  if (userResult.statusCode >= 200 && userResult.statusCode < 300) {
+    const userID = xaiUserIDFromPayload(userResult.body ?? userResult.bodyText);
+    if (userID) {
+      const creditsResult = await xaiRequest(authIndex, XAI_CREDITS_BILLING_URL, { 'x-userid': userID });
+      if (creditsResult.statusCode >= 200 && creditsResult.statusCode < 300) {
+        const creditsSummary = xaiBillingSummaryFromResult(creditsResult);
+        if (creditsSummary) return creditsSummary;
+      }
+    }
   }
 
-  const payload = parseXaiBillingPayload(result.body ?? result.bodyText);
-  const summary = buildXaiBillingSummary(payload?.config);
+  // API-key auth cannot call the OAuth /user endpoint. Keep the original billing
+  // request as a compatibility path for those credentials and older proxy versions.
+  const billingResult = await xaiRequest(authIndex, XAI_BILLING_URL);
+  if (billingResult.statusCode < 200 || billingResult.statusCode >= 300) {
+    throw createStatusError(getApiCallErrorMessage(billingResult), billingResult.statusCode);
+  }
+
+  const summary = xaiBillingSummaryFromResult(billingResult);
   if (!summary) {
     throw new Error(t('xai_quota.empty_data'));
   }

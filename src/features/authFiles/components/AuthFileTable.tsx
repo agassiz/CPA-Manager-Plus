@@ -86,6 +86,7 @@ export function AuthFileTable({
   onToggleSelect,
 }: AuthFileTableProps) {
   const { t } = useTranslation();
+  const showDeleteAction = selectedFiles.size === 0;
 
   return (
     <div className={styles.authFileTableWrapper}>
@@ -271,17 +272,19 @@ export function AuthFileTable({
                         >
                           <IconSettings size={14} />
                         </Button>
-                        <Button
-                          variant="danger"
-                          size="xs"
-                          onClick={() => onDelete(file.name)}
-                          title={t('auth_files.delete_button')}
-                          aria-label={t('auth_files.delete_button')}
-                          disabled={disableControls || deleting === file.name}
-                          loading={deleting === file.name}
-                        >
-                          <IconTrash2 size={14} />
-                        </Button>
+                        {showDeleteAction ? (
+                          <Button
+                            variant="danger"
+                            size="xs"
+                            onClick={() => onDelete(file.name)}
+                            title={t('auth_files.delete_button')}
+                            aria-label={t('auth_files.delete_button')}
+                            disabled={disableControls || deleting === file.name}
+                            loading={deleting === file.name}
+                          >
+                            <IconTrash2 size={14} />
+                          </Button>
+                        ) : null}
                         <ToggleSwitch
                           ariaLabel={t('auth_files.status_toggle_label')}
                           checked={!file.disabled}

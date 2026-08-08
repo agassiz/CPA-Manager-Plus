@@ -219,10 +219,16 @@ export const KIMI_REQUEST_HEADERS = {
 };
 
 // xAI/Grok API configuration
+export const XAI_USER_URL = 'https://cli-chat-proxy.grok.com/v1/user';
 export const XAI_BILLING_URL = 'https://cli-chat-proxy.grok.com/v1/billing';
+export const XAI_CREDITS_BILLING_URL = `${XAI_BILLING_URL}?format=credits`;
 
 export const XAI_REQUEST_HEADERS = {
   Authorization: 'Bearer $TOKEN$',
+  'X-XAI-Token-Auth': 'xai-grok-cli',
+  'x-authenticateresponse': 'authenticate-response',
+  'x-grok-client-version': '0.2.93',
+  'User-Agent': 'xai-grok-workspace/0.2.93',
 };
 
 // Kiro (AWS CodeWhisperer) API configuration
