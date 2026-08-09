@@ -259,14 +259,14 @@ describe('monitoringCenterPageModel summary cards', () => {
     });
   });
 
-  it('reports 80 percent when actual input is 20 and cache read is 80', () => {
+  it('reports cache-read share of total input tokens', () => {
     const cards = buildSecondarySummaryCards(
       {
         totalCalls: 0,
         successCalls: 0,
         failureCalls: 0,
         successRate: 0,
-        inputTokens: 20,
+        inputTokens: 100,
         outputTokens: 0,
         cachedTokens: 80,
         cacheReadTokens: 0,
@@ -293,6 +293,10 @@ describe('monitoringCenterPageModel summary cards', () => {
       label: 'Cache Tokens',
       value: '80',
       meta: 'Cache Hit Rate 80.0% · Cache Read 80 · Cache Write 0',
+    });
+    expect(cards[1]).toMatchObject({
+      label: 'Input',
+      value: '100',
     });
   });
 

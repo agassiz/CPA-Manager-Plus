@@ -130,13 +130,13 @@ const baseRow = (overrides: Partial<PanelRow> = {}): PanelRow => ({
   latencyMs: 1500,
   ttftMs: 500,
   tokensPerSecond: 20,
-  inputTokens: 10,
-  outputTokens: 20,
+	inputTokens: 15,
+	outputTokens: 23,
   reasoningTokens: 3,
   cachedTokens: 5,
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
-  totalTokens: 33,
+	totalTokens: 38,
   totalCost: 0,
   taskKey: 'task-1',
   searchText: '',
@@ -228,8 +228,8 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('Elapsed');
     expect(markup).toContain('1.5 s');
     expect(markup).toContain('20');
-    expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
-    expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4 · Cache Write 1');
+	expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
+	expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4 · Cache Write 1');
     expect(markup).toContain('role="tooltip"');
     expect(markup).toContain('aria-describedby=');
     expect(markup).toContain('aria-label="HTTP 429 · rate limit exceeded"');
@@ -245,8 +245,8 @@ describe('RealtimeEventsPanel', () => {
         successRate: 0,
         executorType: 'security_policy',
         inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
+		outputTokens: 3,
+		totalTokens: 3,
         totalCost: 0,
         latencyMs: 18,
         ttftMs: null,
@@ -259,7 +259,7 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).not.toContain('>Failed</span>');
     expect(markup).toContain('HTTP 403');
     expect(markup).toContain('security_audit_blocked: Qwen3Guard rejected the request');
-    expect(markup).toContain('Input 0 · Output 3 · Reasoning 3');
+	expect(markup).toContain('Input 0 · Output 3 · Reasoning 3');
   });
 
   it('renders safe defaults when optional usage fields are missing', () => {
@@ -274,7 +274,7 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toMatch(/TTFT<\/span><span class="[^"]+">｜<\/span><span class="[^"]+">Elapsed/);
     expect(markup).toContain(expectedDate);
     expect(markup).toContain(expectedTime);
-    expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
+	expect(markup).toContain('Input 15 · Output 23 · Reasoning 3');
     expect(markup).toContain('Cache Hit Rate 33.3% · Cache Read 5 · Cache Write 0');
     expect(markup).not.toContain('Cache Read 0');
     expect(markup).not.toContain('Create 0');
@@ -409,7 +409,7 @@ describe('RealtimeEventsPanel', () => {
     );
 
     expect(markup).not.toContain('C 4');
-    expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4');
+	expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4');
     expect(markup).toContain('Cache Write 1');
   });
 

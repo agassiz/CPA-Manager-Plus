@@ -94,6 +94,7 @@ function buildInitialForm(
           : undefined,
       apiKeyEntries: brand === 'openaiCompatibility' ? [emptyApiKeyEntry()] : undefined,
       chatCompletionsOnly: false,
+      supportPromptCacheKey: false,
     };
   }
 
@@ -125,6 +126,7 @@ function buildInitialForm(
       excludedModelsText: '',
       testModel: cfg.testModel ?? '',
       chatCompletionsOnly: cfg.chatCompletionsOnly === true,
+      supportPromptCacheKey: cfg.supportPromptCacheKey === true,
       apiKeyEntries: cfg.apiKeyEntries?.length
         ? cfg.apiKeyEntries.map((entry) => ({
           apiKey: '',
@@ -521,20 +523,36 @@ export function BaseProviderForm({
         ) : null}
 
         {brand === 'openaiCompatibility' ? (
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-chatCompletionsOnly`}>
-              {t('ai_providers.openai_chat_completions_only_label')}
-            </label>
-            <ToggleSwitch
-              checked={form.chatCompletionsOnly === true}
-              onChange={(value) => updateField('chatCompletionsOnly', value)}
-              disabled={mutating}
-              ariaLabel={t('ai_providers.openai_chat_completions_only_label')}
-            />
-            <div className={styles.sectionDesc}>
-              {t('ai_providers.openai_chat_completions_only_hint')}
+          <>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={`${fid}-chatCompletionsOnly`}>
+                {t('ai_providers.openai_chat_completions_only_label')}
+              </label>
+              <ToggleSwitch
+                checked={form.chatCompletionsOnly === true}
+                onChange={(value) => updateField('chatCompletionsOnly', value)}
+                disabled={mutating}
+                ariaLabel={t('ai_providers.openai_chat_completions_only_label')}
+              />
+              <div className={styles.sectionDesc}>
+                {t('ai_providers.openai_chat_completions_only_hint')}
+              </div>
             </div>
-          </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={`${fid}-supportPromptCacheKey`}>
+                {t('ai_providers.openai_prompt_cache_key_label')}
+              </label>
+              <ToggleSwitch
+                checked={form.supportPromptCacheKey === true}
+                onChange={(value) => updateField('supportPromptCacheKey', value)}
+                disabled={mutating}
+                ariaLabel={t('ai_providers.openai_prompt_cache_key_label')}
+              />
+              <div className={styles.sectionDesc}>
+                {t('ai_providers.openai_prompt_cache_key_hint')}
+              </div>
+            </div>
+          </>
         ) : null}
 
         {descriptor.supportsProxyUrl ? (

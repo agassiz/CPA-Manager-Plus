@@ -94,6 +94,7 @@ import {
 } from '@/features/monitoring/model/monitoringCenterPageModel';
 import { useUsageData } from '@/features/monitoring/hooks/useUsageData';
 import {
+  clearMonitoringCustomTimeRange,
   DEFAULT_REALTIME_COLUMNS,
   readMonitoringCenterUiState,
   writeMonitoringCenterUiState,
@@ -1140,6 +1141,16 @@ export function MonitoringCenterPage() {
           const result = await clearUsage();
           const cleared =
             result.removed === true || result.reset === true || result.success === true;
+          if (cleared) {
+            const startInput = getTodayStartInputValue();
+            const endInput = getCurrentInputValue();
+            clearMonitoringCustomTimeRange();
+            setTimeRange('today');
+            setCustomStartInput(startInput);
+            setCustomEndInput(endInput);
+            setCustomDraftStartInput(startInput);
+            setCustomDraftEndInput(endInput);
+          }
           showNotification(
             cleared
               ? t('usage_stats.clear_success')
@@ -1159,6 +1170,7 @@ export function MonitoringCenterPage() {
       },
     });
   }, [
+    clearMonitoringCustomTimeRange,
     clearUsage,
     refreshAll,
     requestMonitoringAvailability.available,
@@ -1310,7 +1322,6 @@ export function MonitoringCenterPage() {
         apiKeyOptions={apiKeyOptions}
         statusOptions={statusOptions}
         combinedError={combinedError}
-        usageStatisticsEnabled={Boolean(config?.usageStatisticsEnabled)}
         overallLoading={overallLoading}
         t={t}
         onTimeRangeChange={handleTimeRangeChange}

@@ -23,7 +23,7 @@ import type {
   MonitoringAccountModelSpendRow,
   MonitoringAccountRow,
 } from '@/features/monitoring/hooks/useMonitoringData';
-import { formatCompactNumber, formatUsd } from '@/utils/usage';
+import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import type { StatusBarData } from '@/utils/recentRequests';
 import { MonitoringHealthStatusBar } from './MonitoringHealthStatusBar';
 import {
@@ -600,7 +600,7 @@ function AccountModelUsageList({
                       <small>
                         {shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens')}
                       </small>
-                      <strong>{formatCompactNumber(model.inputTokens)}</strong>
+                      <strong>{formatCompactNumber(getActualInputTokens(model))}</strong>
                     </div>
                     <div className={styles.accountModelExpandedItem}>
                       <small>
@@ -714,7 +714,7 @@ export function AccountModelUsageTable({
                 <td className={getSuccessRateClassName(model.successRate)}>
                   {formatPercent(model.successRate)}
                 </td>
-                <td>{formatCompactNumber(model.inputTokens)}</td>
+                <td>{formatCompactNumber(getActualInputTokens(model))}</td>
                 <td>{formatCompactNumber(model.outputTokens)}</td>
                 <td>{formatCompactNumber(model.cachedTokens)}</td>
                 <td>{formatCompactNumber(model.totalTokens)}</td>

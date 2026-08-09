@@ -9,6 +9,8 @@ import {
   compatibleCachedTokens,
   extractTotalTokens,
   formatCompactNumber,
+  formatUsd,
+  getActualInputTokens,
   getServiceTierMultiplier,
   normalizeModelPrices,
   normalizeUsageSourceId,
@@ -16,15 +18,37 @@ import {
 import { maskSensitiveText } from './format';
 
 describe('calculateCacheHitRate', () => {
-  it('uses uncached input, cache reads, and cache writes without double-counting aliases', () => {
+	it('uses the upstream input total without double-counting cache aliases', () => {
     expect(
       calculateCacheHitRate({
-        inputTokens: 5_360_000,
+		inputTokens: 154_750_000,
         cachedTokens: 147_390_000,
         cacheReadTokens: 147_390_000,
         cacheCreationTokens: 2_000_000,
       })
-    ).toBeCloseTo(147_390_000 / (5_360_000 + 147_390_000 + 2_000_000));
+	).toBeCloseTo(147_390_000 / 154_750_000);
+  });
+});
+
+describe('getActualInputTokens', () => {
+  it('subtracts cache read and write child buckets from total input', () => {
+    expect(
+      getActualInputTokens({
+        inputTokens: 100,
+        cacheReadTokens: 40,
+        cacheCreationTokens: 10,
+      })
+    ).toBe(50);
+  });
+
+  it('never returns a negative value', () => {
+    expect(
+      getActualInputTokens({
+        inputTokens: 100,
+        cacheReadTokens: 75,
+        cacheCreationTokens: 50,
+      })
+    ).toBe(0);
   });
 });
 
@@ -37,6 +61,17 @@ describe('formatCompactNumber', () => {
     expect(formatCompactNumber(1_200_000_000_000)).toBe('1.2T');
     expect(formatCompactNumber(-2_500_000_000_000_000)).toBe('-2.5P');
     expect(formatCompactNumber(Number.POSITIVE_INFINITY)).toBe('0');
+  });
+});
+
+describe('formatUsd', () => {
+  it('formats aggregated costs to four decimal places by default', () => {
+    expect(formatUsd(12.34567)).toBe('$12.3457');
+    expect(formatUsd(0)).toBe('$0.0000');
+  });
+
+  it('preserves six decimal places for individual request costs', () => {
+    expect(formatUsd(0.043645, 6)).toBe('$0.043645');
   });
 });
 
@@ -553,7 +588,7 @@ describe('calculateCost model price preference', () => {
     const cost = calculateCost(
       {
         tokens: {
-          input_tokens: 750_000,
+			input_tokens: 1_000_000,
           output_tokens: 500_000,
           cached_tokens: 250_000,
         },
@@ -566,11 +601,30 @@ describe('calculateCost model price preference', () => {
     expect(cost).toBeCloseTo(3.75);
   });
 
+  it('uses output_tokens as total output without billing reasoning twice', () => {
+    const cost = calculateCost(
+      {
+        tokens: {
+          input_tokens: 98_048,
+          output_tokens: 389,
+          reasoning_tokens: 191,
+          cache_read_tokens: 97_152,
+        },
+        __modelName: 'gpt-5.6-terra',
+      },
+      {
+        'gpt-5.6-terra': { prompt: 2, completion: 12, cache: 0.2, cacheRead: 0.2 },
+      }
+    );
+
+    expect(cost).toBeCloseTo(0.0258904);
+  });
+
   it('uses the unified GPT-5.6 cache-write and long-context policy', () => {
     const cost = calculateCost(
       {
         tokens: {
-          input_tokens: 100_000,
+			input_tokens: 273_000,
           output_tokens: 10,
           cache_read_tokens: 73_000,
           cache_write_tokens: 100_000,
@@ -594,7 +648,7 @@ describe('calculateCost model price preference', () => {
     const cost = calculateCost(
       {
         tokens: {
-          input_tokens: 100_000,
+			input_tokens: 273_000,
           output_tokens: 10,
           cache_read_tokens: 73_000,
           cache_write_tokens: 100_000,
@@ -623,7 +677,7 @@ describe('calculateCost model price preference', () => {
     const cost = calculateCost(
       {
         tokens: {
-          input_tokens: 100_000,
+			input_tokens: 272_000,
           output_tokens: 10,
           cache_read_tokens: 72_000,
           cache_write_tokens: 100_000,
@@ -642,7 +696,7 @@ describe('calculateCost model price preference', () => {
     const cost = calculateCost(
       {
         tokens: {
-          input_tokens: 1_000_000,
+			input_tokens: 1_300_000,
           cached_tokens: 100_000,
           cache_read_tokens: 200_000,
           cache_creation_tokens: 100_000,

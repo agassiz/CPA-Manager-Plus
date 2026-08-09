@@ -3,7 +3,7 @@ import type { MonitoringAccountAuthState } from '@/features/monitoring/accountOv
 import type { MonitoringAccountQuotaProvider } from '@/features/monitoring/accountOverviewQuotaTargets';
 import type { MonitoringAccountRow } from '@/features/monitoring/hooks/useMonitoringData';
 import { normalizePlanType } from '@/utils/quota';
-import { formatCompactNumber, formatUsd } from '@/utils/usage';
+import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import { getMonitoringSuccessRateTone } from '../model/successRateTone';
 import styles from '../MonitoringCenterPage.module.scss';
 
@@ -132,7 +132,7 @@ export const buildAccountSummaryMetrics = (
     key: 'input-tokens',
     label: shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens'),
     fullLabel: t('monitoring.input_tokens'),
-    value: formatCompactNumber(row.inputTokens),
+    value: formatCompactNumber(getActualInputTokens(row)),
   },
   {
     key: 'output-tokens',

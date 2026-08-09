@@ -36,7 +36,7 @@ import {
 import { useNotificationStore } from '@/stores';
 import { copyToClipboard } from '@/utils/clipboard';
 import { maskSensitiveText, truncateText } from '@/utils/format';
-import { formatCompactNumber, formatUsd } from '@/utils/usage';
+import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import { getMonitoringSuccessRateTone } from '../model/successRateTone';
 import styles from '../MonitoringCenterPage.module.scss';
 
@@ -314,12 +314,16 @@ const buildFailureDetails = (row: MonitoringEventRow, t: TFunction) => {
 const buildRealtimeTokenSummaryLines = (row: MonitoringEventRow, t: TFunction) => {
   const cacheReadTokens = Math.max(row.cacheReadTokens, row.cachedTokens);
   const cacheWriteTokens = row.cacheCreationTokens;
-  const cacheHitDenominator = row.inputTokens + cacheWriteTokens + cacheReadTokens;
+  const actualInputTokens = getActualInputTokens({
+    inputTokens: row.inputTokens,
+    cacheReadTokens: row.cacheReadTokens,
+    cacheCreationTokens: row.cacheCreationTokens,
+  });
+  const cacheHitDenominator = row.inputTokens;
   const cacheHitRate = cacheHitDenominator > 0 ? cacheReadTokens / cacheHitDenominator : 0;
-  const outputTotalTokens = row.outputTokens + row.reasoningTokens;
   const inputOutputLine = [
-    `${shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens', 'Input')} ${formatCompactNumber(row.inputTokens)}`,
-    `${shortLabel(t, 'monitoring.output_tokens_short', 'monitoring.output_tokens', 'Output')} ${formatCompactNumber(outputTotalTokens)}`,
+    `${shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens', 'Input')} ${formatCompactNumber(actualInputTokens)}`,
+    `${shortLabel(t, 'monitoring.output_tokens_short', 'monitoring.output_tokens', 'Output')} ${formatCompactNumber(row.outputTokens)}`,
     ...(row.reasoningTokens > 0
       ? [
           `${shortLabel(t, 'monitoring.reasoning_tokens_short', 'monitoring.reasoning_tokens', 'Reasoning')} ${formatCompactNumber(row.reasoningTokens)}`,
@@ -850,7 +854,7 @@ export function RealtimeEventsPanel({
         );
       }
       case 'cost':
-        return <>{hasPrices ? formatUsd(row.totalCost) : '--'}</>;
+        return <>{hasPrices ? formatUsd(row.totalCost, 6) : '--'}</>;
       case 'apiKeyHash':
         return <span className={styles.monoCell}>{row.apiKeyHash || '-'}</span>;
       default:

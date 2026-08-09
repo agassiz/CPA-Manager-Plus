@@ -507,6 +507,9 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
   if (provider.chatCompletionsOnly !== undefined) {
     payload['chat-completions-only'] = provider.chatCompletionsOnly;
   }
+  if (provider.supportPromptCacheKey !== undefined) {
+    payload['support-prompt-cache-key'] = provider.supportPromptCacheKey;
+  }
   const models = serializeModelAliases(provider.models, true);
   if (models && models.length) payload.models = models;
   if (provider.priority !== undefined) payload.priority = provider.priority;

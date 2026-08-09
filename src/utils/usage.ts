@@ -298,6 +298,25 @@ export const compatibleCachedTokens = (
   return Math.max(cached - fineGrained, 0);
 };
 
+export type ActualInputTokensInput = {
+  inputTokens: unknown;
+  cacheReadTokens?: unknown;
+  cacheCreationTokens?: unknown;
+};
+
+// input_tokens is the total upstream input bucket. Cache read/write tokens are
+// child buckets, so UI input is the remaining non-cache input only.
+export const getActualInputTokens = ({
+  inputTokens,
+  cacheReadTokens,
+  cacheCreationTokens,
+}: ActualInputTokensInput): number => {
+  const totalInputTokens = Math.max(toFiniteNumber(inputTokens), 0);
+  const cacheRead = Math.max(toFiniteNumber(cacheReadTokens), 0);
+  const cacheWrite = Math.max(toFiniteNumber(cacheCreationTokens), 0);
+  return Math.max(totalInputTokens - cacheRead - cacheWrite, 0);
+};
+
 const getApisRecord = (usageData: unknown): Record<string, unknown> | null => {
   const usageRecord = isRecord(usageData) ? usageData : null;
   const wrappedUsage = usageRecord && isRecord(usageRecord.usage) ? usageRecord.usage : null;
@@ -766,7 +785,7 @@ export function calculateCost(
   if (!resolved) return 0;
   const { model: pricedModel, price } = resolved;
 
-  const inputTokens = Math.max(toFiniteNumber(detail.tokens.input_tokens), 0);
+  const totalInputTokens = Math.max(toFiniteNumber(detail.tokens.input_tokens), 0);
   const completionTokens = Math.max(toFiniteNumber(detail.tokens.output_tokens), 0);
   const cachedTokens = Math.max(
     Math.max(toFiniteNumber(detail.tokens.cached_tokens), 0),
@@ -781,6 +800,7 @@ export function calculateCost(
       toFiniteNumber(detail.tokens.cache_creation_tokens),
     0
   );
+  const inputTokens = Math.max(totalInputTokens - cacheReadTokens - cacheCreationTokens, 0);
   const serviceTier = detail.service_tier ?? detail.serviceTier;
   const normalizedTier = String(serviceTier ?? '')
     .trim()
@@ -809,7 +829,7 @@ export function calculateCost(
     tierMultiplier = 1;
   }
 
-  const contextInputTokens = inputTokens + cacheReadTokens + cacheCreationTokens;
+  const contextInputTokens = totalInputTokens;
   if (
     Number(price.longContextInputTokenThreshold) > 0 &&
     contextInputTokens > Number(price.longContextInputTokenThreshold)
@@ -941,14 +961,14 @@ export function formatCompactNumber(value: number): string {
   return abs >= 1 ? num.toFixed(0) : num.toFixed(2);
 }
 
-export function formatUsd(value: number): string {
+export function formatUsd(value: number, fractionDigits = 4): string {
   const num = Number(value);
-  if (!Number.isFinite(num)) return '$0.00';
+  if (!Number.isFinite(num)) return `$${(0).toFixed(fractionDigits)}`;
 
-  const fixed = num.toFixed(2);
+  const fixed = num.toFixed(fractionDigits);
   const parts = Number(fixed).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   });
   return `$${parts}`;
 }
@@ -1061,16 +1081,16 @@ export const getCacheHitTotals = ({
   inputTokens,
   cachedTokens,
   cacheReadTokens,
-  cacheCreationTokens,
 }: CacheHitMetricsInput): { hitTokens: number; inputTokens: number } => {
   const input = Math.max(toFiniteNumber(inputTokens), 0);
   const cached = Math.max(toFiniteNumber(cachedTokens), 0);
   const cacheRead = Math.max(toFiniteNumber(cacheReadTokens), 0);
-  const cacheCreation = Math.max(toFiniteNumber(cacheCreationTokens), 0);
   const cacheHits = Math.max(cached, cacheRead);
   return {
     hitTokens: cacheHits,
-    inputTokens: input + cacheHits + cacheCreation,
+    // Stored input_tokens is the upstream parent field. Cache reads and writes
+    // are child buckets, so adding them here would count them twice.
+    inputTokens: input,
   };
 };
 

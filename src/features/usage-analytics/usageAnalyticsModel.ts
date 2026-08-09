@@ -824,8 +824,7 @@ export const getUsageCacheTokens = (tokens: {
   cacheReadTokens: unknown;
   cacheCreationTokens: unknown;
 }): number =>
-  Math.max(toNumber(tokens.cachedTokens), 0) +
-  Math.max(toNumber(tokens.cacheReadTokens), 0) +
+  Math.max(toNumber(tokens.cachedTokens), toNumber(tokens.cacheReadTokens), 0) +
   Math.max(toNumber(tokens.cacheCreationTokens), 0);
 
 const getRowCacheHitTotals = (row: UsageRankRow) => {

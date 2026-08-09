@@ -224,6 +224,7 @@ const buildOpenAIConfig = (
     apiKeyEntries,
     disabled: input.disabled,
     chatCompletionsOnly: input.chatCompletionsOnly === true,
+    supportPromptCacheKey: input.supportPromptCacheKey === true,
     disableCooling: input.disableCooling === true,
     headers: Object.keys(headers).length ? headers : undefined,
     models: models.length ? models : undefined,

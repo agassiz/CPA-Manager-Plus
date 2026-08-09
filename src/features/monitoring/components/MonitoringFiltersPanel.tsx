@@ -23,7 +23,6 @@ type MonitoringFiltersPanelProps = {
   apiKeyOptions: ReadonlyArray<SelectOption>;
   statusOptions: ReadonlyArray<SelectOption>;
   combinedError: string | null;
-  usageStatisticsEnabled: boolean;
   overallLoading: boolean;
   t: TFunction;
   onTimeRangeChange: (value: MonitoringTimeRange) => void;
@@ -80,7 +79,6 @@ export function MonitoringFiltersPanel({
   apiKeyOptions,
   statusOptions,
   combinedError,
-  usageStatisticsEnabled,
   overallLoading,
   t,
   onTimeRangeChange,
@@ -229,12 +227,6 @@ export function MonitoringFiltersPanel({
       </div>
 
       {combinedError ? <div className={styles.errorBox}>{combinedError}</div> : null}
-      {!usageStatisticsEnabled ? (
-        <div className={styles.callout}>
-          <strong>{t('monitoring.usage_disabled_title')}</strong>
-          <span>{t('monitoring.usage_disabled_body')}</span>
-        </div>
-      ) : null}
     </MonitoringPanel>
   );
 }

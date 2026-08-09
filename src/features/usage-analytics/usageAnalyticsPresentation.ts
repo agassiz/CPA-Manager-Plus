@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { getActualInputTokens } from '@/utils/usage';
 import {
   computeCacheHitRate,
   computeRowCacheHitRate,
@@ -166,6 +167,7 @@ export const buildUsageOverviewSummaryCards = ({
   t,
 }: OverviewSummaryCardsInput): UsageSummaryCard[] => {
   const cacheTokens = getUsageCacheTokens(summary);
+  const actualInputTokens = getActualInputTokens(summary);
   const totalTokens = Math.max(summary.totalTokens, 0);
   const p95LatencyLabel =
     summary.p95LatencyMs === null && summary.p95TtftMs !== null
@@ -226,10 +228,10 @@ export const buildUsageOverviewSummaryCards = ({
       icon: 'input',
       label: t('usage_analytics.metric_input_tokens'),
       meta: `${t('usage_analytics.share')} ${formatPercent(
-        totalTokens > 0 ? summary.inputTokens / totalTokens : 0
+        totalTokens > 0 ? actualInputTokens / totalTokens : 0
       )}`,
-      value: formatMetricValue('totalTokens', summary.inputTokens),
-      valueTitle: formatFullNumber(summary.inputTokens, locale),
+      value: formatMetricValue('totalTokens', actualInputTokens),
+      valueTitle: formatFullNumber(actualInputTokens, locale),
       variant: 'secondary',
     },
     {

@@ -377,6 +377,9 @@ export function useAuthFilesPrefixProxyEditor(
   const openPrefixProxyEditor = async (file: AuthFileItem) => {
     const name = file.name;
     const fileProviderKey = normalizeProviderKey(String(file.type ?? file.provider ?? ''));
+    const fileInfo = { ...file };
+    delete fileInfo.recent_requests;
+    delete fileInfo.recentRequests;
 
     if (disableControls) return;
     if (prefixProxyEditor?.fileName === name) {
@@ -386,7 +389,7 @@ export function useAuthFilesPrefixProxyEditor(
 
     setPrefixProxyEditor({
       fileName: name,
-      fileInfoText: JSON.stringify(file, null, 2),
+      fileInfoText: JSON.stringify(fileInfo, null, 2),
       loading: true,
       saving: false,
       error: null,

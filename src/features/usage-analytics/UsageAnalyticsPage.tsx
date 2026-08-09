@@ -31,6 +31,7 @@ import {
   IconX,
 } from '@/components/ui/icons';
 import { useThemeStore } from '@/stores';
+import { getActualInputTokens } from '@/utils/usage';
 import {
   buildUsageHeatmapChartData,
   buildModelKeyDistribution,
@@ -472,8 +473,11 @@ const getApiKeyContributorDisplayLabel = (row: UsageHeatmapContributor) => {
   return label && label.toLowerCase() !== row.key.toLowerCase() ? label : maskApiKeyHash(row.key);
 };
 
-const metricValue = (point: UsageTimelinePoint, key: UsageMetricKey) =>
-  key === 'cachedTokens' ? getUsageCacheTokens(point) : point[key];
+const metricValue = (point: UsageTimelinePoint, key: UsageMetricKey) => {
+  if (key === 'cachedTokens') return getUsageCacheTokens(point);
+  if (key === 'inputTokens') return getActualInputTokens(point);
+  return point[key];
+};
 
 const getMetricAxisIndex = (axis: (typeof USAGE_METRICS)[number]['axis']) =>
   usageChartAxisKeys[axis];
@@ -1882,7 +1886,7 @@ function TokenStructureChart({ timeline }: { timeline: UsageTimelinePoint[] }) {
       series: [
         {
           barMaxWidth: 22,
-          data: timeline.map((point) => point.inputTokens),
+          data: timeline.map((point) => getActualInputTokens(point)),
           itemStyle: tokenBarItemStyle,
           name: t('usage_analytics.metric_input_tokens'),
           stack: 'tokens',
@@ -3706,7 +3710,7 @@ function RankTable({
                 </td>
                 <td>{compactNumber(row.requestCount)}</td>
                 <td>{compactNumber(row.totalTokens)}</td>
-                <td>{compactNumber(row.inputTokens)}</td>
+                <td>{compactNumber(getActualInputTokens(row))}</td>
                 <td>{compactNumber(row.outputTokens)}</td>
                 <td>{compactNumber(getUsageCacheTokens(row))}</td>
                 {type !== 'credential' ? (

@@ -748,15 +748,6 @@ export function VisualConfigEditor({
                   onChange={(commercialMode) => onChange({ commercialMode })}
                 />
                 <ToggleRow
-                  title={t('config_management.visual.sections.system.usage_statistics_enabled')}
-                  description={t(
-                    'config_management.visual.sections.system.usage_statistics_enabled_desc'
-                  )}
-                  checked={values.usageStatisticsEnabled}
-                  disabled={disabled}
-                  onChange={(usageStatisticsEnabled) => onChange({ usageStatisticsEnabled })}
-                />
-                <ToggleRow
                   title={t('config_management.visual.sections.system.plugins_enabled')}
                   description={t('config_management.visual.sections.system.plugins_enabled_desc')}
                   checked={values.pluginsEnabled}

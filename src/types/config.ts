@@ -31,7 +31,6 @@ export interface Config {
   requestRetry?: number;
   quotaExceeded?: QuotaExceededConfig;
   clean?: AuthPoolCleanConfig;
-  usageStatisticsEnabled?: boolean;
   requestLog?: boolean;
   loggingToFile?: boolean;
   logsMaxTotalSizeMb?: number;
@@ -57,7 +56,6 @@ export type RawConfigSection =
   | 'proxy-url'
   | 'request-retry'
   | 'quota-exceeded'
-  | 'usage-statistics-enabled'
   | 'request-log'
   | 'logging-to-file'
   | 'logs-max-total-size-mb'

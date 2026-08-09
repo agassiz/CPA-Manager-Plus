@@ -202,6 +202,8 @@ export interface ProviderEntryFormInput {
   testModel?: string;
   /** OpenAI 兼容入口仅支持 Chat Completions */
   chatCompletionsOnly?: boolean;
+  /** OpenAI 兼容入口沿用 Codex 会话的提示缓存键 */
+  supportPromptCacheKey?: boolean;
   apiKeyEntries?: ApiKeyEntryInput[];
   /** APIKEY.FUN stores one grouped key per platform protocol. */
   sponsorKeyEntries?: SponsorKeyEntryInput[];

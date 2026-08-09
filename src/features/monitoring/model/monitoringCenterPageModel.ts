@@ -49,6 +49,7 @@ import {
   formatCompactNumber,
   formatDurationMs,
   formatUsd,
+  getActualInputTokens,
   normalizeAuthIndex,
   type ModelPrice,
 } from '@/utils/usage';
@@ -570,8 +571,13 @@ export const buildSecondarySummaryCards = (
 ): SummaryCardProps[] => {
   const cacheReadTokens = Math.max(summary.cacheReadTokens, summary.cachedTokens);
   const cacheWriteTokens = summary.cacheCreationTokens;
+  const actualInputTokens = getActualInputTokens({
+    inputTokens: summary.inputTokens,
+    cacheReadTokens: summary.cacheReadTokens,
+    cacheCreationTokens: summary.cacheCreationTokens,
+  });
   const totalCacheTokens = cacheReadTokens + cacheWriteTokens;
-  const cacheHitDenominator = summary.inputTokens + cacheWriteTokens + cacheReadTokens;
+  const cacheHitDenominator = summary.inputTokens;
   const cacheHitRate = cacheHitDenominator > 0 ? cacheReadTokens / cacheHitDenominator : 0;
   const cachedTokenMetaParts = [
     `${t('monitoring.cache_hit_rate')} ${formatPercent(cacheHitRate)}`,
@@ -593,9 +599,9 @@ export const buildSecondarySummaryCards = (
     {
       label: shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens'),
       fullLabel: t('monitoring.input_tokens'),
-      value: formatCompactNumber(summary.inputTokens),
-      valueTitle: formatFullNumber(summary.inputTokens, locale),
-      meta: `${t('monitoring.of_token_mix')} ${formatPercent(summary.totalTokens > 0 ? summary.inputTokens / summary.totalTokens : 0)}`,
+      value: formatCompactNumber(actualInputTokens),
+      valueTitle: formatFullNumber(actualInputTokens, locale),
+      meta: `${t('monitoring.of_token_mix')} ${formatPercent(summary.totalTokens > 0 ? actualInputTokens / summary.totalTokens : 0)}`,
       variant: 'secondary',
       icon: 'input',
       accent: 'cyan',

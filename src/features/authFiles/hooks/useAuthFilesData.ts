@@ -7,6 +7,7 @@ import type { AuthFileItem } from '@/types';
 import { formatFileSize } from '@/utils/format';
 import { MAX_AUTH_FILE_SIZE } from '@/utils/constants';
 import { downloadBlob } from '@/utils/download';
+import { clearMonitoringCustomTimeRange } from '@/features/monitoring/monitoringCenterUiState';
 import {
   convertAuthJsonInput,
   type AuthJsonInputType,
@@ -588,6 +589,9 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
           const result = await usageServiceApi.clearUsage(apiBase, managementKey);
           const cleared =
             result.removed === true || result.reset === true || result.success === true;
+          if (cleared) {
+            clearMonitoringCustomTimeRange();
+          }
           showNotification(
             cleared
               ? t('auth_files.clear_usage_stats_success')
@@ -603,7 +607,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
         }
       },
     });
-  }, [apiBase, loadFiles, managementKey, showConfirmation, showNotification, t]);
+  }, [apiBase, clearMonitoringCustomTimeRange, loadFiles, managementKey, showConfirmation, showNotification, t]);
 
   const handleStatusToggle = useCallback(
     async (item: AuthFileItem, enabled: boolean) => {

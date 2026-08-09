@@ -4,7 +4,7 @@ import { IconChevronDown, IconChevronUp, IconCopy, IconInfo, IconKey } from '@/c
 import type { MonitoringApiKeyRow } from '@/features/monitoring/hooks/useMonitoringData';
 import { useNotificationStore } from '@/stores';
 import { copyToClipboard } from '@/utils/clipboard';
-import { formatCompactNumber, formatUsd } from '@/utils/usage';
+import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import { AccountModelUsageTable, AccountTokenMetricGrid } from './AccountOverviewCard';
 import { MonitoringPanel } from './MonitoringPanel';
 import { PaginationControls } from './MonitoringShared';
@@ -117,7 +117,7 @@ const buildApiKeySummaryMetrics = (
     key: 'input-tokens',
     label: shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens'),
     fullLabel: t('monitoring.input_tokens'),
-    value: formatCompactNumber(row.inputTokens),
+    value: formatCompactNumber(getActualInputTokens(row)),
   },
   {
     key: 'output-tokens',

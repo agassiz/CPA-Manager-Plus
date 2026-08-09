@@ -611,12 +611,6 @@ function getNextDirtyFields(
   if (Object.prototype.hasOwnProperty.call(patch, 'commercialMode')) {
     updateDirty('commercialMode', nextValues.commercialMode === baselineValues.commercialMode);
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'usageStatisticsEnabled')) {
-    updateDirty(
-      'usageStatisticsEnabled',
-      nextValues.usageStatisticsEnabled === baselineValues.usageStatisticsEnabled
-    );
-  }
   if (Object.prototype.hasOwnProperty.call(patch, 'loggingToFile')) {
     updateDirty('loggingToFile', nextValues.loggingToFile === baselineValues.loggingToFile);
   }
@@ -873,9 +867,6 @@ export function useVisualConfig() {
 
         debug: Boolean(parsed.debug),
         commercialMode: Boolean(parsed['commercial-mode']),
-        usageStatisticsEnabled: Boolean(
-          parsed['usage-statistics-enabled'] ?? parsed.usageStatisticsEnabled
-        ),
         pluginsEnabled: Boolean(plugins?.enabled),
         loggingToFile: Boolean(parsed['logging-to-file']),
         logsMaxTotalSizeMb: String(parsed['logs-max-total-size-mb'] ?? ''),
@@ -1107,7 +1098,6 @@ export function useVisualConfig() {
         setBooleanInDoc(doc, ['debug'], values.debug);
 
         setBooleanInDoc(doc, ['commercial-mode'], values.commercialMode);
-        setBooleanInDoc(doc, ['usage-statistics-enabled'], values.usageStatisticsEnabled);
         if (
           docHas(doc, ['plugins']) ||
           values.pluginsEnabled ||

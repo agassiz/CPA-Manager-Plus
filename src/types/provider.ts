@@ -69,6 +69,7 @@ export interface OpenAIProviderConfig {
   disabled?: boolean;
   headers?: Record<string, string>;
   chatCompletionsOnly?: boolean;
+  supportPromptCacheKey?: boolean;
   models?: ModelAlias[];
   priority?: number;
   testModel?: string;

@@ -156,13 +156,13 @@ describe('MonitoringCenterPage summary cards', () => {
     expect(html).toContain('3.2B');
     expect(html).toContain('role="tooltip"');
     expect(html).toContain('2,795,200,000');
-    expect(html).toContain('2,783,500,000');
+    expect(html).toContain('1,783,600,000');
     expect(html).toContain('3,150,800,000');
     expect(html).toContain('$9,999,999.99');
     expect(html).toContain('Reasoning 5.0M');
-    expect(html).toContain('Share 99.6%');
+    expect(html).toContain('Share 63.8%');
     expect(html).toContain('Share 0.4%');
-    expect(html).toContain('Cache Hit Rate 43.7% · Read 2.6B · Write 555.5M');
+    expect(html).toContain('Cache Hit Rate 93.2% · Read 2.6B · Write 555.5M');
   });
 
   it('shows legacy cached tokens as cache hit rate', () => {
@@ -196,7 +196,7 @@ describe('MonitoringCenterPage summary cards', () => {
     );
     const cachedCard = secondaryCards.find((card) => card.label === 'Cache Tokens');
 
-    expect(cachedCard?.meta).toBe('Cache Hit Rate 48.2% · Read 932 · Write 0');
+    expect(cachedCard?.meta).toBe('Cache Hit Rate 93.2% · Read 932 · Write 0');
   });
 });
 
@@ -482,7 +482,7 @@ describe('MonitoringCenterPage account card', () => {
     expect(html).toContain('<small>Calls</small><strong>196</strong>');
     expect(html).toContain('<small>Success</small><strong class="_rate90Text');
     expect(html).toContain('<small>Total Tokens</small><strong>33.5M</strong>');
-    expect(html).toContain('<small>Total Cost</small><strong>$23.04</strong>');
+    expect(html).toContain('<small>Total Cost</small><strong>$23.0400</strong>');
     expect(html).not.toContain('<table');
   });
 

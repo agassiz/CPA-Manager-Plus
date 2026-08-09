@@ -297,3 +297,14 @@ export const writeMonitoringCenterUiState = (state: Partial<MonitoringCenterUiSt
     // Ignore storage failures and keep the runtime state in memory only.
   }
 };
+
+// Clear absolute monitoring dates when their backing request history is deleted.
+export const clearMonitoringCustomTimeRange = () => {
+  const state = readMonitoringCenterUiState();
+  writeMonitoringCenterUiState({
+    ...state,
+    timeRange: DEFAULT_MONITORING_TIME_RANGE,
+    customStartInput: '',
+    customEndInput: '',
+  });
+};

@@ -283,6 +283,11 @@ const normalizeOpenAIProvider = (
   const chatCompletionsOnly = normalizeBoolean(
     provider['chat-completions-only'] ?? provider.chatCompletionsOnly ?? provider['chat_completions_only']
   );
+  const supportPromptCacheKey = normalizeBoolean(
+    provider['support-prompt-cache-key'] ??
+      provider.supportPromptCacheKey ??
+      provider['support_prompt_cache_key']
+  );
 
   const result: OpenAIProviderConfig = {
     name: String(name),
@@ -296,6 +301,7 @@ const normalizeOpenAIProvider = (
   if (prefix) result.prefix = prefix;
   if (headers) result.headers = headers;
   if (chatCompletionsOnly !== undefined) result.chatCompletionsOnly = chatCompletionsOnly;
+  if (supportPromptCacheKey !== undefined) result.supportPromptCacheKey = supportPromptCacheKey;
   if (models.length) result.models = models;
   if (priority !== undefined) result.priority = Number(priority);
   if (testModel) result.testModel = String(testModel);
@@ -461,9 +467,6 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
     };
   }
 
-  config.usageStatisticsEnabled = normalizeBoolean(
-    raw['usage-statistics-enabled'] ?? raw.usageStatisticsEnabled
-  );
   config.requestLog = normalizeBoolean(raw['request-log'] ?? raw.requestLog);
   config.loggingToFile = normalizeBoolean(raw['logging-to-file'] ?? raw.loggingToFile);
   const logsMaxTotalSizeMb = raw['logs-max-total-size-mb'] ?? raw.logsMaxTotalSizeMb;

@@ -1,6 +1,7 @@
 import type { AuthFileItem } from '@/types';
 import { isDisabledAuthFile } from '@/utils/quota';
 import { normalizeRecentRequestAuthIndex, type StatusBarData } from '@/utils/recentRequests';
+import { getActualInputTokens } from '@/utils/usage';
 import type {
   MonitoringAccountRow,
   MonitoringEventRow,
@@ -290,7 +291,7 @@ const getAccountSortValue = (row: MonitoringAccountRow, key: AccountSortKey) => 
     case 'totalTokens':
       return row.totalTokens;
     case 'inputTokens':
-      return row.inputTokens;
+      return getActualInputTokens(row);
     case 'outputTokens':
       return row.outputTokens;
     case 'cachedTokens':

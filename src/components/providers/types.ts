@@ -13,6 +13,7 @@ export interface OpenAIFormState {
   baseUrl: string;
   headers: HeaderEntry[];
   chatCompletionsOnly?: boolean;
+  supportPromptCacheKey?: boolean;
   disableCooling?: boolean;
   testModel?: string;
   modelEntries: ModelEntry[];

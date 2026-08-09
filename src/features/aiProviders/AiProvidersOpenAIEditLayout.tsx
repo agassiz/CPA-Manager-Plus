@@ -57,6 +57,7 @@ const buildEmptyForm = (): OpenAIFormState => ({
   baseUrl: '',
   headers: [],
   chatCompletionsOnly: false,
+  supportPromptCacheKey: false,
   disableCooling: false,
   apiKeyEntries: [buildApiKeyEntry()],
   modelEntries: [{ name: '', alias: '' }],
@@ -118,6 +119,7 @@ const buildOpenAIBaseline = (form: OpenAIFormState, testModel: string): OpenAIEd
   prefix: String(form.prefix ?? '').trim(),
   baseUrl: String(form.baseUrl ?? '').trim(),
   chatCompletionsOnly: Boolean(form.chatCompletionsOnly),
+  supportPromptCacheKey: Boolean(form.supportPromptCacheKey),
   disableCooling: Boolean(form.disableCooling),
   headers: normalizeHeaderEntries(form.headers),
   apiKeyEntries: normalizeApiKeyEntries(form.apiKeyEntries),
@@ -310,6 +312,7 @@ export function AiProvidersOpenAIEditLayout() {
         baseUrl: initialData.baseUrl,
         headers: headersToEntries(initialData.headers),
         chatCompletionsOnly: Boolean(initialData.chatCompletionsOnly),
+        supportPromptCacheKey: Boolean(initialData.supportPromptCacheKey),
         disableCooling: initialData.disableCooling === true,
         testModel: initialData.testModel,
         modelEntries,
@@ -438,6 +441,7 @@ export function AiProvidersOpenAIEditLayout() {
       baseline.prefix !== form.prefix.trim() ||
       baseline.baseUrl !== form.baseUrl.trim() ||
       baseline.chatCompletionsOnly !== Boolean(form.chatCompletionsOnly) ||
+      baseline.supportPromptCacheKey !== Boolean(form.supportPromptCacheKey) ||
       baseline.disableCooling !== Boolean(form.disableCooling) ||
       baseline.testModel !== normalizedTestModel ||
       isHeadersDirty ||
@@ -493,6 +497,7 @@ export function AiProvidersOpenAIEditLayout() {
         payload.priority = Math.trunc(form.priority);
       }
       payload.chatCompletionsOnly = Boolean(form.chatCompletionsOnly);
+      payload.supportPromptCacheKey = Boolean(form.supportPromptCacheKey);
       payload.disableCooling = Boolean(form.disableCooling);
       if (initialData?.disabled !== undefined) {
         payload.disabled = initialData.disabled;

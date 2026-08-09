@@ -4,6 +4,7 @@ import {
   DEFAULT_REALTIME_COLUMNS,
   MONITORING_CENTER_UI_STATE_STORAGE_KEY,
   REALTIME_COLUMN_KEYS,
+  clearMonitoringCustomTimeRange,
   getDefaultMonitoringCenterUiState,
   normalizeMonitoringCenterUiState,
   normalizeMonitoringAutoRefreshMs,
@@ -103,6 +104,26 @@ describe('monitoringCenterUiState', () => {
     expect(REALTIME_COLUMN_KEYS).toEqual(
       expect.arrayContaining(['source', 'endpoint', 'authIndex'])
     );
+  });
+
+  it('clears only the custom time range after usage data is deleted', () => {
+    writeMonitoringCenterUiState({
+      activeDataTab: 'realtime',
+      timeRange: 'custom',
+      customStartInput: '2026-06-09T00:00',
+      customEndInput: '2026-06-09T14:41',
+      selectedProvider: 'codex',
+    });
+
+    clearMonitoringCustomTimeRange();
+
+    expect(readMonitoringCenterUiState()).toMatchObject({
+      activeDataTab: 'realtime',
+      timeRange: 'today',
+      customStartInput: '',
+      customEndInput: '',
+      selectedProvider: 'codex',
+    });
   });
 
   it('migrates the legacy realtime default columns to the current default', () => {

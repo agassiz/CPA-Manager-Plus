@@ -637,6 +637,16 @@ export function AiProvidersOpenAIEditPage() {
               <div className="hint">{t('ai_providers.openai_chat_completions_only_hint')}</div>
             </div>
             <div className="form-group">
+              <label>{t('ai_providers.openai_prompt_cache_key_label')}</label>
+              <ToggleSwitch
+                checked={Boolean(form.supportPromptCacheKey)}
+                onChange={(value) => setForm((prev) => ({ ...prev, supportPromptCacheKey: value }))}
+                disabled={saving || disableControls || isTestingKeys}
+                ariaLabel={t('ai_providers.openai_prompt_cache_key_label')}
+              />
+              <div className="hint">{t('ai_providers.openai_prompt_cache_key_hint')}</div>
+            </div>
+            <div className="form-group">
               <label>{t('providersPage.form.disableCooling')}</label>
               <ToggleSwitch
                 checked={Boolean(form.disableCooling)}
