@@ -3,7 +3,10 @@ import type { TFunction } from 'i18next';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccountDisplayMode } from '@/features/monitoring/accountOverviewState';
 import type { MonitoringEventRow } from '@/features/monitoring/hooks/useMonitoringData';
-import { DEFAULT_REALTIME_COLUMNS } from '@/features/monitoring/monitoringCenterUiState';
+import {
+  DEFAULT_REALTIME_COLUMNS,
+  type RealtimeColumnWidths,
+} from '@/features/monitoring/monitoringCenterUiState';
 import { RealtimeEventsPanel } from './RealtimeEventsPanel';
 
 const t = ((key: string, options?: Record<string, unknown>) => {
@@ -17,9 +20,12 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.account_overview_show_masked_accounts_hint': 'Show masked accounts',
     'monitoring.auth_index': 'Auth Index',
     'monitoring.auth_index_short': 'Index',
+    'monitoring.cache_creation_tokens': 'Cache Creation Tokens',
     'monitoring.cache_creation_tokens_short': 'Create',
     'monitoring.cache_hit_rate': 'Cache Hit Rate',
+    'monitoring.cache_read_tokens': 'Cache Read Tokens',
     'monitoring.cache_read_tokens_short': 'Cache Read',
+    'monitoring.cache_total_tokens': 'Cache Tokens',
     'monitoring.cache_write_tokens_short': 'Cache Write',
     'monitoring.column_endpoint': 'Endpoint',
     'monitoring.column_client_ip': 'Client IP',
@@ -38,10 +44,12 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.filter_account': 'Account',
     'monitoring.filter_status_failed': 'Failed only',
     'monitoring.filter_provider': 'Provider',
+    'monitoring.input_tokens': 'Input Tokens',
     'monitoring.input_tokens_short': 'Input',
     'monitoring.log_rows': 'Rows',
     'monitoring.reasoning_effort': 'Effort',
     'monitoring.reasoning_effort_short': 'Effort',
+    'monitoring.reasoning_tokens': 'Reasoning Tokens',
     'monitoring.reasoning_tokens_short': 'Reasoning',
     'monitoring.recent_failures': 'Failures',
     'monitoring.recent_status': 'Recent',
@@ -55,6 +63,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.result_success': 'Success',
     'monitoring.security_policy': 'Security Policy',
     'monitoring.security_audit_error': 'Security Audit Error',
+    'monitoring.output_tokens': 'Output Tokens',
     'monitoring.output_tokens_short': 'Output',
     'monitoring.page_size_label': 'Per page',
     'monitoring.page_size_label_short': 'Rows',
@@ -72,6 +81,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.service_tier_standard': 'Standard',
     'monitoring.this_call_cost': 'Cost',
     'monitoring.this_call_usage': 'Usage',
+    'monitoring.total_tokens': 'Total Tokens',
     'monitoring.ttft_short': 'TTFT',
   };
   let message = messages[key] ?? key;
@@ -94,6 +104,7 @@ type PanelRow = MonitoringEventRow & {
 
 type PanelOverrides = {
   accountDisplayMode?: AccountDisplayMode;
+  columnWidths?: RealtimeColumnWidths;
   eventsTotalCount?: number;
 };
 
@@ -130,13 +141,13 @@ const baseRow = (overrides: Partial<PanelRow> = {}): PanelRow => ({
   latencyMs: 1500,
   ttftMs: 500,
   tokensPerSecond: 20,
-	inputTokens: 15,
-	outputTokens: 23,
+  inputTokens: 15,
+  outputTokens: 23,
   reasoningTokens: 3,
   cachedTokens: 5,
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
-	totalTokens: 38,
+  totalTokens: 38,
   totalCost: 0,
   taskKey: 'task-1',
   searchText: '',
@@ -166,7 +177,7 @@ const renderPanel = (row: PanelRow, overrides: PanelOverrides = {}) =>
       hasPrices={false}
       accountDisplayMode={overrides.accountDisplayMode ?? 'masked'}
       visibleColumns={[...DEFAULT_REALTIME_COLUMNS]}
-      columnWidths={{}}
+      columnWidths={overrides.columnWidths ?? {}}
       locale="en-US"
       emptyState={<span>empty</span>}
       t={t}
@@ -228,10 +239,15 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('Elapsed');
     expect(markup).toContain('1.5 s');
     expect(markup).toContain('20');
-	expect(markup).toContain('Input 10 · Output 23 · Reasoning 3');
-	expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4 · Cache Write 1');
-    expect(markup).toContain('role="tooltip"');
-    expect(markup).toContain('aria-describedby=');
+    expect(markup).not.toContain('Input 10 · Output 23 · Reasoning 3');
+    expect(markup).toContain('>10</span>');
+    expect(markup).toContain('>23</span>');
+    expect(markup).toContain('>5</span>');
+    expect(markup).toContain('realtimeTokenInfo');
+    expect(markup).toContain('26.7%');
+    expect(markup).toContain('aria-label="Usage"');
+    expect(markup).not.toContain('Input Tokens');
+    expect(markup).not.toContain('Cache Tokens');
     expect(markup).toContain('aria-label="HTTP 429 · rate limit exceeded"');
     expect(markup).toContain('aria-label="Copy"');
     expect(markup).toContain('HTTP 429');
@@ -245,8 +261,8 @@ describe('RealtimeEventsPanel', () => {
         successRate: 0,
         executorType: 'security_policy',
         inputTokens: 0,
-		outputTokens: 3,
-		totalTokens: 3,
+        outputTokens: 3,
+        totalTokens: 3,
         totalCost: 0,
         latencyMs: 18,
         ttftMs: null,
@@ -259,7 +275,9 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).not.toContain('>Failed</span>');
     expect(markup).toContain('HTTP 403');
     expect(markup).toContain('security_audit_blocked: Qwen3Guard rejected the request');
-	expect(markup).toContain('Input 0 · Output 3 · Reasoning 3');
+    expect(markup).not.toContain('Input 0 · Output 3 · Reasoning 3');
+    expect(markup).toContain('>0</span>');
+    expect(markup).toContain('>3</span>');
   });
 
   it('renders safe defaults when optional usage fields are missing', () => {
@@ -274,12 +292,12 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toMatch(/TTFT<\/span><span class="[^"]+">｜<\/span><span class="[^"]+">Elapsed/);
     expect(markup).toContain(expectedDate);
     expect(markup).toContain(expectedTime);
-	expect(markup).toContain('Input 15 · Output 23 · Reasoning 3');
-    expect(markup).toContain('Cache Hit Rate 33.3% · Cache Read 5 · Cache Write 0');
-    expect(markup).not.toContain('Cache Read 0');
-    expect(markup).not.toContain('Create 0');
-    expect(markup).not.toContain('role="tooltip"');
-    expect(markup).not.toContain('aria-describedby=');
+    expect(markup).not.toContain('Input 15 · Output 23 · Reasoning 3');
+    expect(markup).toContain('>15</span>');
+    expect(markup).toContain('>23</span>');
+    expect(markup).toContain('>5</span>');
+    expect(markup).toContain('realtimeTokenInfo');
+    expect(markup).toContain('aria-label="Usage"');
     expect(markup).not.toContain('HTTP');
   });
 
@@ -408,9 +426,32 @@ describe('RealtimeEventsPanel', () => {
       })
     );
 
-    expect(markup).not.toContain('C 4');
-	expect(markup).toContain('Cache Hit Rate 26.7% · Cache Read 4');
-    expect(markup).toContain('Cache Write 1');
+    expect(markup).toContain('>5</span>');
+    expect(markup).toContain('realtimeTokenInfo');
+  });
+
+  it('uses a compact k suffix only for cache totals above one thousand', () => {
+    const markup = renderPanel(
+      baseRow({
+        inputTokens: 2_000,
+        cachedTokens: 1_200,
+        cacheReadTokens: 1_200,
+        cacheCreationTokens: 0,
+      })
+    );
+
+    expect(markup).toContain('>800</span>');
+    expect(markup).toContain('>1.2k</span>');
+    expect(markup).toContain('>23</span>');
+  });
+
+  it('keeps the usage content and info trigger together when the usage column is resized', () => {
+    const markup = renderPanel(baseRow(), {
+      columnWidths: { usage: 72 },
+    });
+
+    expect(markup).toContain('style="width:180px"');
+    expect(markup).toContain('realtimeTokenInfo');
   });
 
   it('does not show Codex speed for non-Codex rows', () => {

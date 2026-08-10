@@ -1284,6 +1284,142 @@
     white-space: pre-wrap;
   }
 
+  .realtimeTokenUsage {
+    position: relative;
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    outline: none;
+  }
+
+  .realtimeTokenItems {
+    display: grid;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .realtimeTokenPrimaryLine,
+  .realtimeTokenCacheLine {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .realtimeTokenItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+
+    svg {
+      flex: none;
+    }
+  }
+
+  .realtimeTokenInput {
+    color: var(--monitor-cyan);
+  }
+
+  .realtimeTokenOutput {
+    color: #8b5cf6;
+  }
+
+  .realtimeTokenCache {
+    color: var(--monitor-accent);
+  }
+
+  .realtimeTokenCacheHitRate {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--monitor-muted);
+    font-size: 11px;
+    font-weight: 650;
+
+    svg {
+      color: var(--monitor-green);
+    }
+  }
+
+  .realtimeTokenInfo {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--monitor-muted);
+    cursor: help;
+    outline: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--monitor-accent);
+    }
+  }
+
+  .realtimeTokenTooltip {
+    position: fixed;
+    z-index: 2000;
+    display: grid;
+    min-width: 196px;
+    padding: 11px 12px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 12px;
+    background: #111827;
+    box-shadow: 0 14px 32px rgb(17 24 39 / 26%);
+    color: #e5e7eb;
+    font-size: 12px;
+    line-height: 1.35;
+    pointer-events: none;
+    transform: translate(-100%, -100%);
+    white-space: nowrap;
+  }
+
+  .realtimeTokenTooltipTitle {
+    display: block;
+    margin-bottom: 8px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: 0.01em;
+  }
+
+  .realtimeTokenTooltipGrid {
+    display: grid;
+    gap: 5px;
+  }
+
+  .realtimeTokenTooltipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+
+    strong {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+  }
+
+  .realtimeTokenTooltipDivider {
+    height: 1px;
+    margin: 9px 0;
+    background: rgb(255 255 255 / 10%);
+  }
+
+  .realtimeTokenTooltipTotal {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
   .monoCell {
     font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   }

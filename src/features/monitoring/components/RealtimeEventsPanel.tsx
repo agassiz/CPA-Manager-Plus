@@ -8,12 +8,18 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import type { TFunction } from 'i18next';
 import {
+  IconArrowDownToLine,
+  IconArrowUpFromLine,
+  IconChartLine,
   IconCopy,
+  IconDatabaseZap,
   IconEye,
   IconEyeOff,
   IconFilter,
+  IconInfo,
   IconSlidersHorizontal,
 } from '@/components/ui/icons';
 import {
@@ -35,7 +41,7 @@ import {
 } from '@/features/monitoring/monitoringCenterUiState';
 import { useNotificationStore } from '@/stores';
 import { copyToClipboard } from '@/utils/clipboard';
-import { maskSensitiveText, truncateText } from '@/utils/format';
+import { formatNumber, maskSensitiveText, truncateText } from '@/utils/format';
 import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import { getMonitoringSuccessRateTone } from '../model/successRateTone';
 import styles from '../MonitoringCenterPage.module.scss';
@@ -99,6 +105,7 @@ export type RealtimeEventsPanelActionsProps = {
 };
 
 const REALTIME_PAGE_SIZE_OPTIONS = [10, 50, 100, 150, 300] as const;
+const MIN_REALTIME_USAGE_COLUMN_WIDTH = 180;
 const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   source: 240,
   model: 160,
@@ -311,7 +318,7 @@ const buildFailureDetails = (row: MonitoringEventRow, t: TFunction) => {
   };
 };
 
-const buildRealtimeTokenSummaryLines = (row: MonitoringEventRow, t: TFunction) => {
+const buildRealtimeTokenDetails = (row: MonitoringEventRow) => {
   const cacheReadTokens = Math.max(row.cacheReadTokens, row.cachedTokens);
   const cacheWriteTokens = row.cacheCreationTokens;
   const actualInputTokens = getActualInputTokens({
@@ -321,22 +328,159 @@ const buildRealtimeTokenSummaryLines = (row: MonitoringEventRow, t: TFunction) =
   });
   const cacheHitDenominator = row.inputTokens;
   const cacheHitRate = cacheHitDenominator > 0 ? cacheReadTokens / cacheHitDenominator : 0;
-  const inputOutputLine = [
-    `${shortLabel(t, 'monitoring.input_tokens_short', 'monitoring.input_tokens', 'Input')} ${formatCompactNumber(actualInputTokens)}`,
-    `${shortLabel(t, 'monitoring.output_tokens_short', 'monitoring.output_tokens', 'Output')} ${formatCompactNumber(row.outputTokens)}`,
-    ...(row.reasoningTokens > 0
-      ? [
-          `${shortLabel(t, 'monitoring.reasoning_tokens_short', 'monitoring.reasoning_tokens', 'Reasoning')} ${formatCompactNumber(row.reasoningTokens)}`,
-        ]
-      : []),
-  ].join(' · ');
-  const cacheLine = [
-    `${t('monitoring.cache_hit_rate')} ${formatPercent(cacheHitRate)}`,
-    `${shortLabel(t, 'monitoring.cache_read_tokens_short', 'monitoring.cache_read_tokens', 'Cache Read')} ${formatCompactNumber(cacheReadTokens)}`,
-    `${shortLabel(t, 'monitoring.cache_write_tokens_short', 'monitoring.cache_creation_tokens', 'Cache Write')} ${formatCompactNumber(cacheWriteTokens)}`,
-  ].join(' · ');
-  return [inputOutputLine, cacheLine];
+  return {
+    actualInputTokens,
+    cacheHitRate,
+    cacheReadTokens,
+    cacheTokens: cacheReadTokens + cacheWriteTokens,
+    cacheWriteTokens,
+  };
 };
+
+const formatRealtimeTokenNumber = (value: number, locale: string) =>
+  formatNumber(Math.max(0, Math.round(value)), locale);
+
+const formatRealtimeCacheTokenNumber = (value: number, locale: string) => {
+  const roundedValue = Math.max(0, Math.round(value));
+  return roundedValue > 1_000
+    ? formatCompactNumber(roundedValue).replace('K', 'k')
+    : formatRealtimeTokenNumber(roundedValue, locale);
+};
+
+type TooltipPosition = {
+  left: number;
+  top: number;
+};
+
+type RealtimeTokenUsageCellProps = {
+  locale: string;
+  row: RealtimeLogRow;
+  t: TFunction;
+};
+
+function RealtimeTokenUsageCell({ locale, row, t }: RealtimeTokenUsageCellProps) {
+  const tooltipId = useId();
+  const infoRef = useRef<HTMLDivElement | null>(null);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+  const tokenDetails = buildRealtimeTokenDetails(row);
+  const updateTooltipPosition = useCallback(() => {
+    const rect = infoRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTooltipPosition({
+      left: Math.max(8, Math.min(rect.right, window.innerWidth - 8)),
+      top: Math.max(8, rect.top - 8),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    window.addEventListener('resize', updateTooltipPosition);
+    window.addEventListener('scroll', updateTooltipPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateTooltipPosition);
+      window.removeEventListener('scroll', updateTooltipPosition, true);
+    };
+  }, [tooltipOpen, updateTooltipPosition]);
+
+  const showTooltip = () => {
+    updateTooltipPosition();
+    setTooltipOpen(true);
+  };
+
+  const tooltip =
+    tooltipOpen && tooltipPosition && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            id={tooltipId}
+            role="tooltip"
+            className={styles.realtimeTokenTooltip}
+            style={tooltipPosition}
+          >
+            <span className={styles.realtimeTokenTooltipTitle}>
+              {t('monitoring.this_call_usage')}
+            </span>
+            <div className={styles.realtimeTokenTooltipGrid}>
+              <div className={styles.realtimeTokenTooltipRow}>
+                <span>{t('monitoring.input_tokens')}</span>
+                <strong>{formatRealtimeTokenNumber(tokenDetails.actualInputTokens, locale)}</strong>
+              </div>
+              <div className={styles.realtimeTokenTooltipRow}>
+                <span>{t('monitoring.output_tokens')}</span>
+                <strong>{formatRealtimeTokenNumber(row.outputTokens, locale)}</strong>
+              </div>
+              <div className={styles.realtimeTokenTooltipRow}>
+                <span>{t('monitoring.cache_read_tokens')}</span>
+                <strong>{formatRealtimeTokenNumber(tokenDetails.cacheReadTokens, locale)}</strong>
+              </div>
+              <div className={styles.realtimeTokenTooltipRow}>
+                <span>{t('monitoring.cache_creation_tokens')}</span>
+                <strong>{formatRealtimeTokenNumber(tokenDetails.cacheWriteTokens, locale)}</strong>
+              </div>
+              {row.reasoningTokens > 0 ? (
+                <div className={styles.realtimeTokenTooltipRow}>
+                  <span>{t('monitoring.reasoning_tokens')}</span>
+                  <strong>{formatRealtimeTokenNumber(row.reasoningTokens, locale)}</strong>
+                </div>
+              ) : null}
+              <div className={styles.realtimeTokenTooltipRow}>
+                <span>{t('monitoring.cache_hit_rate')}</span>
+                <strong>{formatPercent(tokenDetails.cacheHitRate)}</strong>
+              </div>
+            </div>
+            <div className={styles.realtimeTokenTooltipDivider} />
+            <div
+              className={`${styles.realtimeTokenTooltipRow} ${styles.realtimeTokenTooltipTotal}`}
+            >
+              <span>{t('monitoring.total_tokens')}</span>
+              <strong>{formatRealtimeTokenNumber(row.totalTokens, locale)}</strong>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
+  return (
+    <div className={`${styles.primaryCell} ${styles.realtimeTokenUsage}`}>
+      <div className={styles.realtimeTokenItems}>
+        <div className={styles.realtimeTokenPrimaryLine}>
+          <span className={`${styles.realtimeTokenItem} ${styles.realtimeTokenInput}`}>
+            <IconArrowDownToLine size={14} aria-hidden="true" />
+            {formatRealtimeTokenNumber(tokenDetails.actualInputTokens, locale)}
+          </span>
+          <span className={`${styles.realtimeTokenItem} ${styles.realtimeTokenOutput}`}>
+            <IconArrowUpFromLine size={14} aria-hidden="true" />
+            {formatRealtimeTokenNumber(row.outputTokens, locale)}
+          </span>
+        </div>
+        <div className={styles.realtimeTokenCacheLine}>
+          <span className={`${styles.realtimeTokenItem} ${styles.realtimeTokenCache}`}>
+            <IconDatabaseZap size={14} aria-hidden="true" />
+            {formatRealtimeCacheTokenNumber(tokenDetails.cacheTokens, locale)}
+          </span>
+          <span className={styles.realtimeTokenCacheHitRate}>
+            <IconChartLine size={14} aria-hidden="true" />
+            {formatPercent(tokenDetails.cacheHitRate)}
+          </span>
+        </div>
+      </div>
+      <div
+        ref={infoRef}
+        className={styles.realtimeTokenInfo}
+        tabIndex={0}
+        aria-describedby={tooltipOpen ? tooltipId : undefined}
+        aria-label={t('monitoring.this_call_usage')}
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setTooltipOpen(false)}
+        onFocus={showTooltip}
+        onBlur={() => setTooltipOpen(false)}
+      >
+        <IconInfo size={16} aria-hidden="true" />
+      </div>
+      {tooltip}
+    </div>
+  );
+}
 
 const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
   switch (key) {
@@ -393,11 +537,14 @@ const normalizeVisibleRealtimeColumns = (columns: RealtimeColumnKey[]) => {
   return normalized.length > 0 ? normalized : [...DEFAULT_REALTIME_COLUMNS];
 };
 
-const clampRealtimeColumnWidth = (value: number) =>
-  Math.min(Math.max(Math.round(value), MIN_REALTIME_COLUMN_WIDTH), MAX_REALTIME_COLUMN_WIDTH);
+const getRealtimeColumnMinWidth = (key: RealtimeColumnKey) =>
+  key === 'usage' ? MIN_REALTIME_USAGE_COLUMN_WIDTH : MIN_REALTIME_COLUMN_WIDTH;
+
+const clampRealtimeColumnWidth = (key: RealtimeColumnKey, value: number) =>
+  Math.min(Math.max(Math.round(value), getRealtimeColumnMinWidth(key)), MAX_REALTIME_COLUMN_WIDTH);
 
 const getRealtimeColumnWidth = (key: RealtimeColumnKey, widths: RealtimeColumnWidths) =>
-  widths[key] ?? DEFAULT_REALTIME_COLUMN_WIDTHS[key];
+  Math.max(widths[key] ?? DEFAULT_REALTIME_COLUMN_WIDTHS[key], getRealtimeColumnMinWidth(key));
 
 export function RealtimeEventsPanelActions({
   rowCount,
@@ -617,7 +764,7 @@ export function RealtimeEventsPanel({
       const delta = event.clientX - columnResizeState.startX;
       onColumnWidthChange(
         columnResizeState.key,
-        clampRealtimeColumnWidth(columnResizeState.startWidth + delta)
+        clampRealtimeColumnWidth(columnResizeState.key, columnResizeState.startWidth + delta)
       );
     };
     const handlePointerUp = () => setColumnResizeState(null);
@@ -841,18 +988,8 @@ export function RealtimeEventsPanel({
             <span className={styles.realtimeTimeLine}>{timeParts.time}</span>
           </div>
         );
-      case 'usage': {
-        const [inputOutputLine, cacheLine] = buildRealtimeTokenSummaryLines(row, t);
-        return (
-          <div className={styles.primaryCell}>
-            <span>{formatCompactNumber(row.totalTokens)}</span>
-            <small className={styles.realtimeTokenBreakdown}>
-              <span className={styles.realtimeTokenLine}>{inputOutputLine}</span>
-              <span className={styles.realtimeTokenLine}>{cacheLine}</span>
-            </small>
-          </div>
-        );
-      }
+      case 'usage':
+        return <RealtimeTokenUsageCell row={row} locale={locale} t={t} />;
       case 'cost':
         return <>{hasPrices ? formatUsd(row.totalCost, 6) : '--'}</>;
       case 'apiKeyHash':
