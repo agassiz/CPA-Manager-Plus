@@ -74,6 +74,7 @@ interface VisualConfigEditorProps {
   hasPayloadValidationErrors?: boolean;
   disabled?: boolean;
   onChange: (values: Partial<VisualConfigValues>) => void;
+  onAccessRulesSaved: () => Promise<void>;
 }
 
 function getValidationMessage(
@@ -181,6 +182,7 @@ export function VisualConfigEditor({
   hasPayloadValidationErrors = false,
   disabled = false,
   onChange,
+  onAccessRulesSaved,
 }: VisualConfigEditorProps) {
   const { t } = useTranslation();
   const pageTransitionLayer = usePageTransitionLayer();
@@ -715,8 +717,10 @@ export function VisualConfigEditor({
               <div className={styles.subsection}>
                 <ApiKeysCardEditor
                   value={values.apiKeysText}
+                  accessRules={values.apiKeyAccessRules}
                   disabled={disabled}
                   onChange={handleApiKeysTextChange}
+                  onAccessRulesSaved={onAccessRulesSaved}
                 />
               </div>
             </SectionStack>

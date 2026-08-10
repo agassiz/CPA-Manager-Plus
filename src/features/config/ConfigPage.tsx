@@ -582,6 +582,7 @@ export function ConfigPage() {
               hasPayloadValidationErrors={visualHasPayloadValidationErrors}
               disabled={disableControls || loading}
               onChange={setVisualValues}
+              onAccessRulesSaved={loadConfig}
             />
           ) : (
             <div className={styles.sourceWorkspace}>

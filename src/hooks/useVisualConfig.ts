@@ -79,6 +79,34 @@ function resolveApiKeysText(parsed: Record<string, unknown>): string {
   return parseApiKeysText(configApiKeyProvider['api-keys']);
 }
 
+function parseAPIKeyAccessRules(raw: unknown): VisualConfigValues['apiKeyAccessRules'] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item) => {
+    const rule = asRecord(item);
+    if (!rule) return [];
+    const apiKey = typeof rule['api-key'] === 'string' ? rule['api-key'].trim() : '';
+    if (!apiKey) return [];
+    const normalizeValues = (values: unknown, lower = false) =>
+      Array.isArray(values)
+        ? Array.from(
+            new Set(
+              values
+                .filter((value): value is string => typeof value === 'string')
+                .map((value) => value.trim())
+                .map((value) => (lower ? value.toLowerCase() : value))
+                .filter(Boolean)
+            )
+          )
+        : [];
+    return [{
+      apiKey,
+      authIds: normalizeValues(rule['auth-ids']),
+      providers: normalizeValues(rule.providers, true),
+    }];
+  });
+}
+
 type YamlDocument = ReturnType<typeof parseDocument>;
 type YamlPath = string[];
 
@@ -864,6 +892,7 @@ export function useVisualConfig() {
 
         authDir: typeof parsed['auth-dir'] === 'string' ? parsed['auth-dir'] : '',
         apiKeysText: resolveApiKeysText(parsed),
+        apiKeyAccessRules: parseAPIKeyAccessRules(parsed['api-key-access']),
 
         debug: Boolean(parsed.debug),
         commercialMode: Boolean(parsed['commercial-mode']),

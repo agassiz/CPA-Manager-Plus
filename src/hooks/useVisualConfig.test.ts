@@ -41,6 +41,31 @@ const mountUseVisualConfig = (): UseVisualConfigHarness => {
 };
 
 describe('useVisualConfig', () => {
+  it('loads API key access rules from the same configuration document', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'api-keys:',
+      '  - client-a',
+      'api-key-access:',
+      '  - api-key: client-a',
+      '    auth-ids:',
+      '      - auth-1',
+      '    providers:',
+      '      - codex:0',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+
+    expect(harness.getCurrent().visualValues.apiKeyAccessRules).toEqual([
+      { apiKey: 'client-a', authIds: ['auth-1'], providers: ['codex:0'] },
+    ]);
+    harness.unmount();
+  });
+
   it('round-trips the Responses compact fallback model', () => {
     const harness = mountUseVisualConfig();
     const yaml = ['codex:', '  responses-compact-fallback-model: claude-sonnet-4-6', ''].join('\n');

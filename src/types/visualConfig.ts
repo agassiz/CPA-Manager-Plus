@@ -1,5 +1,10 @@
 export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat';
+export type APIKeyAccessRuleConfig = {
+  apiKey: string;
+  authIds: string[];
+  providers: string[];
+};
 export type PayloadParamValidationErrorCode =
   | 'payload_invalid_number'
   | 'payload_invalid_boolean'
@@ -112,6 +117,7 @@ export type VisualConfigValues = {
   rmPanelRepo: string;
   authDir: string;
   apiKeysText: string;
+  apiKeyAccessRules: APIKeyAccessRuleConfig[];
   debug: boolean;
   commercialMode: boolean;
   pluginsEnabled: boolean;
@@ -198,6 +204,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   rmPanelRepo: '',
   authDir: '',
   apiKeysText: '',
+  apiKeyAccessRules: [],
   debug: false,
   commercialMode: false,
   pluginsEnabled: false,

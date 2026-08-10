@@ -23,6 +23,8 @@ export type AuthFileType =
   | 'unknown';
 
 export interface AuthFileItem {
+	/** Stable runtime credential identifier used by access rules. */
+	id?: string;
   name: string;
   type?: AuthFileType | string;
   provider?: string;

@@ -2,10 +2,18 @@ import { memo, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
   usageServiceApi,
   type ApiKeyAlias,
 } from '@/services/api/usageService';
+import {
+  apiKeyAccessApi,
+  type ApiKeyAccessCredential,
+  type ApiKeyAccessProvider,
+  type ApiKeyAccessRule,
+} from '@/services/api';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { usePanelFeatureAvailability } from '@/hooks/usePanelFeatureAvailability';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -22,12 +30,16 @@ type OrphanAliasConflict = {
 
 export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   value,
+  accessRules,
   disabled,
   onChange,
+  onAccessRulesSaved,
 }: {
   value: string;
+  accessRules: ApiKeyAccessRule[];
   disabled?: boolean;
   onChange: (nextValue: string) => void;
+  onAccessRulesSaved: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
@@ -71,6 +83,18 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const [aliasInputValue, setAliasInputValue] = useState('');
   const [aliasFormError, setAliasFormError] = useState('');
   const [aliasSaving, setAliasSaving] = useState(false);
+  const [apiKeyAccessRules, setApiKeyAccessRules] = useState<ApiKeyAccessRule[]>(accessRules);
+  const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [accessApiKey, setAccessApiKey] = useState('');
+  const [accessUnrestricted, setAccessUnrestricted] = useState(true);
+  const [accessAuthIDs, setAccessAuthIDs] = useState<string[]>([]);
+  const [accessProviders, setAccessProviders] = useState<string[]>([]);
+  const [accessProviderOptions, setAccessProviderOptions] = useState<ApiKeyAccessProvider[]>([]);
+  const [accessCredentials, setAccessCredentials] = useState<ApiKeyAccessCredential[]>([]);
+  const [accessSearch, setAccessSearch] = useState('');
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessFormError, setAccessFormError] = useState('');
 
   const aliasByHash = useMemo(() => {
     const map = new Map<string, ApiKeyAlias>();
@@ -84,6 +108,24 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     });
     return map;
   }, [apiKeyAliases]);
+
+  const accessRuleByApiKey = useMemo(
+    () => new Map(apiKeyAccessRules.map((rule) => [rule.apiKey, rule])),
+    [apiKeyAccessRules]
+  );
+  const visibleAccessCredentials = useMemo(() => {
+    const search = accessSearch.trim().toLowerCase();
+    if (!search) return accessCredentials;
+    return accessCredentials.filter((credential) =>
+      [credential.name, credential.provider, credential.status]
+        .map((value) => String(value ?? '').toLowerCase())
+        .some((value) => value.includes(search))
+    );
+  }, [accessCredentials, accessSearch]);
+
+  useEffect(() => {
+    setApiKeyAccessRules(accessRules);
+  }, [accessRules]);
 
   const resolveAliasServiceBase = useCallback(
     async (): Promise<string> =>
@@ -352,6 +394,94 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     setAliasFormError('');
   };
 
+  const openAccessModal = async (apiKey: string) => {
+    setAccessApiKey(apiKey);
+    setAccessSearch('');
+    setAccessFormError('');
+    setAccessModalOpen(true);
+    setAccessLoading(true);
+    try {
+      const options = await apiKeyAccessApi.options();
+      const rule = apiKeyAccessRules.find((item) => item.apiKey === apiKey);
+      setAccessProviderOptions(options.providers);
+      setAccessUnrestricted(!rule);
+      setAccessAuthIDs(rule?.authIds ?? []);
+      setAccessProviders(rule?.providers ?? []);
+      setAccessCredentials(options.credentials);
+    } catch (error) {
+      setAccessFormError(
+        error instanceof Error
+          ? error.message
+          : t('config_management.visual.api_keys.access_load_failed')
+      );
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  const closeAccessModal = () => {
+    setAccessModalOpen(false);
+    setAccessApiKey('');
+    setAccessAuthIDs([]);
+    setAccessProviders([]);
+    setAccessCredentials([]);
+    setAccessSearch('');
+    setAccessFormError('');
+  };
+
+  const isAccessProviderSelected = (provider: ApiKeyAccessProvider) =>
+    accessProviders.includes(provider.id);
+
+  const toggleAccessProvider = (provider: ApiKeyAccessProvider, checked: boolean) => {
+    setAccessProviders((current) =>
+      checked
+        ? Array.from(new Set([...current, provider.id]))
+        : current.filter((candidate) => candidate !== provider.id)
+    );
+  };
+
+  const toggleAccessAuthID = (authID: string, checked: boolean) => {
+    setAccessAuthIDs((current) =>
+      checked ? Array.from(new Set([...current, authID])) : current.filter((id) => id !== authID)
+    );
+  };
+
+  const saveAccessRule = async () => {
+    if (!accessApiKey) return;
+    if (!accessUnrestricted && accessAuthIDs.length === 0 && accessProviders.length === 0) {
+      setAccessFormError(t('config_management.visual.api_keys.access_required'));
+      return;
+    }
+    const nextRules = apiKeyAccessRules.filter((rule) => rule.apiKey !== accessApiKey);
+    if (!accessUnrestricted) {
+      nextRules.push({
+        apiKey: accessApiKey,
+        authIds: accessAuthIDs,
+        providers: accessProviders,
+      });
+    }
+    setAccessSaving(true);
+    setAccessFormError('');
+    try {
+      await apiKeyAccessApi.replace(nextRules);
+      setApiKeyAccessRules(nextRules);
+      await onAccessRulesSaved();
+      showNotification(
+        t(
+          accessUnrestricted
+            ? 'config_management.visual.api_keys.access_cleared'
+            : 'config_management.visual.api_keys.access_saved'
+        ),
+        'success'
+      );
+      closeAccessModal();
+    } catch (error) {
+      setAccessFormError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setAccessSaving(false);
+    }
+  };
+
   const updateApiKeys = (nextKeys: string[]) => {
     onChange(nextKeys.join('\n'));
   };
@@ -525,6 +655,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
           {apiKeys.map((key, index) => {
             const apiKeyHash = getApiKeyHash(key);
             const alias = apiKeyHash ? (aliasByHash.get(apiKeyHash)?.alias ?? '') : '';
+            const accessRule = accessRuleByApiKey.get(key);
             return (
               <div key={renderApiKeyIds[index] ?? `${key}-${index}`} className="item-row">
                 <div className="item-meta">
@@ -534,6 +665,19 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
                   <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
                 </div>
                 <div className="item-actions">
+                  <span className={styles.apiKeyAccessStatus}>
+                    {accessRule
+                      ? t('config_management.visual.api_keys.access_restricted')
+                      : t('config_management.visual.api_keys.access_all')}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => void openAccessModal(key)}
+                    disabled={disabled}
+                  >
+                    {t('config_management.visual.api_keys.access_action')}
+                  </Button>
                   <Button
                     variant="secondary"
                     size="xs"
@@ -708,6 +852,104 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
             </div>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        open={accessModalOpen}
+        onClose={closeAccessModal}
+        title={t('config_management.visual.api_keys.access_title')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeAccessModal} disabled={disabled || accessSaving}>
+              {t('config_management.visual.common.cancel')}
+            </Button>
+            <Button onClick={() => void saveAccessRule()} disabled={disabled || accessSaving || accessLoading}>
+              {t('common.save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <ToggleSwitch
+            checked={accessUnrestricted}
+            onChange={(checked) => {
+              setAccessUnrestricted(checked);
+              setAccessFormError('');
+            }}
+            label={t('config_management.visual.api_keys.access_all')}
+            disabled={disabled || accessLoading || accessSaving}
+          />
+          <div className="hint">{t('config_management.visual.api_keys.access_all_hint')}</div>
+        </div>
+
+        {!accessUnrestricted ? (
+          <>
+            <div className="form-group">
+              <label>{t('config_management.visual.api_keys.access_providers')}</label>
+              {accessProviderOptions.length === 0 ? (
+                <div className="hint">{t('config_management.visual.api_keys.access_no_credentials')}</div>
+              ) : (
+                <div className="item-list" style={{ maxHeight: 180, overflowY: 'auto' }}>
+                  {accessProviderOptions.map((provider) => (
+                    <SelectionCheckbox
+                      key={provider.id}
+                      checked={isAccessProviderSelected(provider)}
+                      onChange={(checked) => toggleAccessProvider(provider, checked)}
+                      disabled={disabled || accessLoading || accessSaving}
+                      label={
+                        <div>
+                          <div>{provider.name}</div>
+                          <div className="hint" style={{ margin: 0 }}>
+                            {provider.type}
+                          </div>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor={`${apiKeyInputId}-access-search`}>
+                {t('config_management.visual.api_keys.access_credentials')}
+              </label>
+              <input
+                id={`${apiKeyInputId}-access-search`}
+                className="input"
+                value={accessSearch}
+                onChange={(event) => setAccessSearch(event.target.value)}
+                placeholder={t('config_management.visual.api_keys.access_search_placeholder')}
+                disabled={disabled || accessLoading || accessSaving}
+              />
+              {visibleAccessCredentials.length === 0 ? (
+                <div className="hint">{t('config_management.visual.api_keys.access_no_credentials')}</div>
+              ) : (
+                <div className="item-list" style={{ marginTop: 8, maxHeight: 220, overflowY: 'auto' }}>
+                  {visibleAccessCredentials.map((credential) => {
+                    return (
+                      <SelectionCheckbox
+                        key={credential.id}
+                        checked={accessAuthIDs.includes(credential.id)}
+                        onChange={(checked) => toggleAccessAuthID(credential.id, checked)}
+                        disabled={disabled || accessLoading || accessSaving}
+                        label={
+                          <div>
+                            <div>{credential.name}</div>
+                            <div className="hint" style={{ margin: 0 }}>
+                              {credential.provider} · {credential.status || 'unknown'}
+                            </div>
+                          </div>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        ) : null}
+        {accessFormError ? <div className="error-box">{accessFormError}</div> : null}
       </Modal>
     </div>
   );
