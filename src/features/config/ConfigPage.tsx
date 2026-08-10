@@ -17,13 +17,9 @@ import { VisualConfigEditor } from '@/components/config/VisualConfigEditor';
 import { DiffModal } from '@/components/config/DiffModal';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useVisualConfig } from '@/hooks/useVisualConfig';
-import {
-  useNotificationStore,
-  useAuthStore,
-  useThemeStore,
-  useConfigStore,
-} from '@/stores';
+import { useNotificationStore, useAuthStore, useThemeStore, useConfigStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
+import { licenseApi } from '@/services/api/license';
 import { notifyPluginResourcesChanged } from '@/features/plugins/pluginResources';
 import styles from './ConfigPage.module.scss';
 
@@ -88,6 +84,7 @@ export function ConfigPage() {
   const [diffModalOpen, setDiffModalOpen] = useState(false);
   const [serverYaml, setServerYaml] = useState('');
   const [mergedYaml, setMergedYaml] = useState('');
+  const [codexLicensedFeaturesAllowed, setCodexLicensedFeaturesAllowed] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,13 +108,17 @@ export function ConfigPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await configFileApi.fetchConfigYaml();
+      const [data, licenseStatus] = await Promise.all([
+        configFileApi.fetchConfigYaml(),
+        licenseApi.getStatus().catch(() => null),
+      ]);
       setContent(data);
       setDirty(false);
       setDiffModalOpen(false);
       setServerYaml(data);
       setMergedYaml(data);
       setSourceConfigLoaded(true);
+      setCodexLicensedFeaturesAllowed(licenseStatus?.super_category_allowed === true);
       loadVisualValuesFromYaml(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('notification.refresh_failed');
@@ -474,8 +475,7 @@ export function ConfigPage() {
     if (error) return t('config_management.status_load_failed_short', { defaultValue: 'Failed' });
     if (hasVisualModeError)
       return t('config_management.visual_mode_unavailable_short', { defaultValue: 'YAML issue' });
-    if (hasVisualValidationErrors)
-      return t('config_management.visual.validation_blocked_short');
+    if (hasVisualValidationErrors) return t('config_management.visual.validation_blocked_short');
     if (saving) return t('config_management.status_saving_short', { defaultValue: 'Saving' });
     if (isDirty) return t('config_management.status_dirty_short', { defaultValue: 'Unsaved' });
     return t('config_management.status_loaded_short', { defaultValue: 'Loaded' });
@@ -580,6 +580,7 @@ export function ConfigPage() {
               values={visualValues}
               validationErrors={visualValidationErrors}
               hasPayloadValidationErrors={visualHasPayloadValidationErrors}
+              codexLicensedFeaturesAllowed={codexLicensedFeaturesAllowed}
               disabled={disableControls || loading}
               onChange={setVisualValues}
               onAccessRulesSaved={loadConfig}

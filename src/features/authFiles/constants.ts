@@ -247,6 +247,21 @@ export const readCodexAuthFileWebsockets = (value: Record<string, unknown>): boo
 export const readCodexAuthFileSuperCategory = (value: Record<string, unknown>): boolean =>
   parseDisableCoolingValue(value.super_category ?? value.superCategory) ?? false;
 
+export type CodexAuthFileExclusiveConfig = { model: string; threshold: number };
+
+export const readCodexAuthFileExclusiveConfig = (
+  value: Record<string, unknown>
+): CodexAuthFileExclusiveConfig | null => {
+  const raw = value.exclusive_config ?? value.exclusiveConfig;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const config = raw as Record<string, unknown>;
+  const model = typeof config.model === 'string' ? config.model.trim() : '';
+  const threshold =
+    typeof config.threshold === 'number' ? config.threshold : Number(config.threshold);
+  if (!model || !Number.isInteger(threshold) || threshold < 1 || threshold > 100) return null;
+  return { model, threshold };
+};
+
 export const applyCodexAuthFileWebsockets = (
   value: Record<string, unknown>,
   websockets: boolean
@@ -271,6 +286,20 @@ export const applyCodexAuthFileSuperCategory = (
   return next;
 };
 
+export const applyCodexAuthFileExclusiveConfig = (
+  value: Record<string, unknown>,
+  config: CodexAuthFileExclusiveConfig | null
+): Record<string, unknown> => {
+  const next = { ...value };
+  delete next.exclusiveConfig;
+  if (config) {
+    next.exclusive_config = config;
+  } else {
+    delete next.exclusive_config;
+  }
+  return next;
+};
+
 export function isRuntimeOnlyAuthFile(file: AuthFileItem): boolean {
   const raw = file['runtime_only'] ?? file.runtimeOnly;
   if (typeof raw === 'boolean') return raw;
@@ -285,7 +314,7 @@ export const formatModified = (item: AuthFileItem): string => {
   const date =
     Number.isFinite(asNumber) && !Number.isNaN(asNumber)
       ? new Date(asNumber < 1e12 ? asNumber * 1000 : asNumber)
-      : parseTimestamp(raw) ?? new Date(String(raw));
+      : (parseTimestamp(raw) ?? new Date(String(raw)));
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 };
 

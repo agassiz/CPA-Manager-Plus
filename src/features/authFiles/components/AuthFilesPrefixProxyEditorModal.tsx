@@ -36,6 +36,13 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
   };
   const previewText = formatJsonText(updatedText);
   const invalidContentPreview = editor?.invalidContentPreview ?? '';
+  const exclusiveConfigInvalid = Boolean(
+    editor?.exclusiveEnabled &&
+    (!editor.exclusiveModel.trim() ||
+      !Number.isInteger(Number(editor.exclusiveThreshold.trim())) ||
+      Number(editor.exclusiveThreshold.trim()) < 1 ||
+      Number(editor.exclusiveThreshold.trim()) > 100)
+  );
 
   return (
     <Modal
@@ -126,25 +133,76 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
                         />
                         <div className="hint">{t('ai_providers.codex_websockets_hint')}</div>
                       </div>
-                      <div className="form-group">
-                        <label>{t('auth_files.super_category_label')}</label>
-                        <ToggleSwitch
-                          checked={Boolean(editor.superCategory)}
-                          onChange={(value) => onChange('superCategory', value)}
-                          disabled={
-                            disableControls ||
-                            editor.saving ||
-                            !editor.json ||
-                            (!editor.superCategoryAllowed && !editor.superCategory)
-                          }
-                          ariaLabel={t('auth_files.super_category_label')}
-                        />
-                        <div className="hint">
-                          {editor.superCategoryAllowed || editor.superCategory
-                            ? t('auth_files.super_category_hint')
-                            : t('auth_files.super_category_unavailable_hint')}
+                      {editor.superCategoryAllowed && (
+                        <div className="form-group">
+                          <label>{t('auth_files.super_category_label')}</label>
+                          <ToggleSwitch
+                            checked={Boolean(editor.superCategory)}
+                            onChange={(value) => onChange('superCategory', value)}
+                            disabled={disableControls || editor.saving || !editor.json}
+                            ariaLabel={t('auth_files.super_category_label')}
+                          />
+                          <div className="hint">{t('auth_files.super_category_hint')}</div>
                         </div>
-                      </div>
+                      )}
+                      {editor.exclusiveAllowed && (
+                        <div className="form-group">
+                          <label>{t('auth_files.exclusive_config_label')}</label>
+                          <ToggleSwitch
+                            checked={Boolean(editor.exclusiveEnabled)}
+                            onChange={(value) => onChange('exclusiveEnabled', value)}
+                            disabled={disableControls || editor.saving || !editor.json}
+                            ariaLabel={t('auth_files.exclusive_config_label')}
+                          />
+                          <div className="hint">{t('auth_files.exclusive_config_hint')}</div>
+                          {editor.exclusiveEnabled && (
+                            <div className={styles.prefixProxyInlineFields}>
+                              <label className="form-group">
+                                <span>{t('auth_files.exclusive_config_model_label')}</span>
+                                <select
+                                  className="input"
+                                  value={editor.exclusiveModel}
+                                  disabled={
+                                    disableControls ||
+                                    editor.saving ||
+                                    !editor.json ||
+                                    editor.exclusiveModelsLoading
+                                  }
+                                  onChange={(event) =>
+                                    onChange('exclusiveModel', event.target.value)
+                                  }
+                                >
+                                  <option value="">
+                                    {t('auth_files.exclusive_config_model_placeholder')}
+                                  </option>
+                                  {editor.exclusiveModels.map((model) => (
+                                    <option key={model} value={model}>
+                                      {model}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <Input
+                                label={t('auth_files.exclusive_config_threshold_label')}
+                                type="number"
+                                min={1}
+                                max={100}
+                                value={editor.exclusiveThreshold}
+                                placeholder={t('auth_files.exclusive_config_threshold_placeholder')}
+                                error={
+                                  exclusiveConfigInvalid
+                                    ? t('auth_files.exclusive_config_invalid')
+                                    : undefined
+                                }
+                                disabled={disableControls || editor.saving || !editor.json}
+                                onChange={(event) =>
+                                  onChange('exclusiveThreshold', event.target.value)
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                   <div className="form-group">

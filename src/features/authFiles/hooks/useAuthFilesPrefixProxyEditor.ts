@@ -6,8 +6,10 @@ import { useNotificationStore } from '@/stores';
 import {
   applyCodexAuthFileWebsockets,
   applyCodexAuthFileSuperCategory,
+  applyCodexAuthFileExclusiveConfig,
   normalizeProviderKey,
   parsePriorityValue,
+  readCodexAuthFileExclusiveConfig,
   readCodexAuthFileSuperCategory,
   readCodexAuthFileWebsockets,
 } from '@/features/authFiles/constants';
@@ -16,7 +18,8 @@ type AuthFileHeaders = Record<string, string>;
 type AuthFileHeadersErrorKey =
   | 'auth_files.headers_invalid_json'
   | 'auth_files.headers_invalid_object'
-  | 'auth_files.headers_invalid_value';
+  | 'auth_files.headers_invalid_value'
+  | 'auth_files.exclusive_config_invalid';
 type AuthFileContentErrorKey =
   | 'auth_files.prefix_proxy_invalid_json'
   | 'auth_files.prefix_proxy_html_challenge';
@@ -27,6 +30,9 @@ export type PrefixProxyEditorField =
   | 'priority'
   | 'websockets'
   | 'superCategory'
+  | 'exclusiveEnabled'
+  | 'exclusiveModel'
+  | 'exclusiveThreshold'
   | 'note'
   | 'headersText';
 
@@ -51,6 +57,13 @@ export type PrefixProxyEditorState = {
   superCategory: boolean;
   superCategoryTouched: boolean;
   superCategoryAllowed: boolean;
+  exclusiveEnabled: boolean;
+  exclusiveModel: string;
+  exclusiveThreshold: string;
+  exclusiveTouched: boolean;
+  exclusiveAllowed: boolean;
+  exclusiveModels: string[];
+  exclusiveModelsLoading: boolean;
   note: string;
   noteTouched: boolean;
   headersText: string;
@@ -292,6 +305,26 @@ const buildAuthFileFieldsPatch = (
     }
   }
 
+  if (editor.providerKey === 'codex' && editor.exclusiveTouched) {
+    const originalExclusive = readCodexAuthFileExclusiveConfig(original);
+    if (!editor.exclusiveEnabled) {
+      if (originalExclusive) patch.exclusive_config = null;
+    } else {
+      const model = editor.exclusiveModel.trim();
+      const threshold = Number(editor.exclusiveThreshold.trim());
+      if (!model || !Number.isInteger(threshold) || threshold < 1 || threshold > 100) {
+        throw new Error(resolveHeadersError('auth_files.exclusive_config_invalid'));
+      }
+      if (
+        !originalExclusive ||
+        originalExclusive.model !== model ||
+        originalExclusive.threshold !== threshold
+      ) {
+        patch.exclusive_config = { model, threshold };
+      }
+    }
+  }
+
   return patch;
 };
 
@@ -342,6 +375,9 @@ const buildPrefixProxyUpdatedText = (
   if (patch.super_category !== undefined) {
     next = applyCodexAuthFileSuperCategory(next, patch.super_category);
   }
+  if (patch.exclusive_config !== undefined) {
+    next = applyCodexAuthFileExclusiveConfig(next, patch.exclusive_config);
+  }
 
   return JSON.stringify(next);
 };
@@ -355,8 +391,18 @@ export function useAuthFilesPrefixProxyEditor(
 
   const [prefixProxyEditor, setPrefixProxyEditor] = useState<PrefixProxyEditorState | null>(null);
 
+  const hasInvalidExclusiveConfig = Boolean(
+    prefixProxyEditor?.providerKey === 'codex' &&
+    prefixProxyEditor.exclusiveAllowed &&
+    prefixProxyEditor.exclusiveEnabled &&
+    (!prefixProxyEditor.exclusiveModel.trim() ||
+      !Number.isInteger(Number(prefixProxyEditor.exclusiveThreshold.trim())) ||
+      Number(prefixProxyEditor.exclusiveThreshold.trim()) < 1 ||
+      Number(prefixProxyEditor.exclusiveThreshold.trim()) > 100)
+  );
   const hasBlockingValidationError = Boolean(
-    prefixProxyEditor?.headersTouched && prefixProxyEditor.headersError
+    (prefixProxyEditor?.headersTouched && prefixProxyEditor.headersError) ||
+    hasInvalidExclusiveConfig
   );
   const prefixProxyUpdatedText =
     prefixProxyEditor && !hasBlockingValidationError
@@ -406,6 +452,13 @@ export function useAuthFilesPrefixProxyEditor(
       superCategory: false,
       superCategoryTouched: false,
       superCategoryAllowed: Boolean(file.super_category_allowed ?? file.superCategoryAllowed),
+      exclusiveEnabled: false,
+      exclusiveModel: '',
+      exclusiveThreshold: '',
+      exclusiveTouched: false,
+      exclusiveAllowed: Boolean(file.exclusive_config_allowed ?? file.exclusiveConfigAllowed),
+      exclusiveModels: [],
+      exclusiveModelsLoading: false,
       note: '',
       noteTouched: false,
       headersText: '',
@@ -457,7 +510,12 @@ export function useAuthFilesPrefixProxyEditor(
             Boolean(file.super_category ?? file.superCategory)
           : false;
       const superCategoryAllowed = Boolean(
-        file.super_category_allowed ?? file.superCategoryAllowed ?? superCategory
+        file.super_category_allowed ?? file.superCategoryAllowed
+      );
+      const exclusiveConfig =
+        providerKey === 'codex' ? readCodexAuthFileExclusiveConfig(json) : null;
+      const exclusiveAllowed = Boolean(
+        file.exclusive_config_allowed ?? file.exclusiveConfigAllowed
       );
       const note = typeof json.note === 'string' ? json.note : '';
       const headers = json.headers;
@@ -487,6 +545,13 @@ export function useAuthFilesPrefixProxyEditor(
           superCategory,
           superCategoryTouched: false,
           superCategoryAllowed,
+          exclusiveEnabled: Boolean(exclusiveConfig),
+          exclusiveModel: exclusiveConfig?.model ?? '',
+          exclusiveThreshold: exclusiveConfig ? String(exclusiveConfig.threshold) : '',
+          exclusiveTouched: false,
+          exclusiveAllowed,
+          exclusiveModels: [],
+          exclusiveModelsLoading: providerKey === 'codex' && exclusiveAllowed,
           note,
           noteTouched: false,
           headersText,
@@ -495,6 +560,24 @@ export function useAuthFilesPrefixProxyEditor(
           error: null,
         };
       });
+      if (providerKey === 'codex' && exclusiveAllowed) {
+        try {
+          const models = await authFilesApi.getModelsForAuthFile(name);
+          setPrefixProxyEditor((prev) =>
+            !prev || prev.fileName !== name
+              ? prev
+              : {
+                  ...prev,
+                  exclusiveModels: models.map((item) => item.id).filter(Boolean),
+                  exclusiveModelsLoading: false,
+                }
+          );
+        } catch {
+          setPrefixProxyEditor((prev) =>
+            !prev || prev.fileName !== name ? prev : { ...prev, exclusiveModelsLoading: false }
+          );
+        }
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : t('notification.download_failed');
       setPrefixProxyEditor((prev) => {
@@ -519,6 +602,15 @@ export function useAuthFilesPrefixProxyEditor(
       }
       if (field === 'superCategory') {
         return { ...prev, superCategory: Boolean(value), superCategoryTouched: true };
+      }
+      if (field === 'exclusiveEnabled') {
+        return { ...prev, exclusiveEnabled: Boolean(value), exclusiveTouched: true };
+      }
+      if (field === 'exclusiveModel') {
+        return { ...prev, exclusiveModel: String(value), exclusiveTouched: true };
+      }
+      if (field === 'exclusiveThreshold') {
+        return { ...prev, exclusiveThreshold: String(value), exclusiveTouched: true };
       }
       if (field === 'note') return { ...prev, note: String(value), noteTouched: true };
       if (field === 'headersText') {

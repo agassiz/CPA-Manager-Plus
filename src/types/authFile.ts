@@ -23,8 +23,8 @@ export type AuthFileType =
   | 'unknown';
 
 export interface AuthFileItem {
-	/** Stable runtime credential identifier used by access rules. */
-	id?: string;
+  /** Stable runtime credential identifier used by access rules. */
+  id?: string;
   name: string;
   type?: AuthFileType | string;
   provider?: string;
@@ -53,6 +53,10 @@ export interface AuthFileItem {
   superCategory?: boolean;
   super_category_allowed?: boolean;
   superCategoryAllowed?: boolean;
+  exclusive_config?: { model: string; threshold: number };
+  exclusiveConfig?: { model: string; threshold: number };
+  exclusive_config_allowed?: boolean;
+  exclusiveConfigAllowed?: boolean;
   subscription_title?: string;
   subscriptionTitle?: string;
   subscription_tier?: string;

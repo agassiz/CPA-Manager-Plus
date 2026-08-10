@@ -72,6 +72,7 @@ interface VisualConfigEditorProps {
   values: VisualConfigValues;
   validationErrors?: VisualConfigValidationErrors;
   hasPayloadValidationErrors?: boolean;
+  codexLicensedFeaturesAllowed?: boolean;
   disabled?: boolean;
   onChange: (values: Partial<VisualConfigValues>) => void;
   onAccessRulesSaved: () => Promise<void>;
@@ -180,6 +181,7 @@ export function VisualConfigEditor({
   values,
   validationErrors,
   hasPayloadValidationErrors = false,
+  codexLicensedFeaturesAllowed = false,
   disabled = false,
   onChange,
   onAccessRulesSaved,
@@ -960,21 +962,27 @@ export function VisualConfigEditor({
                   disabled={disabled}
                   onChange={(forceModelPrefix) => onChange({ forceModelPrefix })}
                 />
-                <ToggleRow
-                  title={t('config_management.visual.sections.network.codex_force_super_category')}
-                  description={t(
-                    'config_management.visual.sections.network.codex_force_super_category_desc'
-                  )}
-                  checked={values.codexForceSuperCategory}
-                  disabled={disabled}
-                  onChange={(codexForceSuperCategory) => onChange({ codexForceSuperCategory })}
-                />
-                <ToggleRow
-                  title={t('config_management.visual.sections.network.codex_bug_mode')}
-                  checked={values.codexBugMode}
-                  disabled={disabled}
-                  onChange={(codexBugMode) => onChange({ codexBugMode })}
-                />
+                {codexLicensedFeaturesAllowed && (
+                  <>
+                    <ToggleRow
+                      title={t(
+                        'config_management.visual.sections.network.codex_force_super_category'
+                      )}
+                      description={t(
+                        'config_management.visual.sections.network.codex_force_super_category_desc'
+                      )}
+                      checked={values.codexForceSuperCategory}
+                      disabled={disabled}
+                      onChange={(codexForceSuperCategory) => onChange({ codexForceSuperCategory })}
+                    />
+                    <ToggleRow
+                      title={t('config_management.visual.sections.network.codex_bug_mode')}
+                      checked={values.codexBugMode}
+                      disabled={disabled}
+                      onChange={(codexBugMode) => onChange({ codexBugMode })}
+                    />
+                  </>
+                )}
                 <Input
                   label={t(
                     'config_management.visual.sections.network.codex_compact_fallback_model'

@@ -607,7 +607,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
         }
       },
     });
-  }, [apiBase, clearMonitoringCustomTimeRange, loadFiles, managementKey, showConfirmation, showNotification, t]);
+  }, [apiBase, loadFiles, managementKey, showConfirmation, showNotification, t]);
 
   const handleStatusToggle = useCallback(
     async (item: AuthFileItem, enabled: boolean) => {

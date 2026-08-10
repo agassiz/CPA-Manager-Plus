@@ -18,3 +18,4 @@ export * from './vertex';
 export * from './codexQuota';
 export * from './plugins';
 export * from './securityAudit';
+export * from './license';

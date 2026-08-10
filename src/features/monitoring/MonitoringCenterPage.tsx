@@ -534,23 +534,20 @@ export function MonitoringCenterPage() {
     () => buildPaginationState(apiKeyRows, apiKeyPage, apiKeyPageSize),
     [apiKeyPage, apiKeyPageSize, apiKeyRows]
   );
-  const realtimePagination = useMemo(
-    () => {
-      const totalCount = Math.max(eventsTotalCount, realtimeLogRows.length);
-      const safePageSize = Math.max(1, realtimePageSize);
-      const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
-      const currentPage = Math.min(Math.max(1, realtimePage), totalPages);
-      const startItem = totalCount > 0 ? (currentPage - 1) * safePageSize + 1 : 0;
-      return {
-        currentPage,
-        totalPages,
-        pageItems: realtimeLogRows,
-        startItem,
-        endItem: totalCount > 0 ? Math.min(startItem + realtimeLogRows.length - 1, totalCount) : 0,
-      };
-    },
-    [eventsTotalCount, realtimeLogRows, realtimePage, realtimePageSize]
-  );
+  const realtimePagination = useMemo(() => {
+    const totalCount = Math.max(eventsTotalCount, realtimeLogRows.length);
+    const safePageSize = Math.max(1, realtimePageSize);
+    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+    const currentPage = Math.min(Math.max(1, realtimePage), totalPages);
+    const startItem = totalCount > 0 ? (currentPage - 1) * safePageSize + 1 : 0;
+    return {
+      currentPage,
+      totalPages,
+      pageItems: realtimeLogRows,
+      startItem,
+      endItem: totalCount > 0 ? Math.min(startItem + realtimeLogRows.length - 1, totalCount) : 0,
+    };
+  }, [eventsTotalCount, realtimeLogRows, realtimePage, realtimePageSize]);
   const accountPageResetState = useMemo<AccountOverviewPageResetState>(
     () => ({
       customEndInput,
@@ -1152,9 +1149,7 @@ export function MonitoringCenterPage() {
             setCustomDraftEndInput(endInput);
           }
           showNotification(
-            cleared
-              ? t('usage_stats.clear_success')
-              : t('usage_stats.clear_none'),
+            cleared ? t('usage_stats.clear_success') : t('usage_stats.clear_none'),
             cleared ? 'success' : 'info'
           );
           await refreshAll();
@@ -1170,7 +1165,6 @@ export function MonitoringCenterPage() {
       },
     });
   }, [
-    clearMonitoringCustomTimeRange,
     clearUsage,
     refreshAll,
     requestMonitoringAvailability.available,
