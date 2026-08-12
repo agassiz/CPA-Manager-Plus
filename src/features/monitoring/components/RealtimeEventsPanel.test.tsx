@@ -78,6 +78,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.service_tier': 'Speed',
     'monitoring.service_tier_short': 'Speed',
     'monitoring.service_tier_fast': 'Fast',
+    'monitoring.service_tier_default': 'Default',
     'monitoring.service_tier_standard': 'Standard',
     'monitoring.this_call_cost': 'Cost',
     'monitoring.this_call_usage': 'Usage',
@@ -252,6 +253,19 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).toContain('aria-label="Copy"');
     expect(markup).toContain('HTTP 429');
     expect(markup).toContain('rate limit exceeded');
+  });
+
+  it('shows the requested-to-effective speed transition when tiers differ', () => {
+    const markup = renderPanel(
+      baseRow({
+        executorType: 'codex',
+        serviceTier: 'priority',
+        responseServiceTier: 'default',
+        effectiveServiceTier: 'default',
+      })
+    );
+
+    expect(markup).toContain('Speed: Fast -&gt; Default');
   });
 
   it('renders security audit rejections as security policy records', () => {

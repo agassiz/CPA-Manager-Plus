@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCodexResponsesEndpoint,
-  hasAmpcodeConfiguration,
+  buildOpenAIChatCompletionsEndpoint,
+  buildOpenAIResponsesEndpoint,
 } from '@/components/providers/utils';
 import { PROVIDER_BRAND_ORDER, PROVIDER_DESCRIPTORS } from './descriptors';
 
@@ -38,13 +39,19 @@ describe('providers workbench catalog', () => {
     );
   });
 
-  it('only treats meaningful Ampcode values as configured', () => {
-    expect(hasAmpcodeConfiguration(undefined)).toBe(false);
-    expect(hasAmpcodeConfiguration({})).toBe(false);
-    expect(hasAmpcodeConfiguration({ forceModelMappings: false })).toBe(false);
-    expect(hasAmpcodeConfiguration({ upstreamUrl: 'https://amp.example.com' })).toBe(true);
-    expect(hasAmpcodeConfiguration({ upstreamApiKeys: [{ upstreamApiKey: 'key', apiKeys: ['a'] }] })).toBe(true);
-    expect(hasAmpcodeConfiguration({ modelMappings: [{ from: 'a', to: 'b' }] })).toBe(true);
-    expect(hasAmpcodeConfiguration({ forceModelMappings: true })).toBe(true);
+  it('builds matching OpenAI compatibility test endpoints from supported base URL forms', () => {
+    expect(buildOpenAIChatCompletionsEndpoint('https://proxy.example.com/v1')).toBe(
+      'https://proxy.example.com/v1/chat/completions'
+    );
+    expect(buildOpenAIChatCompletionsEndpoint('https://proxy.example.com/v1/responses')).toBe(
+      'https://proxy.example.com/v1/chat/completions'
+    );
+    expect(buildOpenAIResponsesEndpoint('https://proxy.example.com/v1')).toBe(
+      'https://proxy.example.com/v1/responses'
+    );
+    expect(buildOpenAIResponsesEndpoint('https://proxy.example.com/v1/chat/completions')).toBe(
+      'https://proxy.example.com/v1/responses'
+    );
   });
+
 });

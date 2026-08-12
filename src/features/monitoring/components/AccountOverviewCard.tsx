@@ -117,9 +117,21 @@ export function AccountSummaryPrimary({
             .join(' ')}
           aria-hidden="true"
         />
-        <span className={styles.accountButtonLabel}>{accountDisplay.primary}</span>
+        <span
+          className={
+            accountDisplayMode === 'full'
+              ? `${styles.accountButtonLabel} ${styles.accountFullValue}`
+              : styles.accountButtonLabel
+          }
+        >
+          {accountDisplay.primary}
+        </span>
       </span>
-      {showSecondary && accountSecondaryText ? <small>{accountSecondaryText}</small> : null}
+      {showSecondary && accountSecondaryText ? (
+        <small className={accountDisplayMode === 'full' ? styles.accountFullValue : undefined}>
+          {accountSecondaryText}
+        </small>
+      ) : null}
     </button>
   );
 }

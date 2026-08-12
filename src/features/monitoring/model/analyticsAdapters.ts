@@ -58,6 +58,29 @@ const uniqueReadableValues = (values: Array<string | null | undefined> = []) =>
 const firstReadableValue = (...values: Array<string | null | undefined>) =>
   values.map(readString).find((value) => value && value !== '-') || '';
 
+const resolveAggregateAccountDisplayName = (
+  account: string,
+  preferredDisplay: string,
+  providerLabels: Iterable<string | null | undefined>,
+  hasConfiguredSource: boolean
+): string => {
+  const labels = Array.from(
+    new Set(Array.from(providerLabels).filter((value) => {
+      const trimmed = readString(value);
+      return Boolean(trimmed) && trimmed !== '-';
+    }))
+  );
+  const isMaskedApiKey = /^(?:[mk]:)?(?:sk|pk|ak|rk)\S*\.\.\./i.test(account.trim());
+
+  if (isMaskedApiKey && hasConfiguredSource) {
+    return preferredDisplay || '-';
+  }
+  if (isMaskedApiKey && labels.length === 1) {
+    return labels[0] ?? '-';
+  }
+  return firstReadableValue(preferredDisplay, account, labels[0] ?? '') || '-';
+};
+
 const normalizeFilterText = (value: string | null | undefined) =>
   readString(value).trim().toLowerCase();
 
@@ -458,6 +481,7 @@ export const buildChannelRowsFromAnalytics = (
           authIndex,
           accountSnapshot: row.account_snapshot,
           authLabelSnapshot: row.auth_label_snapshot,
+          provider: row.provider,
         },
         { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
       );
@@ -500,6 +524,7 @@ export const buildFailureSourceRowsFromAnalytics = (
         accountSnapshot: row.account_snapshot,
         authLabelSnapshot: row.auth_label_snapshot,
         authProviderSnapshot: row.auth_provider_snapshot,
+        provider: row.auth_provider_snapshot,
       },
       { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
     );
@@ -541,12 +566,17 @@ export const buildAccountRowsFromAnalytics = (
           accountSnapshot: row.account_snapshot,
           authLabelSnapshot: row.auth_label_snapshot,
           authProviderSnapshot: row.auth_provider_snapshot,
+          provider: row.auth_provider_snapshot,
           channel: channelNames[0],
         },
         { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
       );
       const account = firstReadableValue(display.account, row.account_snapshot, row.id);
-      const displayAccount = firstReadableValue(display.primary, account);
+      const displayAccount = resolveAggregateAccountDisplayName(account, display.primary, [
+        ...channelNames,
+        row.auth_provider_snapshot,
+        display.provider,
+      ], display.configuredSource);
       const authLabels = uniqueReadableValues([
         ...authMetas.map((meta) => meta.label),
         row.auth_label_snapshot,
@@ -621,6 +651,7 @@ export const buildApiKeyRowsFromAnalytics = (
           accountSnapshot: row.account_snapshot,
           authLabelSnapshot: row.auth_label_snapshot,
           authProviderSnapshot: row.auth_provider_snapshot,
+          provider: row.auth_provider_snapshot,
           channel: channelNames[0],
         },
         { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
@@ -787,6 +818,7 @@ export const buildFailureRowsFromAnalytics = (
         accountSnapshot: row.account_snapshot,
         authLabelSnapshot: row.auth_label_snapshot,
         authProviderSnapshot: row.auth_provider_snapshot,
+        provider: row.auth_provider_snapshot,
       },
       { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
     );
@@ -845,6 +877,8 @@ export const buildUsageDetailsFromAnalyticsEvents = (
     auth_project_id_snapshot: readString(item.auth_project_id_snapshot),
     reasoning_effort: readString(item.reasoning_effort),
     service_tier: readString(item.service_tier),
+    response_service_tier: readString(item.response_service_tier),
+    effective_service_tier: readString(item.effective_service_tier),
     executor_type: readString(item.executor_type),
     latency_ms: item.latency_ms ?? undefined,
     ttft_ms: item.ttft_ms ?? undefined,

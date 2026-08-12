@@ -26,6 +26,11 @@ export interface AuthFileItem {
   /** Stable runtime credential identifier used by access rules. */
   id?: string;
   name: string;
+  /** Canonical user-facing credential name. File operations still use name. */
+  account_name?: string;
+  accountName?: string;
+  display_name?: string;
+  displayName?: string;
   type?: AuthFileType | string;
   provider?: string;
   size?: number;
@@ -76,3 +81,8 @@ export interface AuthFilesResponse {
   files: AuthFileItem[];
   total?: number;
 }
+
+export const getAuthFileAccountName = (file: AuthFileItem): string =>
+  [file.account_name, file.accountName, file.display_name, file.displayName, file.label, file.email]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    ?.trim() ?? file.name;

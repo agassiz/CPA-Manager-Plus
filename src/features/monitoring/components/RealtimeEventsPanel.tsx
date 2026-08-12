@@ -159,7 +159,19 @@ const resolveServiceSpeedLabel = (serviceTier: string | null | undefined, t: TFu
   if (normalized === 'priority' || normalized === 'fast') {
     return t('monitoring.service_tier_fast');
   }
+  if (normalized === 'default') {
+    return t('monitoring.service_tier_default');
+  }
   return t('monitoring.service_tier_standard');
+};
+
+const resolveServiceSpeedTransitionLabel = (row: MonitoringEventRow, t: TFunction) => {
+  const requested = resolveServiceSpeedLabel(row.serviceTier, t);
+  const effective = resolveServiceSpeedLabel(
+    row.responseServiceTier || row.effectiveServiceTier || row.serviceTier,
+    t
+  );
+  return requested === effective ? effective : `${requested} -> ${effective}`;
 };
 
 const isCodexRealtimeRow = (row: MonitoringEventRow) =>
@@ -812,7 +824,7 @@ export function RealtimeEventsPanel({
       row.resolvedModel && row.resolvedModel.trim() && row.resolvedModel.trim() !== row.model;
     const reasoningEffort = formatOptionalText(row.reasoningEffort);
     const serviceSpeedLabel = isCodexRealtimeRow(row)
-      ? resolveServiceSpeedLabel(row.serviceTier, t)
+      ? resolveServiceSpeedTransitionLabel(row, t)
       : '';
     const failureDetails = buildFailureDetails(row, t);
     const securityAuditStatusLabel = resolveSecurityAuditStatusLabel(row, t);

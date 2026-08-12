@@ -177,6 +177,10 @@ describe('usage source candidates', () => {
   it('preserves legacy UI-masked source IDs when no raw secret is present', () => {
     expect(normalizeUsageSourceId('m:sk******ef')).toBe('m:sk******ef');
   });
+
+  it('recognizes legacy backend-masked sources that predate the m: prefix', () => {
+    expect(normalizeUsageSourceId('sk-8...e352')).toBe('m:sk-8...e352');
+  });
 });
 
 describe('usage detail collection', () => {
@@ -577,6 +581,20 @@ describe('calculateCost model price preference', () => {
         __modelName: 'gpt-5.4',
         __resolvedModel: 'unknown-upstream',
         service_tier: 'priority',
+      },
+      prices
+    );
+
+    expect(cost).toBeCloseTo(100);
+  });
+
+  it('bills from the final upstream request tier, not the response tier', () => {
+    const cost = calculateCost(
+      {
+        tokens: { input_tokens: 1_000_000, output_tokens: 0 },
+        __modelName: 'gpt-5.4',
+        service_tier: 'priority',
+        response_service_tier: 'default',
       },
       prices
     );

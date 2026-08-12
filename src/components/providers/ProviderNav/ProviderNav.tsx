@@ -9,10 +9,9 @@ import iconOpenaiDark from '@/assets/icons/openai-dark.svg';
 import iconCodex from '@/assets/icons/codex.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
-import iconAmp from '@/assets/icons/amp.svg';
 import styles from './ProviderNav.module.scss';
 
-export type ProviderId = 'gemini' | 'codex' | 'claude' | 'vertex' | 'ampcode' | 'openai';
+export type ProviderId = 'gemini' | 'codex' | 'claude' | 'vertex' | 'openai';
 
 interface ProviderNavItem {
   id: ProviderId;
@@ -29,7 +28,6 @@ const PROVIDERS: ProviderNavItem[] = [
   { id: 'codex', label: 'Codex', getIcon: () => iconCodex },
   { id: 'claude', label: 'Claude', getIcon: () => iconClaude },
   { id: 'vertex', label: 'Vertex', getIcon: () => iconVertex },
-  { id: 'ampcode', label: 'Amp CLI', getIcon: () => iconAmp },
   { id: 'gemini', label: 'Gemini', getIcon: () => iconGemini },
 ];
 
@@ -50,7 +48,6 @@ export function ProviderNav() {
     codex: null,
     claude: null,
     vertex: null,
-    ampcode: null,
     openai: null,
   });
   const [indicatorRect, setIndicatorRect] = useState<{

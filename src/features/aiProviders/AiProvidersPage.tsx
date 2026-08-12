@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
-  AmpcodeSection,
   ClaudeSection,
   CodexSection,
   GeminiSection,
@@ -17,7 +16,6 @@ import {
   getProviderConfigKey,
   getProviderRecentStatusData,
   getProviderTotalStats,
-  hasAmpcodeConfiguration,
   hasDisableAllModelsRule,
   withDisableAllModelsRule,
   withoutDisableAllModelsRule,
@@ -30,9 +28,8 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconPlus, IconSearch, IconSlidersHorizontal } from '@/components/ui/icons';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { ampcodeApi, providersApi } from '@/services/api';
+import { providersApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore, useThemeStore } from '@/stores';
-import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import { STORAGE_KEY_AI_PROVIDERS_LIST_MODE } from '@/utils/constants';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import { ProviderSheet, type ProviderSheetState } from '@/features/providers/sheets/ProviderSheet';
@@ -240,10 +237,9 @@ export function AiProvidersPage() {
     }
     setError('');
     try {
-      const [configResult, vertexResult, ampcodeResult, openaiResult] = await Promise.allSettled([
+      const [configResult, vertexResult, openaiResult] = await Promise.allSettled([
         fetchConfig(),
         providersApi.getVertexConfigs(),
-        ampcodeApi.getAmpcode(),
         providersApi.getOpenAIProviders(),
       ]);
 
@@ -262,11 +258,6 @@ export function AiProvidersPage() {
         setVertexConfigs(vertexResult.value || []);
         updateConfigValue('vertex-api-key', vertexResult.value || []);
         clearCache('vertex-api-key');
-      }
-
-      if (ampcodeResult.status === 'fulfilled') {
-        updateConfigValue('ampcode', ampcodeResult.value);
-        clearCache('ampcode');
       }
 
       if (openaiResult.status === 'fulfilled') {
@@ -374,55 +365,6 @@ export function AiProvidersPage() {
           }
           const message = getErrorMessage(err);
           showNotification(`${t('notification.delete_failed')}: ${message}`, 'error');
-        }
-      },
-    });
-  };
-
-  const deleteAmpcode = () => {
-    const ampcode = config?.ampcode;
-    if (!hasAmpcodeConfiguration(ampcode)) return;
-
-    showConfirmation({
-      title: t('providersPage.delete.title'),
-      message: t('providersPage.delete.confirm', {
-        name: t('ai_providers.provider_ampcode'),
-      }),
-      variant: 'danger',
-      confirmText: t('common.confirm'),
-      onConfirm: async () => {
-        setConfigSwitchingKey('ampcode:delete');
-        try {
-          const operations: Promise<unknown>[] = [];
-          if (ampcode.upstreamUrl?.trim()) operations.push(ampcodeApi.clearUpstreamUrl());
-          if (ampcode.upstreamApiKey?.trim()) operations.push(ampcodeApi.clearUpstreamApiKey());
-          if (ampcode.upstreamApiKeys?.length) {
-            operations.push(
-              ampcodeApi.deleteUpstreamApiKeys(
-                ampcode.upstreamApiKeys.map((entry) => entry.upstreamApiKey)
-              )
-            );
-          }
-          if (ampcode.modelMappings?.length) operations.push(ampcodeApi.clearModelMappings());
-          if (ampcode.forceModelMappings === true) {
-            operations.push(ampcodeApi.updateForceModelMappings(false));
-          }
-
-          const results = await Promise.allSettled(operations);
-          const failed = results.find(
-            (result): result is PromiseRejectedResult => result.status === 'rejected'
-          );
-          if (failed) throw failed.reason;
-
-          updateConfigValue('ampcode', {});
-          clearCache('ampcode');
-          showNotification(t('providersPage.toast.deleted'), 'success');
-        } catch (err: unknown) {
-          await loadConfigs();
-          const message = getErrorMessage(err);
-          showNotification(`${t('notification.delete_failed')}: ${message}`, 'error');
-        } finally {
-          setConfigSwitchingKey(null);
         }
       },
     });
@@ -848,46 +790,6 @@ export function AiProvidersPage() {
       });
     });
 
-    const ampcode = config?.ampcode;
-    if (hasAmpcodeConfiguration(ampcode)) {
-      const ampcodeCredentialDetails = [
-        ...(ampcode.upstreamApiKey
-          ? [maskProviderCredential(ampcode.upstreamApiKey)]
-          : []),
-        ...(ampcode.upstreamApiKeys ?? []).map((entry) =>
-          maskProviderCredential(entry.upstreamApiKey)
-        ),
-      ];
-      rows.push({
-        id: 'ampcode',
-        provider: t('ai_providers.provider_ampcode'),
-        name: t('ai_providers.ampcode_title'),
-        baseUrl: ampcode.upstreamUrl || '',
-        credential: t('ai_providers.unified_credentials_count', {
-          count: ampcodeCredentialDetails.length,
-        }),
-        credentialDetails: ampcodeCredentialDetails,
-        modelCount: ampcode.modelMappings?.length ?? 0,
-        modelDetails: ampcode.modelMappings?.map((mapping) => `${mapping.from} → ${mapping.to}`),
-        filterModels: ampcode.modelMappings?.flatMap((mapping) => [mapping.from, mapping.to]),
-        searchValues: compactSearchValues([
-          ampcode.upstreamApiKey,
-          ...(ampcode.upstreamApiKeys ?? []).map((entry) => entry.upstreamApiKey),
-          ...(ampcode.modelMappings ?? []).flatMap((mapping) => [mapping.from, mapping.to]),
-        ]),
-        priority: 0,
-        statusLabel: t('ai_providers.unified_configured'),
-        success: 0,
-        failure: 0,
-        statusData: statusBarDataFromRecentRequests([]),
-        disabled: false,
-        canToggle: false,
-        canDelete: true,
-        onEdit: () => openEditor('/ai-providers/ampcode'),
-        onDelete: deleteAmpcode,
-      });
-    }
-
     additionalProviderGroups.forEach(({ brand, resources }) => {
       resources.forEach((resource) => {
         const stats = getAdditionalProviderStats(resource, usageByProvider);
@@ -1121,16 +1023,6 @@ export function AiProvidersPage() {
                     enabled
                   )
                 }
-              />
-            </div>
-
-            <div id="provider-ampcode">
-              <AmpcodeSection
-                config={config?.ampcode}
-                loading={loading}
-                disableControls={disableControls}
-                isSwitching={isSwitching}
-                onEdit={() => openEditor('/ai-providers/ampcode')}
               />
             </div>
 

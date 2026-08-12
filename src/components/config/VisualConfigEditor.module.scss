@@ -668,6 +668,10 @@
   flex-wrap: wrap;
 }
 
+.accessSelectionHeader {
+  justify-content: flex-start;
+}
+
 .blockStack {
   display: flex;
   flex-direction: column;

@@ -62,10 +62,11 @@ const normalizeAuthMeta = (entry: AuthFileItem): MonitoringAuthMeta | null => {
   if (!authIndex) return null;
 
   const label =
+    readString(entry.account_name ?? entry.accountName ?? entry.display_name ?? entry.displayName) ||
     readString(entry.label) ||
-    readString(entry.name) ||
     readString(entry.email) ||
     readString(entry.account) ||
+    readString(entry.name) ||
     authIndex;
 
   const planType = readString(
@@ -75,7 +76,11 @@ const normalizeAuthMeta = (entry: AuthFileItem): MonitoringAuthMeta | null => {
   return {
     authIndex,
     label,
-    account: readString(entry.account) || readString(entry.email) || label,
+    account:
+      readString(entry.account_name ?? entry.accountName ?? entry.display_name ?? entry.displayName) ||
+      readString(entry.account) ||
+      readString(entry.email) ||
+      label,
     provider: readString(entry.provider) || readString(entry.type) || '-',
     status: readString(entry.status) || 'unknown',
     disabled: parseBoolean(entry.disabled),

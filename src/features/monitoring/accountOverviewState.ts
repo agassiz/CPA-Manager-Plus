@@ -101,15 +101,11 @@ const ACCOUNT_SORT_KEYS = [
 ] as const;
 const ACCOUNT_SORT_KEY_SET = new Set<AccountSortKey>(ACCOUNT_SORT_KEYS);
 const ACCOUNT_SORT_DIRECTION_SET = new Set<AccountSortDirection>(['asc', 'desc']);
-const ACCOUNT_DISPLAY_MODE_SET = new Set<AccountDisplayMode>(['masked', 'full']);
 
 export const normalizeAccountOverviewMode = (value: unknown): MonitoringAccountOverviewMode =>
   value === 'card' ? 'card' : 'table';
 
-export const normalizeAccountDisplayMode = (value: unknown): AccountDisplayMode =>
-  typeof value === 'string' && ACCOUNT_DISPLAY_MODE_SET.has(value as AccountDisplayMode)
-    ? (value as AccountDisplayMode)
-    : 'masked';
+export const normalizeAccountDisplayMode = (_value: unknown): AccountDisplayMode => 'full';
 
 export const normalizeAccountSortKey = (value: unknown): AccountSortKey | null =>
   typeof value === 'string' && ACCOUNT_SORT_KEY_SET.has(value as AccountSortKey)
@@ -186,7 +182,7 @@ export const normalizeAccountOverviewUiState = (
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {
       mode: 'table',
-      accountDisplayMode: 'masked',
+      accountDisplayMode: 'full',
       sort: DEFAULT_ACCOUNT_SORT,
       cardPagination: { ...DEFAULT_ACCOUNT_OVERVIEW_CARD_PAGINATION },
     };
@@ -356,7 +352,7 @@ export const readAccountOverviewUiState = (): MonitoringAccountOverviewUiState =
   if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
     return {
       mode: 'table',
-      accountDisplayMode: 'masked',
+      accountDisplayMode: 'full',
       sort: DEFAULT_ACCOUNT_SORT,
       cardPagination: { ...DEFAULT_ACCOUNT_OVERVIEW_CARD_PAGINATION },
     };
@@ -373,7 +369,7 @@ export const readAccountOverviewUiState = (): MonitoringAccountOverviewUiState =
 
   return {
     mode: readAccountOverviewMode(),
-    accountDisplayMode: 'masked',
+    accountDisplayMode: 'full',
     sort: DEFAULT_ACCOUNT_SORT,
     cardPagination: { ...DEFAULT_ACCOUNT_OVERVIEW_CARD_PAGINATION },
   };
@@ -567,7 +563,17 @@ const resolveMonitoringAccountIdentityFromAuthFile = (file: AuthFileItem) => {
   const normalizedAuthIndex = normalizeRecentRequestAuthIndex(file.authIndex ?? file['auth_index']);
   if (!normalizedAuthIndex) return null;
 
-  const identity = [file.account, file.email, file.label, file.name, normalizedAuthIndex]
+  const identity = [
+    file.account_name,
+    file.accountName,
+    file.display_name,
+    file.displayName,
+    file.account,
+    file.email,
+    file.label,
+    file.name,
+    normalizedAuthIndex,
+  ]
     .map((value) => normalizeAccountIdentityValue(value))
     .find(Boolean);
 

@@ -68,6 +68,13 @@
     white-space: nowrap;
   }
 
+  .accountFullValue {
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
   .accountButtonMuted {
     color: color-mix(in srgb, var(--monitor-ink) 66%, var(--monitor-muted));
   }

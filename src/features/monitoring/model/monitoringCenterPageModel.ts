@@ -194,7 +194,7 @@ export const buildAccountOptions = (
   rows: MonitoringAccountRow[],
   selectedAccount: string,
   t: TFunction,
-  accountDisplayMode: AccountDisplayMode = 'masked'
+  accountDisplayMode: AccountDisplayMode = 'full'
 ) =>
   ensureSelectedOption(
     [
@@ -673,7 +673,7 @@ export const parsePriceValue = (value: string) => {
 
 export const buildAccountOptionLabel = (
   row: MonitoringAccountRow,
-  accountDisplayMode: AccountDisplayMode = 'masked'
+  accountDisplayMode: AccountDisplayMode = 'full'
 ) => {
   const display = resolveAccountDisplayText(row, accountDisplayMode);
   if (!display.secondary || display.secondary === display.primary) {

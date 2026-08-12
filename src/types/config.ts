@@ -4,7 +4,6 @@
  */
 
 import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from './provider';
-import type { AmpcodeConfig } from './ampcode';
 
 export interface QuotaExceededConfig {
   switchProject?: boolean;
@@ -40,7 +39,6 @@ export interface Config {
   experimentalCCHSigning?: boolean;
   routingStrategy?: string;
   apiKeys?: string[];
-  ampcode?: AmpcodeConfig;
   geminiApiKeys?: GeminiKeyConfig[];
   codexApiKeys?: ProviderKeyConfig[];
   xaiApiKeys?: ProviderKeyConfig[];
@@ -65,7 +63,6 @@ export type RawConfigSection =
   | 'experimental-cch-signing'
   | 'routing/strategy'
   | 'api-keys'
-  | 'ampcode'
   | 'gemini-api-key'
   | 'codex-api-key'
   | 'xai-api-key'

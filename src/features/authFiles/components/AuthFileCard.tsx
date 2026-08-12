@@ -16,7 +16,7 @@ import {
   IconTrash2,
 } from '@/components/ui/icons';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
-import type { AuthFileItem } from '@/types';
+import { getAuthFileAccountName, type AuthFileItem } from '@/types';
 import { formatShanghaiDateTime, resetCodexQuota, resolveAuthProvider } from '@/utils/quota';
 import {
   normalizeRecentRequestAuthIndex,
@@ -196,6 +196,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     onToggleStatus,
     onToggleSelect,
   } = props;
+  const accountName = getAuthFileAccountName(file);
   const [renderedAtMs] = useState(() => Date.now());
 
   const recentBuckets = normalizeRecentRequestBuckets(file.recent_requests ?? file.recentRequests);
@@ -419,8 +420,8 @@ export function AuthFileCard(props: AuthFileCardProps) {
                   );
                 })}
               </div>
-              <span className={styles.fileName} title={file.name}>
-                {file.name}
+              <span className={styles.fileName} title={accountName}>
+                {accountName}
               </span>
               {!compact && noteValue && (
                 <div className={styles.noteText} title={noteValue}>

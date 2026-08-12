@@ -21,9 +21,7 @@ export function AiProvidersEditorModal({ children }: { children?: ReactNode }) {
         ? t(isNew ? 'ai_providers.claude_add_modal_title' : 'ai_providers.claude_edit_modal_title')
         : location.pathname.startsWith('/ai-providers/vertex')
           ? t(isNew ? 'ai_providers.vertex_add_modal_title' : 'ai_providers.vertex_edit_modal_title')
-          : location.pathname.startsWith('/ai-providers/openai')
-            ? t(isNew ? 'ai_providers.openai_add_modal_title' : 'ai_providers.openai_edit_modal_title')
-            : t('ai_providers.ampcode_modal_title');
+          : t(isNew ? 'ai_providers.openai_add_modal_title' : 'ai_providers.openai_edit_modal_title');
 
   const handleClose = () => {
     const state = location.state as LocationState;

@@ -35,6 +35,7 @@ export type MonitoringSourceDisplayInput = {
   accountSnapshot?: string | null;
   authLabelSnapshot?: string | null;
   authProviderSnapshot?: string | null;
+  provider?: string | null;
   channel?: string | null;
   authLabel?: string | null;
   account?: string | null;
@@ -54,6 +55,7 @@ export type MonitoringSourceDisplay = {
   meta: string;
   title: string;
   sourceLabel: string;
+  configuredSource: boolean;
   sourceMasked: string;
   account: string;
   accountMasked: string;
@@ -100,7 +102,8 @@ export const buildMonitoringSourceDisplay = (
     readString(input.source),
     authIndex,
     sourceInfoMap,
-    authFileMap
+    authFileMap,
+    firstReadable(input.provider, input.authProviderSnapshot)
   );
   const apiKeyHash = readString(input.apiKeyHash).toLowerCase();
   const apiKeyAlias = firstReadable(
@@ -138,10 +141,11 @@ export const buildMonitoringSourceDisplay = (
   const sourceMasked = maskEmailLike(sourceLabel || sourceMeta.displayName);
   const accountMasked = maskEmailLike(account || sourceLabel);
   const fallbackId = shortHash(input.sourceHash || input.apiKeyHash || authIndex);
+  const configuredProviderName = configuredSourceName || '';
   const primary =
     firstReadable(
+      configuredProviderName,
       channel && !isGenericMonitoringProviderLabel(channel) ? channel : '',
-      configuredSourceName,
       channelHost,
       sourceMasked,
       provider && !isGenericMonitoringProviderLabel(provider) ? provider : '',
@@ -179,6 +183,7 @@ export const buildMonitoringSourceDisplay = (
     meta,
     title,
     sourceLabel: sourceLabel || primary,
+    configuredSource: Boolean(configuredSourceName),
     sourceMasked: sourceMasked || primary,
     account: account || sourceLabel || primary,
     accountMasked: accountMasked || sourceMasked || primary,

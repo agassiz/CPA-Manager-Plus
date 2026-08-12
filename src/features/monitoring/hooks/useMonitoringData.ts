@@ -270,10 +270,11 @@ export function useMonitoringData({
       if (!authIndex) return;
       map.set(authIndex, {
         name:
+          readString(entry.account_name ?? entry.accountName ?? entry.display_name ?? entry.displayName) ||
           readString(entry.label) ||
-          readString(entry.name) ||
           readString(entry.email) ||
           readString(entry.account) ||
+          readString(entry.name) ||
           authIndex,
         type: readString(entry.provider) || readString(entry.type),
       });

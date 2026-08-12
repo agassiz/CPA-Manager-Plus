@@ -76,6 +76,10 @@ export interface UsageDetail {
   reasoningEffort?: string;
   service_tier?: string;
   serviceTier?: string;
+  response_service_tier?: string;
+  responseServiceTier?: string;
+  effective_service_tier?: string;
+  effectiveServiceTier?: string;
   executor_type?: string;
   executorType?: string;
   latency_ms?: number;
@@ -412,6 +416,9 @@ export function normalizeUsageSourceId(
 
   const extracted = extractRawSecretFromText(trimmed);
   if (extracted) return `${USAGE_SOURCE_PREFIX_KEY}${fnv1a64Hex(extracted)}`;
+  if (BACKEND_MASKED_SOURCE_REGEX.test(`${USAGE_SOURCE_PREFIX_MASKED}${trimmed}`)) {
+    return `${USAGE_SOURCE_PREFIX_MASKED}${trimmed}`;
+  }
   if (MASKED_TOKEN_HINT_REGEX.test(trimmed)) {
     return `${USAGE_SOURCE_PREFIX_MASKED}${masker(trimmed)}`;
   }
@@ -773,7 +780,15 @@ export function extractTotalTokens(detail: unknown): number {
 export function calculateCost(
   detail: Pick<
     UsageDetail,
-    'tokens' | '__modelName' | '__resolvedModel' | 'service_tier' | 'serviceTier'
+    | 'tokens'
+    | '__modelName'
+    | '__resolvedModel'
+    | 'service_tier'
+    | 'serviceTier'
+    | 'response_service_tier'
+    | 'responseServiceTier'
+    | 'effective_service_tier'
+    | 'effectiveServiceTier'
   >,
   modelPrices: Record<string, ModelPrice>
 ): number {

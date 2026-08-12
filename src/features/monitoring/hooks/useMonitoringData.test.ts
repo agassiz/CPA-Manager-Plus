@@ -232,6 +232,54 @@ describe('analytics aggregate row adapters', () => {
     });
   });
 
+  it('uses the configured provider name for aggregate rows backed by a masked API key', () => {
+    const rows = buildAccountRowsFromAnalytics(
+      [
+        {
+          id: 'sk-8...e352',
+          account_snapshot: 'sk-8...e352',
+          auth_provider_snapshot: 'openai-compatible-banliapi',
+          auth_indices: [],
+          sources: ['sk-8...e352'],
+          source_hashes: ['source-hash'],
+          calls: 112,
+          success_calls: 112,
+          failure_calls: 0,
+          success_rate: 1,
+          input_tokens: 31,
+          output_tokens: 12,
+          cached_tokens: 0,
+          cache_read_tokens: 0,
+          cache_creation_tokens: 0,
+          total_tokens: 43,
+          cost: 0.42,
+          average_latency_ms: 1200,
+          last_seen_ms: 1_768_759_000_000,
+          models: [],
+        },
+      ],
+      authMetaMap,
+      authFileMap,
+      buildSourceInfoMap({
+        openaiCompatibility: [
+          {
+            name: 'banliapi',
+            baseUrl: 'https://banliapi.top',
+            apiKeyEntries: [
+              { apiKey: 'sk-8a6c107d6c9e17eeb2276533fde51e66974621c6aa716833f85832f019e4e352' },
+            ],
+          },
+        ],
+      }),
+      channelByAuthIndex
+    );
+
+    expect(rows[0]).toMatchObject({
+      account: 'sk-8...e352',
+      displayAccount: 'banliapi',
+    });
+  });
+
   it('builds api key rows from full backend aggregates and keeps aliases', () => {
     const rows = buildApiKeyRowsFromAnalytics(
       [
@@ -280,6 +328,22 @@ describe('analytics aggregate row adapters', () => {
 });
 
 describe('buildAccountRows', () => {
+  it('uses the provider as the primary display for masked API-key accounts', () => {
+    const rows = buildAccountRows([
+      createMonitoringEventRow({
+        account: 'sk-8...e352',
+        accountMasked: 'sk-8...e352',
+        channel: 'banliapi',
+      }),
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      account: 'sk-8...e352',
+      displayAccount: 'banliapi',
+    });
+  });
+
   it('keeps raw auth indices for account-level auth file linking', () => {
     const rows = buildAccountRows([
       createMonitoringEventRow(),

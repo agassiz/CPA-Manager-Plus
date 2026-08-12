@@ -119,6 +119,33 @@ describe('source resolver', () => {
     expect(second.type).toBe('openai');
   });
 
+  it('uses the request provider to resolve a key shared by Codex and OpenAI compatible configs', () => {
+    const sharedKey = 'sk-shared1234567890';
+    const sourceInfoMap = buildSourceInfoMap({
+      codexApiKeys: [{ name: 'codex-banli', apiKey: sharedKey }],
+      openaiCompatibility: [
+        {
+          name: 'banliapi',
+          baseUrl: 'https://banliapi.top',
+          apiKeyEntries: [{ apiKey: sharedKey }],
+        },
+      ],
+    });
+
+    expect(resolveSourceDisplay(sharedKey, '', sourceInfoMap, new Map(), 'codex').displayName).toBe(
+      'codex-banli'
+    );
+    expect(
+      resolveSourceDisplay(
+        sharedKey,
+        '',
+        sourceInfoMap,
+        new Map(),
+        'openai-compatible-banliapi'
+      ).displayName
+    ).toBe('banliapi');
+  });
+
   it('distinguishes multiple keys under one OpenAI compatible provider', () => {
     const sourceInfoMap = buildSourceInfoMap({
       openaiCompatibility: [

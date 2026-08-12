@@ -12,7 +12,6 @@ export const CONFIG_SECTION_KEYS: RawConfigSection[] = [
   'force-model-prefix',
   'routing/strategy',
   'api-keys',
-  'ampcode',
   'gemini-api-key',
   'codex-api-key',
   'xai-api-key',
@@ -50,8 +49,6 @@ export const extractConfigSectionValue = (
       return config.routingStrategy;
     case 'api-keys':
       return config.apiKeys;
-    case 'ampcode':
-      return config.ampcode;
     case 'gemini-api-key':
       return config.geminiApiKeys;
     case 'codex-api-key':

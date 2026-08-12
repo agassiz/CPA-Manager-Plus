@@ -24,7 +24,7 @@ export const buildRealtimeSourceDisplay = (
     | 'sourceMasked'
   >,
   t: TFunction,
-  accountDisplayMode: AccountDisplayMode = 'masked'
+  accountDisplayMode: AccountDisplayMode = 'full'
 ) => {
   const channel = hasReadableRealtimeValue(row.channel) ? row.channel.trim() : '';
   const provider = hasReadableRealtimeValue(row.provider) ? row.provider.trim() : '';

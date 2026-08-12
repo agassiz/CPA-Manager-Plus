@@ -952,6 +952,8 @@ export interface MonitoringAnalyticsEventRow {
   resolved_model?: string;
   reasoning_effort?: string;
   service_tier?: string;
+  response_service_tier?: string;
+  effective_service_tier?: string;
   executor_type?: string;
   input_tokens: number;
   output_tokens: number;
@@ -2137,6 +2139,10 @@ const buildFallbackMonitoringEvents = (
       resolved_model: monitoringText(detail.__resolvedModel),
       reasoning_effort: monitoringText(detail.reasoning_effort),
       service_tier: monitoringText(detail.service_tier),
+      response_service_tier: monitoringText(detail.response_service_tier),
+      effective_service_tier: monitoringText(
+        detail.effective_service_tier || detail.response_service_tier || detail.service_tier
+      ),
       executor_type: monitoringText(detail.executor_type),
       input_tokens: inputTokens,
       output_tokens: outputTokens,

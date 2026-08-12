@@ -139,6 +139,12 @@ export const buildEventRows = (
       const taskKey = `${detail.timestamp}|${sourceKey}|${authIndex}`;
       const reasoningEffort = readString(detail.reasoning_effort ?? detail.reasoningEffort);
       const serviceTier = readString(detail.service_tier ?? detail.serviceTier);
+      const responseServiceTier = readString(
+        detail.response_service_tier ?? detail.responseServiceTier
+      );
+      const effectiveServiceTier = readString(
+        detail.effective_service_tier ?? detail.effectiveServiceTier
+      ) || responseServiceTier || serviceTier;
       const executorType = readString(detail.executor_type ?? detail.executorType);
       const failStatusCodeRaw = detail.fail_status_code ?? detail.failStatusCode;
       const failStatusCode =
@@ -194,6 +200,8 @@ export const buildEventRows = (
         totalCost,
         reasoningEffort,
         serviceTier,
+        responseServiceTier,
+        effectiveServiceTier,
         executorType,
         failStatusCode: normalizedFailStatusCode,
         failSummary,

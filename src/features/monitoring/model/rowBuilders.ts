@@ -25,15 +25,17 @@ const isEffectiveLabel = (value: string) => {
 
 const looksLikeMaskedUsageSource = (value: string) => {
   const trimmed = value.trim();
-  return trimmed.startsWith('m:') || trimmed.startsWith('k:');
+  return /^(?:[mk]:)?(?:sk|pk|ak|rk)\S*\.\.\./i.test(trimmed);
 };
 
-const resolveAccountDisplayName = (account: string, channels: Iterable<string>) => {
-  const channelLabels = Array.from(new Set(Array.from(channels).filter(isEffectiveLabel)));
-  if (looksLikeMaskedUsageSource(account) && channelLabels.length === 1) {
-    return channelLabels[0];
+const resolveAccountDisplayName = (account: string, providerLabels: Iterable<string>) => {
+  const readableProviderLabels = Array.from(
+    new Set(Array.from(providerLabels).filter(isEffectiveLabel))
+  );
+  if (looksLikeMaskedUsageSource(account) && readableProviderLabels.length === 1) {
+    return readableProviderLabels[0];
   }
-  return account || channelLabels[0] || '-';
+  return account || readableProviderLabels[0] || '-';
 };
 
 export const shouldIncludeInStats = (

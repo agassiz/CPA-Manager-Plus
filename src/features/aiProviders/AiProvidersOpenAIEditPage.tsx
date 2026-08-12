@@ -15,7 +15,11 @@ import { useNotificationStore } from '@/stores';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import type { ApiKeyEntry } from '@/types';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
-import { buildApiKeyEntry, buildOpenAIChatCompletionsEndpoint } from '@/components/providers/utils';
+import {
+  buildApiKeyEntry,
+  buildOpenAIChatCompletionsEndpoint,
+  buildOpenAIResponsesEndpoint,
+} from '@/components/providers/utils';
 import type { OpenAIEditOutletContext } from './AiProvidersOpenAIEditLayout';
 import type { KeyTestStatus } from '@/stores/useOpenAIEditDraftStore';
 import styles from './AiProvidersPage.module.scss';
@@ -165,8 +169,14 @@ export function AiProvidersOpenAIEditPage() {
     const modelsSignature = form.modelEntries
       .map((entry) => `${entry.name.trim()}:${entry.alias.trim()}`)
       .join('|');
-    return [form.baseUrl.trim(), testModel.trim(), headersSignature, modelsSignature].join('||');
-  }, [form.baseUrl, form.headers, form.modelEntries, testModel]);
+    return [
+      form.baseUrl.trim(),
+      form.chatCompletionsOnly ? 'chat-completions' : 'responses',
+      testModel.trim(),
+      headersSignature,
+      modelsSignature,
+    ].join('||');
+  }, [form.baseUrl, form.chatCompletionsOnly, form.headers, form.modelEntries, testModel]);
   const previousConnectivityConfigRef = useRef(connectivityConfigSignature);
 
   useEffect(() => {
@@ -194,7 +204,9 @@ export function AiProvidersOpenAIEditPage() {
         return false;
       }
 
-      const endpoint = buildOpenAIChatCompletionsEndpoint(baseUrl);
+      const endpoint = form.chatCompletionsOnly
+        ? buildOpenAIChatCompletionsEndpoint(baseUrl)
+        : buildOpenAIResponsesEndpoint(baseUrl);
       if (!endpoint) {
         showNotification(t('notification.openai_test_url_required'), 'error');
         return false;
@@ -233,12 +245,21 @@ export function AiProvidersOpenAIEditPage() {
             method: 'POST',
             url: endpoint,
             header: Object.keys(headers).length ? headers : undefined,
-            data: JSON.stringify({
-              model: modelName,
-              messages: [{ role: 'user', content: 'Hi' }],
-              stream: false,
-              max_tokens: 5,
-            }),
+            data: JSON.stringify(
+              form.chatCompletionsOnly
+                ? {
+                    model: modelName,
+                    messages: [{ role: 'user', content: 'Hi' }],
+                    stream: false,
+                    max_tokens: 5,
+                  }
+                : {
+                    model: modelName,
+                    input: 'Hi',
+                    stream: false,
+                    max_output_tokens: 5,
+                  }
+            ),
           },
           { timeout: OPENAI_TEST_TIMEOUT_MS }
         );
@@ -265,6 +286,7 @@ export function AiProvidersOpenAIEditPage() {
     },
     [
       form.baseUrl,
+      form.chatCompletionsOnly,
       form.apiKeyEntries,
       form.headers,
       testModel,
@@ -301,7 +323,9 @@ export function AiProvidersOpenAIEditPage() {
       return;
     }
 
-    const endpoint = buildOpenAIChatCompletionsEndpoint(baseUrl);
+    const endpoint = form.chatCompletionsOnly
+      ? buildOpenAIChatCompletionsEndpoint(baseUrl)
+      : buildOpenAIResponsesEndpoint(baseUrl);
     if (!endpoint) {
       const message = t('notification.openai_test_url_required');
       setTestStatus('error');
@@ -727,7 +751,11 @@ export function AiProvidersOpenAIEditPage() {
                   <label className={styles.modelTestLabel}>
                     {t('ai_providers.openai_test_title')}
                   </label>
-                  <span className={styles.modelTestHint}>{t('ai_providers.openai_test_hint')}</span>
+                  <span className={styles.modelTestHint}>
+                    {t('ai_providers.openai_test_hint', {
+                      endpoint: form.chatCompletionsOnly ? '/chat/completions' : '/responses',
+                    })}
+                  </span>
                 </div>
                 <div className={styles.modelTestControls}>
                   <Select

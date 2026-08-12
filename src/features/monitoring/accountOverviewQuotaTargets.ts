@@ -35,7 +35,17 @@ export type MonitoringAccountQuotaTarget = {
 };
 
 const readAuthFileQuotaLabel = (file: AuthFileItem, authIndex: string) => {
-  const candidates = [file.label, file.name, file.email, file.account, authIndex];
+  const candidates = [
+    file.account_name,
+    file.accountName,
+    file.display_name,
+    file.displayName,
+    file.label,
+    file.email,
+    file.account,
+    file.name,
+    authIndex,
+  ];
   for (const candidate of candidates) {
     const text =
       typeof candidate === 'string'

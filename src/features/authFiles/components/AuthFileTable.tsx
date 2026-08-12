@@ -13,7 +13,7 @@ import {
   IconTrash2,
 } from '@/components/ui/icons';
 import { CODEX_CONFIG } from '@/components/quota';
-import type { AuthFileItem } from '@/types';
+import { getAuthFileAccountName, type AuthFileItem } from '@/types';
 import type { CodexQuotaState } from '@/types/quota';
 import {
   normalizeRecentRequestAuthIndex,
@@ -163,6 +163,7 @@ export function AuthFileTable({
               .filter(Boolean)
               .filter((value, index, values) => values.indexOf(value) === index)
               .join(' · ');
+            const accountName = getAuthFileAccountName(file);
 
             return (
               <tr key={file.name} className={file.disabled ? styles.authFileTableRowDisabled : ''}>
@@ -179,8 +180,8 @@ export function AuthFileTable({
                     />
                   )}
                 </td>
-                <td className={styles.authFileTableNameCell} title={file.name}>
-                  <span className={styles.authFileTableName}>{file.name}</span>
+                <td className={styles.authFileTableNameCell} title={accountName}>
+                  <span className={styles.authFileTableName}>{accountName}</span>
                   {file.super_category ?? file.superCategory ? (
                     <span className={styles.authFileTableSubLabel}>
                       ⚡ {t('auth_files.super_category_display')}

@@ -446,6 +446,28 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     );
   };
 
+  const toggleAllAccessProviders = () => {
+    setAccessProviders((current) => {
+      const allSelected =
+        accessProviderOptions.length > 0 &&
+        accessProviderOptions.every((provider) => current.includes(provider.id));
+      return allSelected
+        ? []
+        : Array.from(new Set(accessProviderOptions.map((provider) => provider.id)));
+    });
+  };
+
+  const toggleAllAccessCredentials = () => {
+    setAccessAuthIDs((current) => {
+      const allSelected =
+        accessCredentials.length > 0 &&
+        accessCredentials.every((credential) => current.includes(credential.id));
+      return allSelected
+        ? []
+        : Array.from(new Set(accessCredentials.map((credential) => credential.id)));
+    });
+  };
+
   const saveAccessRule = async () => {
     if (!accessApiKey) return;
     if (!accessUnrestricted && accessAuthIDs.length === 0 && accessProviders.length === 0) {
@@ -885,7 +907,25 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         {!accessUnrestricted ? (
           <>
             <div className="form-group">
-              <label>{t('config_management.visual.api_keys.access_providers')}</label>
+              <div className={`${styles.blockHeaderRow} ${styles.accessSelectionHeader}`}>
+                <label style={{ margin: 0 }}>
+                  {t('config_management.visual.api_keys.access_providers')}
+                </label>
+                <SelectionCheckbox
+                  checked={
+                    accessProviderOptions.length > 0 &&
+                    accessProviderOptions.every((provider) => accessProviders.includes(provider.id))
+                  }
+                  onChange={toggleAllAccessProviders}
+                  disabled={
+                    disabled ||
+                    accessLoading ||
+                    accessSaving ||
+                    accessProviderOptions.length === 0
+                  }
+                  label={t('auth_files.batch_select_all')}
+                />
+              </div>
               {accessProviderOptions.length === 0 ? (
                 <div className="hint">{t('config_management.visual.api_keys.access_no_credentials')}</div>
               ) : (
@@ -911,9 +951,20 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
             </div>
 
             <div className="form-group">
-              <label htmlFor={`${apiKeyInputId}-access-search`}>
-                {t('config_management.visual.api_keys.access_credentials')}
-              </label>
+              <div className={`${styles.blockHeaderRow} ${styles.accessSelectionHeader}`}>
+                <label htmlFor={`${apiKeyInputId}-access-search`} style={{ margin: 0 }}>
+                  {t('config_management.visual.api_keys.access_credentials')}
+                </label>
+                <SelectionCheckbox
+                  checked={
+                    accessCredentials.length > 0 &&
+                    accessCredentials.every((credential) => accessAuthIDs.includes(credential.id))
+                  }
+                  onChange={toggleAllAccessCredentials}
+                  disabled={disabled || accessLoading || accessSaving || accessCredentials.length === 0}
+                  label={t('auth_files.batch_select_all')}
+                />
+              </div>
               <input
                 id={`${apiKeyInputId}-access-search`}
                 className="input"
