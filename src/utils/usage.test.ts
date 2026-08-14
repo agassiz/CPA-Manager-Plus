@@ -574,6 +574,18 @@ describe('calculateCost model price preference', () => {
     expect(cost).toBeCloseTo(50);
   });
 
+	 it('prefers the upstream response model price when supplied by the audit event', () => {
+		const cost = calculateCost(
+			{
+				tokens: { input_tokens: 1_000_000, output_tokens: 0 },
+				__modelName: 'gpt-5.4',
+				response_model: 'gpt-5.5',
+			},
+			prices
+		);
+		expect(cost).toBeCloseTo(5);
+	});
+
   it('applies the tier multiplier to the requested price fallback', () => {
     const cost = calculateCost(
       {
@@ -588,7 +600,7 @@ describe('calculateCost model price preference', () => {
     expect(cost).toBeCloseTo(100);
   });
 
-  it('bills from the final upstream request tier, not the response tier', () => {
+  it('prefers the upstream response tier for billing', () => {
     const cost = calculateCost(
       {
         tokens: { input_tokens: 1_000_000, output_tokens: 0 },
@@ -599,8 +611,43 @@ describe('calculateCost model price preference', () => {
       prices
     );
 
-    expect(cost).toBeCloseTo(100);
+    expect(cost).toBeCloseTo(50);
   });
+
+	it('uses explicit flex prices before applying the long-context policy', () => {
+		const cost = calculateCost(
+			{
+				tokens: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+				__modelName: 'gpt-5.6-sol',
+				service_tier: 'flex',
+			},
+			{
+				'gpt-5.6-sol': {
+					prompt: 5,
+					completion: 30,
+					cache: 0.5,
+					promptFlex: 2,
+					completionFlex: 12,
+					longContextInputTokenThreshold: 2_000_000,
+					longContextInputCostMultiplier: 2,
+					longContextOutputCostMultiplier: 1.5,
+				},
+			},
+		);
+		expect(cost).toBeCloseTo(14);
+	});
+
+	it('falls back to the flex multiplier when no flex price is configured', () => {
+		const cost = calculateCost(
+			{
+				tokens: { input_tokens: 1_000_000 },
+				__modelName: 'gpt-4.1',
+				service_tier: 'flex',
+			},
+			{ 'gpt-4.1': { prompt: 5, completion: 30, cache: 0.5 } },
+		);
+		expect(cost).toBeCloseTo(2.5);
+	});
 
   it('charges cached input tokens only at the cache price', () => {
     const cost = calculateCost(

@@ -89,6 +89,7 @@ export interface CodexInspectionResult {
 
 export interface ModelPricesResponse {
   prices: Record<string, ModelPrice>;
+	use_response_model_for_billing?: boolean;
 }
 
 export interface ModelPriceSyncCandidate {
@@ -953,6 +954,9 @@ export interface MonitoringAnalyticsEventRow {
   reasoning_effort?: string;
   service_tier?: string;
   response_service_tier?: string;
+	response_model?: string;
+	response_model_mismatch?: boolean;
+	billing_model?: string;
   effective_service_tier?: string;
   executor_type?: string;
   input_tokens: number;
@@ -1192,12 +1196,18 @@ export const usageServiceApi = {
   saveModelPrices: async (
     base: string,
     prices: Record<string, ModelPrice>,
-    managementKey?: string
+    managementKey?: string,
+	useResponseModelForBilling?: boolean
   ): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.put<ModelPricesResponse>(
         buildUrl(base, '/v0/management/model-prices'),
-        { prices },
+		{
+			prices,
+			...(useResponseModelForBilling === undefined
+				? {}
+				: { use_response_model_for_billing: useResponseModelForBilling }),
+		},
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),

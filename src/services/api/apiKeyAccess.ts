@@ -2,6 +2,7 @@ import { apiClient } from './client';
 
 export type ApiKeyAccessRule = {
   apiKey: string;
+  models: string[];
   authIds: string[];
   providers: string[];
 };
@@ -28,6 +29,7 @@ export type ApiKeyAccessOptions = {
 type ApiKeyAccessResponse = {
   items?: Array<{
     'api-key'?: unknown;
+    models?: unknown;
     'auth-ids'?: unknown;
     providers?: unknown;
   }>;
@@ -62,6 +64,7 @@ const normalizeValues = (value: unknown, lower = false): string[] =>
 
 const normalizeRule = (rule: ApiKeyAccessRule): ApiKeyAccessRule => ({
   apiKey: String(rule.apiKey ?? '').trim(),
+  models: normalizeValues(rule.models, true),
   authIds: normalizeValues(rule.authIds),
   providers: Array.from(
     new Set(normalizeValues(rule.providers, true))
@@ -75,6 +78,7 @@ export const apiKeyAccessApi = {
       ? response.items.map((rule) =>
           normalizeRule({
             apiKey: String(rule['api-key'] ?? ''),
+            models: normalizeValues(rule.models, true),
             authIds: normalizeValues(rule['auth-ids']),
             providers: normalizeValues(rule.providers, true),
           })
@@ -116,6 +120,7 @@ export const apiKeyAccessApi = {
         const normalized = normalizeRule(rule);
         return {
           'api-key': normalized.apiKey,
+          models: normalized.models,
           'auth-ids': normalized.authIds,
           providers: normalized.providers,
         };

@@ -78,6 +78,12 @@ export interface UsageDetail {
   serviceTier?: string;
   response_service_tier?: string;
   responseServiceTier?: string;
+	response_model?: string;
+	responseModel?: string;
+	response_model_mismatch?: boolean;
+	responseModelMismatch?: boolean;
+	billing_model?: string;
+	billingModel?: string;
   effective_service_tier?: string;
   effectiveServiceTier?: string;
   executor_type?: string;
@@ -785,14 +791,20 @@ export function calculateCost(
     | '__resolvedModel'
     | 'service_tier'
     | 'serviceTier'
-    | 'response_service_tier'
-    | 'responseServiceTier'
+  | 'response_service_tier'
+  | 'responseServiceTier'
+	| 'response_model'
+	| 'responseModel'
+	| 'billing_model'
+	| 'billingModel'
     | 'effective_service_tier'
     | 'effectiveServiceTier'
   >,
   modelPrices: Record<string, ModelPrice>
 ): number {
-  const resolvedModel = detail.__resolvedModel || '';
+  const responseModel = detail.response_model ?? detail.responseModel ?? '';
+  const billingModel = detail.billing_model ?? detail.billingModel ?? '';
+  const resolvedModel = billingModel || responseModel || detail.__resolvedModel || '';
   const requestedModel = detail.__modelName || '';
   const resolvedPrice = resolveModelPrice(modelPrices, resolvedModel);
   const requestedPrice = resolveModelPrice(modelPrices, requestedModel);
@@ -816,7 +828,13 @@ export function calculateCost(
     0
   );
   const inputTokens = Math.max(totalInputTokens - cacheReadTokens - cacheCreationTokens, 0);
-  const serviceTier = detail.service_tier ?? detail.serviceTier;
+  const serviceTier =
+    detail.effective_service_tier ??
+    detail.effectiveServiceTier ??
+    detail.response_service_tier ??
+    detail.responseServiceTier ??
+    detail.service_tier ??
+    detail.serviceTier;
   const normalizedTier = String(serviceTier ?? '')
     .trim()
     .toLowerCase();
@@ -843,6 +861,21 @@ export function calculateCost(
         : cacheCreationPrice;
     tierMultiplier = 1;
   }
+
+	const hasFlexPrice = [
+		price.promptFlex,
+		price.completionFlex,
+		price.cacheReadFlex,
+		price.cacheCreationFlex,
+	].some((value) => Number(value) > 0);
+	if ((normalizedTier === 'flex' || normalizedTier === 'batch') && hasFlexPrice) {
+		promptPrice = Number(price.promptFlex) > 0 ? Number(price.promptFlex) : promptPrice;
+		completionPrice = Number(price.completionFlex) > 0 ? Number(price.completionFlex) : completionPrice;
+		cacheReadPrice = Number(price.cacheReadFlex) > 0 ? Number(price.cacheReadFlex) : cacheReadPrice;
+		cacheCreationPrice =
+			Number(price.cacheCreationFlex) > 0 ? Number(price.cacheCreationFlex) : cacheCreationPrice;
+		tierMultiplier = 1;
+	}
 
   const contextInputTokens = totalInputTokens;
   if (

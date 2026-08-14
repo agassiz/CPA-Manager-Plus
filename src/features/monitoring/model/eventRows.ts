@@ -101,6 +101,10 @@ export const buildEventRows = (
       const endpointMethod = readString(detail.__endpointMethod) || '-';
       const endpointPath = readString(detail.__endpointPath) || endpoint;
       const resolvedModel = readString(detail.__resolvedModel);
+		const responseModel = readString(detail.response_model ?? detail.responseModel);
+		const billingModel = readString(detail.billing_model ?? detail.billingModel);
+		const responseModelMismatch =
+			detail.response_model_mismatch === true || detail.responseModelMismatch === true;
       const projectId = readString(detail.auth_project_id_snapshot ?? detail.authProjectIdSnapshot);
       const inputTokens = Math.max(Number(detail.tokens?.input_tokens) || 0, 0);
       const outputTokens = Math.max(Number(detail.tokens?.output_tokens) || 0, 0);
@@ -163,6 +167,9 @@ export const buildEventRows = (
         hourLabel,
         model: readString(detail.__modelName) || '-',
         resolvedModel: resolvedModel || undefined,
+		responseModel: responseModel || undefined,
+		billingModel: billingModel || undefined,
+		responseModelMismatch,
         endpoint,
         endpointMethod,
         endpointPath,

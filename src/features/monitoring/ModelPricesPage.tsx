@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconPencil, IconSearch, IconTrash2, IconX } from '@/components/ui/icons';
 import { usePanelFeatureAvailability } from '@/hooks/usePanelFeatureAvailability';
 import type { ModelPriceSyncCandidate, ModelPriceSyncResponse } from '@/services/api/usageService';
@@ -42,8 +43,16 @@ export function ModelPricesPage() {
   const { t } = useTranslation();
   const { showNotification } = useNotificationStore();
   const featureAvailability = usePanelFeatureAvailability();
-  const { usage, loading, modelPrices, setModelPrices, syncModelPrices, usageServiceAvailable } =
-    useUsageData();
+  const {
+    usage,
+    loading,
+    modelPrices,
+    useResponseModelForBilling,
+    setModelPrices,
+    setUseResponseModelForBilling,
+    syncModelPrices,
+    usageServiceAvailable,
+  } = useUsageData();
   const initialUiState = useRef(readModelPricesPageUiState());
   const [search, setSearch] = useState(() => initialUiState.current.search);
   const [filter, setFilter] = useState<ModelPriceFilter>(() => initialUiState.current.filter);
@@ -299,6 +308,16 @@ export function ModelPricesPage() {
         </div>
 
         <div className={styles.pricingPolicyNote}>{t('model_prices.gpt56_policy_note')}</div>
+
+        <ToggleSwitch
+          checked={useResponseModelForBilling}
+          onChange={(enabled) => void setUseResponseModelForBilling(enabled)}
+          label={t('model_prices.response_model_billing')}
+          ariaLabel={t('model_prices.response_model_billing')}
+        />
+        <div className={styles.pricingPolicyNote}>
+          {t('model_prices.response_model_billing_hint')}
+        </div>
 
         {syncResult?.sourceResults?.length ? (
           <div className={styles.sourceResults}>

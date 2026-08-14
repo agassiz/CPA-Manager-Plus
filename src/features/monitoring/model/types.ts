@@ -148,6 +148,9 @@ export type MonitoringEventRow = {
   hourLabel: string;
   model: string;
   resolvedModel?: string;
+	responseModel?: string;
+	billingModel?: string;
+	responseModelMismatch?: boolean;
   endpoint: string;
   endpointMethod: string;
   endpointPath: string;

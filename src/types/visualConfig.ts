@@ -2,6 +2,7 @@ export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat';
 export type APIKeyAccessRuleConfig = {
   apiKey: string;
+  models: string[];
   authIds: string[];
   providers: string[];
 };

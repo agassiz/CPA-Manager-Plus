@@ -87,6 +87,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const [accessApiKey, setAccessApiKey] = useState('');
   const [accessUnrestricted, setAccessUnrestricted] = useState(true);
+  const [accessModelsText, setAccessModelsText] = useState('');
   const [accessAuthIDs, setAccessAuthIDs] = useState<string[]>([]);
   const [accessProviders, setAccessProviders] = useState<string[]>([]);
   const [accessProviderOptions, setAccessProviderOptions] = useState<ApiKeyAccessProvider[]>([]);
@@ -405,6 +406,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       const rule = apiKeyAccessRules.find((item) => item.apiKey === apiKey);
       setAccessProviderOptions(options.providers);
       setAccessUnrestricted(!rule);
+      setAccessModelsText((rule?.models ?? []).join('\n'));
       setAccessAuthIDs(rule?.authIds ?? []);
       setAccessProviders(rule?.providers ?? []);
       setAccessCredentials(options.credentials);
@@ -422,6 +424,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const closeAccessModal = () => {
     setAccessModalOpen(false);
     setAccessApiKey('');
+    setAccessModelsText('');
     setAccessAuthIDs([]);
     setAccessProviders([]);
     setAccessCredentials([]);
@@ -470,7 +473,20 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
 
   const saveAccessRule = async () => {
     if (!accessApiKey) return;
-    if (!accessUnrestricted && accessAuthIDs.length === 0 && accessProviders.length === 0) {
+    const accessModels = Array.from(
+      new Set(
+        accessModelsText
+          .split(/[\n,]/)
+          .map((model) => model.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
+    if (
+      !accessUnrestricted &&
+      accessModels.length === 0 &&
+      accessAuthIDs.length === 0 &&
+      accessProviders.length === 0
+    ) {
       setAccessFormError(t('config_management.visual.api_keys.access_required'));
       return;
     }
@@ -478,6 +494,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     if (!accessUnrestricted) {
       nextRules.push({
         apiKey: accessApiKey,
+        models: accessModels,
         authIds: accessAuthIDs,
         providers: accessProviders,
       });
@@ -906,6 +923,24 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
 
         {!accessUnrestricted ? (
           <>
+            <div className="form-group">
+              <label htmlFor={`${apiKeyInputId}-access-models`}>
+                {t('config_management.visual.api_keys.access_models')}
+              </label>
+              <textarea
+                id={`${apiKeyInputId}-access-models`}
+                className="input"
+                value={accessModelsText}
+                onChange={(event) => setAccessModelsText(event.target.value)}
+                placeholder={t('config_management.visual.api_keys.access_models_placeholder')}
+                disabled={disabled || accessLoading || accessSaving}
+                rows={4}
+              />
+              <div className="hint">
+                {t('config_management.visual.api_keys.access_models_hint')}
+              </div>
+            </div>
+
             <div className="form-group">
               <div className={`${styles.blockHeaderRow} ${styles.accessSelectionHeader}`}>
                 <label style={{ margin: 0 }}>

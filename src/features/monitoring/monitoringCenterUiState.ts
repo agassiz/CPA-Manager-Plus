@@ -17,8 +17,7 @@ export type RealtimeColumnKey =
   | 'latency'
   | 'time'
   | 'usage'
-  | 'cost'
-  | 'apiKeyHash';
+  | 'cost';
 
 export type RealtimeColumnWidths = Partial<Record<RealtimeColumnKey, number>>;
 
@@ -45,7 +44,6 @@ export const REALTIME_COLUMN_KEYS: readonly RealtimeColumnKey[] = [
   'time',
   'usage',
   'cost',
-  'apiKeyHash',
 ] as const;
 
 export const DEFAULT_REALTIME_COLUMNS: readonly RealtimeColumnKey[] = [

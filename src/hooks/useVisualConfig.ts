@@ -101,6 +101,7 @@ function parseAPIKeyAccessRules(raw: unknown): VisualConfigValues['apiKeyAccessR
         : [];
     return [{
       apiKey,
+      models: normalizeValues(rule.models, true),
       authIds: normalizeValues(rule['auth-ids']),
       providers: normalizeValues(rule.providers, true),
     }];

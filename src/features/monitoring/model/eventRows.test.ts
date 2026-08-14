@@ -83,6 +83,18 @@ describe('buildEventRows', () => {
     expect(row.searchText).toContain('medium');
   });
 
+	it('keeps response-model audit metadata for realtime display', () => {
+		const [row] = buildRows({
+			response_model: 'gpt-5.6-sol',
+			response_model_mismatch: true,
+			billing_model: 'gpt-5.6-sol',
+		});
+
+		expect(row.responseModel).toBe('gpt-5.6-sol');
+		expect(row.responseModelMismatch).toBe(true);
+		expect(row.billingModel).toBe('gpt-5.6-sol');
+	});
+
   it('prefers configured provider names over auth file labels', () => {
     const [row] = buildEventRows(
       [

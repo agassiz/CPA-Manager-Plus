@@ -123,7 +123,6 @@ const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   time: 130,
   usage: 200,
   cost: 90,
-  apiKeyHash: 160,
 };
 
 const formatOptionalText = (value: string | null | undefined) => {
@@ -536,8 +535,6 @@ const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
       return shortLabel(t, 'monitoring.this_call_usage_short', 'monitoring.this_call_usage');
     case 'cost':
       return shortLabel(t, 'monitoring.this_call_cost_short', 'monitoring.this_call_cost');
-    case 'apiKeyHash':
-      return t('monitoring.realtime_api_key_hash');
     default:
       return key;
   }
@@ -822,6 +819,9 @@ export function RealtimeEventsPanel({
     const apiKeyDisplay = buildRealtimeApiKeyDisplay(row, t, accountDisplayMode);
     const showResolvedModel =
       row.resolvedModel && row.resolvedModel.trim() && row.resolvedModel.trim() !== row.model;
+		const responseModel = formatReadableText(row.responseModel);
+		const billingModel = formatReadableText(row.billingModel);
+		const showResponseModel = responseModel && responseModel !== row.model;
     const reasoningEffort = formatOptionalText(row.reasoningEffort);
     const serviceSpeedLabel = isCodexRealtimeRow(row)
       ? resolveServiceSpeedTransitionLabel(row, t)
@@ -861,6 +861,11 @@ export function RealtimeEventsPanel({
             {showResolvedModel ? (
               <small className={styles.monoCell}>{row.resolvedModel}</small>
             ) : null}
+			{showResponseModel ? (
+				<small className={styles.monoCell}>
+					{`${row.model} -> ${responseModel}${billingModel ? ` (${billingModel})` : ''}`}
+				</small>
+			) : null}
           </div>
         );
       case 'endpoint':
@@ -1004,8 +1009,6 @@ export function RealtimeEventsPanel({
         return <RealtimeTokenUsageCell row={row} locale={locale} t={t} />;
       case 'cost':
         return <>{hasPrices ? formatUsd(row.totalCost, 6) : '--'}</>;
-      case 'apiKeyHash':
-        return <span className={styles.monoCell}>{row.apiKeyHash || '-'}</span>;
       default:
         return null;
     }

@@ -18,20 +18,20 @@ beforeEach(() => {
 describe('apiKeyAccessApi', () => {
   it('normalizes loaded rules', async () => {
     mocks.get.mockResolvedValue({
-      items: [{ 'api-key': ' client ', 'auth-ids': [' auth-1 ', 'auth-1'], providers: ['Gemini', 'gemini'] }],
+      items: [{ 'api-key': ' client ', models: [' GPT-5.5 ', 'gpt-5.5'], 'auth-ids': [' auth-1 ', 'auth-1'], providers: ['Gemini', 'gemini'] }],
     });
 
     await expect(apiKeyAccessApi.list()).resolves.toEqual([
-      { apiKey: 'client', authIds: ['auth-1'], providers: ['gemini'] },
+      { apiKey: 'client', models: ['gpt-5.5'], authIds: ['auth-1'], providers: ['gemini'] },
     ]);
     expect(mocks.get).toHaveBeenCalledWith('/api-key-access');
   });
 
   it('replaces all rules with the management payload', async () => {
-    await apiKeyAccessApi.replace([{ apiKey: 'client', authIds: ['auth-1'], providers: ['Gemini'] }]);
+    await apiKeyAccessApi.replace([{ apiKey: 'client', models: ['GPT-5.5'], authIds: ['auth-1'], providers: ['Gemini'] }]);
 
     expect(mocks.put).toHaveBeenCalledWith('/api-key-access', {
-      items: [{ 'api-key': 'client', 'auth-ids': ['auth-1'], providers: ['gemini'] }],
+      items: [{ 'api-key': 'client', models: ['gpt-5.5'], 'auth-ids': ['auth-1'], providers: ['gemini'] }],
     });
   });
 

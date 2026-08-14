@@ -34,9 +34,11 @@ export interface UseUsageDataReturn {
   error: string;
   lastRefreshedAt: Date | null;
   modelPrices: Record<string, ModelPrice>;
+	useResponseModelForBilling: boolean;
   apiKeyAliases: ApiKeyAlias[];
   usageServiceAvailable: boolean;
   setModelPrices: (prices: Record<string, ModelPrice>) => Promise<void>;
+	setUseResponseModelForBilling: (enabled: boolean) => Promise<void>;
   loadApiKeyAliases: () => Promise<void>;
   syncModelPrices: (modelsOrOptions?: string[] | ModelPriceSyncOptions) => Promise<ModelPriceSyncResponse>;
   clearUsage: () => Promise<UsageClearResponse>;
@@ -59,6 +61,7 @@ export function useUsageData({
   const [error, setError] = useState('');
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [modelPrices, setModelPricesState] = useState<Record<string, ModelPrice>>({});
+	const [useResponseModelForBilling, setUseResponseModelForBillingState] = useState(true);
   const [apiKeyAliases, setApiKeyAliases] = useState<ApiKeyAlias[]>([]);
   const [usageServiceAvailable, setUsageServiceAvailable] = useState(false);
   const requestIdRef = useRef(0);
@@ -84,11 +87,19 @@ export function useUsageData({
   }, [managementKey, modelPriceServiceBase]);
 
   const saveModelPricesToApi = useCallback(
-    async (prices: Record<string, ModelPrice>): Promise<ModelPricesResponse> => {
+    async (
+      prices: Record<string, ModelPrice>,
+      useResponseModelForBilling?: boolean
+    ): Promise<ModelPricesResponse> => {
       if (!modelPriceServiceBase) {
         throw new Error('model_price_api_unavailable');
       }
-      return usageServiceApi.saveModelPrices(modelPriceServiceBase, prices, managementKey);
+      return usageServiceApi.saveModelPrices(
+        modelPriceServiceBase,
+        prices,
+        managementKey,
+        useResponseModelForBilling
+      );
     },
     [managementKey, modelPriceServiceBase]
   );
@@ -132,13 +143,14 @@ export function useUsageData({
     try {
       const response = await getModelPricesFromApi();
       const apiPrices = normalizeModelPrices(response.prices);
+		setUseResponseModelForBillingState(response.use_response_model_for_billing !== false);
       if (Object.keys(apiPrices).length > 0) {
         setModelPricesState(apiPrices);
         saveModelPrices(apiPrices);
         return;
       }
       if (Object.keys(fallbackPrices).length > 0) {
-        const migrated = await saveModelPricesToApi(fallbackPrices);
+		const migrated = await saveModelPricesToApi(fallbackPrices);
         const migratedPrices = normalizeModelPrices(migrated.prices ?? fallbackPrices);
         setModelPricesState(migratedPrices);
         saveModelPrices(migratedPrices);
@@ -224,6 +236,19 @@ export function useUsageData({
     [saveModelPricesToApi]
   );
 
+	const setUseResponseModelForBilling = useCallback(
+		async (enabled: boolean) => {
+			setUseResponseModelForBillingState(enabled);
+			try {
+        const response = await saveModelPricesToApi(modelPrices, enabled);
+				setUseResponseModelForBillingState(response.use_response_model_for_billing !== false);
+			} catch {
+				// Keep the local setting when the management service is unavailable.
+			}
+		},
+    [modelPrices, saveModelPricesToApi]
+	);
+
   const syncModelPrices = useCallback(
     async (modelsOrOptions?: string[] | ModelPriceSyncOptions) => {
       const response = await syncModelPricesFromApi(modelsOrOptions);
@@ -241,9 +266,11 @@ export function useUsageData({
     error,
     lastRefreshedAt,
     modelPrices,
+		useResponseModelForBilling,
     apiKeyAliases,
     usageServiceAvailable,
     setModelPrices,
+		setUseResponseModelForBilling,
     loadApiKeyAliases,
     syncModelPrices,
     clearUsage: clearUsageFromApi,

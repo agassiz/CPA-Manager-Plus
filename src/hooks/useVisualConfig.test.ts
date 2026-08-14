@@ -48,6 +48,8 @@ describe('useVisualConfig', () => {
       '  - client-a',
       'api-key-access:',
       '  - api-key: client-a',
+      '    models:',
+      '      - gpt-5.5',
       '    auth-ids:',
       '      - auth-1',
       '    providers:',
@@ -61,7 +63,7 @@ describe('useVisualConfig', () => {
     });
 
     expect(harness.getCurrent().visualValues.apiKeyAccessRules).toEqual([
-      { apiKey: 'client-a', authIds: ['auth-1'], providers: ['codex:0'] },
+      { apiKey: 'client-a', models: ['gpt-5.5'], authIds: ['auth-1'], providers: ['codex:0'] },
     ]);
     harness.unmount();
   });

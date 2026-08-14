@@ -18,6 +18,7 @@ import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
+import iconKiro from '@/assets/icons/kiro.svg';
 
 interface ProviderState {
   url?: string;
@@ -31,6 +32,8 @@ interface ProviderState {
   callbackSubmitting?: boolean;
   callbackStatus?: 'success' | 'error';
   callbackError?: string;
+  verificationUrl?: string;
+  userCode?: string;
 }
 
 interface VertexImportResult {
@@ -70,6 +73,7 @@ const PROVIDERS: { id: OAuthProvider; titleKey: string; hintKey: string; urlLabe
   { id: 'antigravity', titleKey: 'auth_login.antigravity_oauth_title', hintKey: 'auth_login.antigravity_oauth_hint', urlLabelKey: 'auth_login.antigravity_oauth_url_label', icon: iconAntigravity },
   { id: 'gemini-cli', titleKey: 'auth_login.gemini_cli_oauth_title', hintKey: 'auth_login.gemini_cli_oauth_hint', urlLabelKey: 'auth_login.gemini_cli_oauth_url_label', icon: iconGemini },
   { id: 'kimi', titleKey: 'auth_login.kimi_oauth_title', hintKey: 'auth_login.kimi_oauth_hint', urlLabelKey: 'auth_login.kimi_oauth_url_label', icon: { light: iconKimiLight, dark: iconKimiDark } },
+  { id: 'kiro', titleKey: 'auth_login.kiro_oauth_title', hintKey: 'auth_login.kiro_oauth_hint', urlLabelKey: 'auth_login.kiro_oauth_url_label', icon: iconKiro },
   { id: 'xai', titleKey: 'auth_login.xai_oauth_title', hintKey: 'auth_login.xai_oauth_hint', urlLabelKey: 'auth_login.xai_oauth_url_label', icon: { light: iconGrok, dark: iconGrokDark } }
 ];
 
@@ -248,7 +252,9 @@ export function OAuthPage() {
       callbackUrl: '',
       callbackSubmitting: false,
       callbackStatus: undefined,
-      callbackError: undefined
+      callbackError: undefined,
+      verificationUrl: undefined,
+      userCode: undefined
     });
     successResetTimers.current[provider] = window.setTimeout(() => {
       resetProviderAttempt(provider);
@@ -263,6 +269,15 @@ export function OAuthPage() {
         if (res.status === 'ok') {
           completeProviderAuth(provider);
           showNotification(t(getAuthKey(provider, 'oauth_status_success')), 'success');
+        } else if (res.status === 'device_code') {
+          updateProviderState(provider, {
+            verificationUrl: res.verification_url,
+            userCode: res.user_code,
+            status: 'waiting',
+            polling: true
+          });
+        } else if (res.status === 'auth_url') {
+          updateProviderState(provider, { url: res.url, status: 'waiting', polling: true });
         } else if (res.status === 'error') {
           updateProviderState(provider, { status: 'error', error: res.error, polling: false });
           showNotification(
@@ -307,7 +322,11 @@ export function OAuthPage() {
     try {
       const res = await oauthApi.startAuth(
         provider,
-        provider === 'gemini-cli' ? { projectId: projectId || undefined } : undefined
+        provider === 'gemini-cli'
+          ? { projectId: projectId || undefined }
+          : provider === 'kiro'
+            ? { method: 'aws' }
+            : undefined
       );
       if (!res.state) {
         const message = t('auth_login.missing_state');
@@ -516,6 +535,27 @@ export function OAuthPage() {
                           {t(getAuthKey(provider.id, 'open_link'))}
                         </Button>
                       </div>
+                    </div>
+                  )}
+                  {provider.id === 'kiro' && state.verificationUrl && state.userCode && (
+                    <div className={styles.authUrlBox}>
+                      <div className={styles.authUrlLabel}>{t(provider.urlLabelKey)}</div>
+                      <div className={styles.authUrlValue}>{state.verificationUrl}</div>
+                      <div className={styles.authUrlActions}>
+                        <Button variant="secondary" size="sm" onClick={() => copyLink(state.verificationUrl!)}>
+                          {t(getAuthKey(provider.id, 'copy_link'))}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => window.open(state.verificationUrl, '_blank', 'noopener,noreferrer')}
+                        >
+                          {t(getAuthKey(provider.id, 'open_link'))}
+                        </Button>
+                      </div>
+                      <div className={styles.authUrlLabel}>{t('auth_login.kiro_oauth_user_code_label')}</div>
+                      <div className={styles.authUrlValue}>{state.userCode}</div>
+                      <div className={styles.cardHintSecondary}>{t('auth_login.kiro_oauth_user_code_hint')}</div>
                     </div>
                   )}
                   {canSubmitCallback && (
