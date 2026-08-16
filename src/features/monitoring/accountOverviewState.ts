@@ -2,6 +2,7 @@ import type { AuthFileItem } from '@/types';
 import { isDisabledAuthFile } from '@/utils/quota';
 import { normalizeRecentRequestAuthIndex, type StatusBarData } from '@/utils/recentRequests';
 import { getActualInputTokens } from '@/utils/usage';
+import { maskEmailLike } from './model/base';
 import type {
   MonitoringAccountRow,
   MonitoringEventRow,
@@ -105,7 +106,8 @@ const ACCOUNT_SORT_DIRECTION_SET = new Set<AccountSortDirection>(['asc', 'desc']
 export const normalizeAccountOverviewMode = (value: unknown): MonitoringAccountOverviewMode =>
   value === 'card' ? 'card' : 'table';
 
-export const normalizeAccountDisplayMode = (_value: unknown): AccountDisplayMode => 'full';
+export const normalizeAccountDisplayMode = (value: unknown): AccountDisplayMode =>
+  value === 'masked' ? 'masked' : 'full';
 
 export const normalizeAccountSortKey = (value: unknown): AccountSortKey | null =>
   typeof value === 'string' && ACCOUNT_SORT_KEY_SET.has(value as AccountSortKey)
@@ -215,7 +217,7 @@ export const resolveAccountDisplayText = (
   const fullAccount = firstReadableAccountValue(row.account, row.displayAccount);
   const maskedAccount =
     displayMode === 'masked'
-      ? firstReadableAccountValue(row.accountMasked, row.account, row.displayAccount)
+      ? maskEmailLike(firstReadableAccountValue(row.accountMasked, row.account, row.displayAccount))
       : fullAccount;
   const configuredPrimary = firstReadableAccountValue(row.displayAccount, row.account);
   const primaryIsAccount =
@@ -235,7 +237,11 @@ export const resolveAccountDisplayText = (
   const secondary =
     secondaryCandidates.find((value) => hasReadableAccountValue(value) && value !== primary) || '';
   const titleParts = Array.from(
-    new Set([primary, fullAccount, maskedAccount, secondary].filter(hasReadableAccountValue))
+    new Set(
+      [primary, displayMode === 'full' ? fullAccount : maskedAccount, secondary].filter(
+        hasReadableAccountValue
+      )
+    )
   );
 
   return {

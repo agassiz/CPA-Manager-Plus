@@ -1385,7 +1385,7 @@
 }
 
 .authFileTableNameCell {
-  max-width: 280px;
+  white-space: nowrap;
 }
 
 .authFileTableTypeCell {
@@ -1418,13 +1418,9 @@
 }
 
 .authFileTableName {
-  max-width: 280px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: inline;
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .authFileTableStatusMessage {

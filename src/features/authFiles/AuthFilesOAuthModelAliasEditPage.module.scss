@@ -160,6 +160,18 @@
   color: var(--text-primary);
 }
 
+.mappingsActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-md;
+
+  @include mobile {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+}
+
 .modelsHint {
   display: flex;
   align-items: center;

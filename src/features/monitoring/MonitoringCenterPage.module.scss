@@ -1069,6 +1069,12 @@
   min-width: 0;
 }
 
+.accountFilterDropdown {
+  .option {
+    white-space: nowrap;
+  }
+}
+
 .filterAccountStack :global(.form-group) {
   margin-bottom: 0;
 }

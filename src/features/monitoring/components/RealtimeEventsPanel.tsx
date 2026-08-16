@@ -20,6 +20,7 @@ import {
   IconEyeOff,
   IconFilter,
   IconInfo,
+  IconPencil,
   IconSlidersHorizontal,
 } from '@/components/ui/icons';
 import {
@@ -343,7 +344,6 @@ const buildRealtimeTokenDetails = (row: MonitoringEventRow) => {
     actualInputTokens,
     cacheHitRate,
     cacheReadTokens,
-    cacheTokens: cacheReadTokens + cacheWriteTokens,
     cacheWriteTokens,
   };
 };
@@ -424,10 +424,12 @@ function RealtimeTokenUsageCell({ locale, row, t }: RealtimeTokenUsageCellProps)
                 <span>{t('monitoring.cache_read_tokens')}</span>
                 <strong>{formatRealtimeTokenNumber(tokenDetails.cacheReadTokens, locale)}</strong>
               </div>
-              <div className={styles.realtimeTokenTooltipRow}>
-                <span>{t('monitoring.cache_creation_tokens')}</span>
-                <strong>{formatRealtimeTokenNumber(tokenDetails.cacheWriteTokens, locale)}</strong>
-              </div>
+              {tokenDetails.cacheWriteTokens > 0 ? (
+                <div className={styles.realtimeTokenTooltipRow}>
+                  <span>{t('monitoring.cache_creation_tokens')}</span>
+                  <strong>{formatRealtimeTokenNumber(tokenDetails.cacheWriteTokens, locale)}</strong>
+                </div>
+              ) : null}
               {row.reasoningTokens > 0 ? (
                 <div className={styles.realtimeTokenTooltipRow}>
                   <span>{t('monitoring.reasoning_tokens')}</span>
@@ -467,8 +469,14 @@ function RealtimeTokenUsageCell({ locale, row, t }: RealtimeTokenUsageCellProps)
         <div className={styles.realtimeTokenCacheLine}>
           <span className={`${styles.realtimeTokenItem} ${styles.realtimeTokenCache}`}>
             <IconDatabaseZap size={14} aria-hidden="true" />
-            {formatRealtimeCacheTokenNumber(tokenDetails.cacheTokens, locale)}
+            {formatRealtimeCacheTokenNumber(tokenDetails.cacheReadTokens, locale)}
           </span>
+          {tokenDetails.cacheWriteTokens > 0 ? (
+            <span className={`${styles.realtimeTokenItem} ${styles.realtimeTokenCacheWrite}`}>
+              <IconPencil size={14} aria-hidden="true" />
+              {formatRealtimeCacheTokenNumber(tokenDetails.cacheWriteTokens, locale)}
+            </span>
+          ) : null}
           <span className={styles.realtimeTokenCacheHitRate}>
             <IconChartLine size={14} aria-hidden="true" />
             {formatPercent(tokenDetails.cacheHitRate)}

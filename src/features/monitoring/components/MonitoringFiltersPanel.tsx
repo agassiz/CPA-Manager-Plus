@@ -186,6 +186,8 @@ export function MonitoringFiltersPanel({
               onChange={onAccountFilterChange}
               ariaLabel={t('monitoring.filter_account')}
               triggerClassName={styles.filterSelectTrigger}
+              dropdownClassName={styles.accountFilterDropdown}
+              dropdownMinWidth={420}
             />
           </div>
           <Select

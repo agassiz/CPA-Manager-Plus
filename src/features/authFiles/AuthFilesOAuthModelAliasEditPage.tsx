@@ -9,6 +9,7 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconInfo, IconX } from '@/components/ui/icons';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { authFilesApi } from '@/services/api';
 import type { AuthFileItem, OAuthModelAliasEntry } from '@/types';
@@ -20,6 +21,8 @@ type AuthFileModelItem = { id: string; display_name?: string; type?: string; own
 type LocationState = { fromAuthFiles?: boolean } | null;
 
 type OAuthModelMappingFormEntry = OAuthModelAliasEntry & { id: string };
+
+type SourceModelOption = { value: string; label?: string };
 
 const OAUTH_PROVIDER_PRESETS = [
   'gemini-cli',
@@ -34,6 +37,7 @@ const OAUTH_PROVIDER_PRESETS = [
 ];
 
 const OAUTH_PROVIDER_EXCLUDES = new Set(['all', 'unknown', 'empty']);
+const DUPLICATE_NAMES_STORAGE_KEY = 'oauthModelAlias.allowDuplicateNamesByProvider';
 
 const normalizeProviderKey = (value: string) => value.trim().toLowerCase();
 
@@ -58,6 +62,61 @@ const normalizeMappingEntries = (
   }));
 };
 
+const hasDuplicateSourceModels = (entries: OAuthModelAliasEntry[] = []) => {
+  const seen = new Set<string>();
+  return entries.some((entry) => {
+    const name = String(entry.name ?? '')
+      .trim()
+      .toLowerCase();
+    if (!name) return false;
+    if (seen.has(name)) return true;
+    seen.add(name);
+    return false;
+  });
+};
+
+export const buildSourceModelOptions = (
+  models: AuthFileModelItem[],
+  mappings: Array<Pick<OAuthModelMappingFormEntry, 'name'>>,
+  currentIndex: number,
+  allowDuplicateNames: boolean,
+  persistedMappings: Array<Pick<OAuthModelAliasEntry, 'name'>> = []
+): SourceModelOption[] => {
+  const options = new Map<string, SourceModelOption>();
+
+  models.forEach((model) => {
+    const value = String(model.id ?? '').trim();
+    if (!value) return;
+    options.set(value.toLowerCase(), {
+      value,
+      label: model.display_name && model.display_name !== value ? model.display_name : undefined,
+    });
+  });
+
+  [...persistedMappings, ...mappings].forEach((entry) => {
+    const value = String(entry.name ?? '').trim();
+    if (!value || options.has(value.toLowerCase())) return;
+    options.set(value.toLowerCase(), { value });
+  });
+
+  if (allowDuplicateNames) return Array.from(options.values());
+
+  const namesUsedByOtherRows = new Set(
+    mappings
+      .filter((_, index) => index !== currentIndex)
+      .map((entry) =>
+        String(entry.name ?? '')
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+
+  return Array.from(options.entries())
+    .filter(([key]) => !namesUsedByOtherRows.has(key))
+    .map(([, option]) => option);
+};
+
 export function AuthFilesOAuthModelAliasEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -76,11 +135,16 @@ export function AuthFilesOAuthModelAliasEditPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [modelAliasUnsupported, setModelAliasUnsupported] = useState(false);
 
-  const [mappings, setMappings] = useState<OAuthModelMappingFormEntry[]>([buildEmptyMappingEntry()]);
+  const [mappings, setMappings] = useState<OAuthModelMappingFormEntry[]>([
+    buildEmptyMappingEntry(),
+  ]);
   const [modelsList, setModelsList] = useState<AuthFileModelItem[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState<'unsupported' | null>(null);
   const [saving, setSaving] = useState(false);
+  const [allowDuplicateNamesByProvider, setAllowDuplicateNamesByProvider] = useLocalStorage<
+    Record<string, boolean>
+  >(DUPLICATE_NAMES_STORAGE_KEY, {});
 
   useEffect(() => {
     setProvider(providerFromParams);
@@ -123,6 +187,12 @@ export function AuthFilesOAuthModelAliasEditPage() {
   );
 
   const resolvedProviderKey = useMemo(() => normalizeProviderKey(provider), [provider]);
+  const allowDuplicateNames = useMemo(() => {
+    if (!resolvedProviderKey) return false;
+    const override = allowDuplicateNamesByProvider[resolvedProviderKey];
+    if (override !== undefined) return override;
+    return hasDuplicateSourceModels(modelAlias[resolvedProviderKey]);
+  }, [allowDuplicateNamesByProvider, modelAlias, resolvedProviderKey]);
   const title = useMemo(() => t('oauth_model_alias.add_title'), [t]);
   const headerHint = useMemo(() => {
     if (!provider.trim()) {
@@ -295,6 +365,17 @@ export function AuthFilesOAuthModelAliasEditPage() {
     setMappings((prev) => [...prev, buildEmptyMappingEntry()]);
   }, []);
 
+  const updateAllowDuplicateNames = useCallback(
+    (value: boolean) => {
+      if (!resolvedProviderKey) return;
+      setAllowDuplicateNamesByProvider((prev) => ({
+        ...prev,
+        [resolvedProviderKey]: value,
+      }));
+    },
+    [resolvedProviderKey]
+  );
+
   const removeMappingEntry = useCallback((index: number) => {
     setMappings((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
@@ -378,7 +459,9 @@ export function AuthFilesOAuthModelAliasEditPage() {
             <div className={styles.settingsSection}>
               <div className={styles.settingsRow}>
                 <div className={styles.settingsInfo}>
-                  <div className={styles.settingsLabel}>{t('oauth_model_alias.provider_label')}</div>
+                  <div className={styles.settingsLabel}>
+                    {t('oauth_model_alias.provider_label')}
+                  </div>
                   <div className={styles.settingsDesc}>{t('oauth_model_alias.provider_hint')}</div>
                 </div>
                 <div className={styles.settingsControl}>
@@ -418,32 +501,43 @@ export function AuthFilesOAuthModelAliasEditPage() {
           <Card className={styles.settingsCard}>
             <div className={styles.mappingsHeader}>
               <div className={styles.mappingsTitle}>{t('oauth_model_alias.alias_label')}</div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={addMappingEntry}
-                disabled={disableControls || saving || modelAliasUnsupported}
-              >
-                {t('oauth_model_alias.add_alias')}
-              </Button>
+              <div className={styles.mappingsActions}>
+                <ToggleSwitch
+                  label={t('oauth_model_alias.allow_duplicate_names')}
+                  labelPosition="left"
+                  checked={allowDuplicateNames}
+                  onChange={updateAllowDuplicateNames}
+                  disabled={disableControls || saving || !resolvedProviderKey}
+                  ariaLabel={t('oauth_model_alias.allow_duplicate_names')}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={addMappingEntry}
+                  disabled={disableControls || saving || modelAliasUnsupported}
+                >
+                  {t('oauth_model_alias.add_alias')}
+                </Button>
+              </div>
             </div>
 
             <div className={styles.mappingsBody}>
               {mappings.map((entry, index) => (
                 <div key={entry.id} className={styles.mappingRow}>
                   <AutocompleteInput
+                    key={`${entry.id}:${resolvedProviderKey}:${allowDuplicateNames ? 'duplicates' : 'unique'}`}
                     wrapperStyle={{ flex: 1, marginBottom: 0 }}
                     placeholder={t('oauth_model_alias.alias_name_placeholder')}
                     value={entry.name}
                     onChange={(val) => updateMappingEntry(index, 'name', val)}
                     disabled={disableControls || saving}
-                    options={modelsList.map((model) => ({
-                      value: model.id,
-                      label:
-                        model.display_name && model.display_name !== model.id
-                          ? model.display_name
-                          : undefined,
-                    }))}
+                    options={buildSourceModelOptions(
+                      modelsList,
+                      mappings,
+                      index,
+                      allowDuplicateNames,
+                      modelAlias[resolvedProviderKey]
+                    )}
                   />
                   <span className={styles.mappingSeparator}>→</span>
                   <input

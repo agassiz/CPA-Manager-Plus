@@ -96,10 +96,10 @@ describe('accountOverviewState', () => {
     expect(normalizeAccountOverviewMode('card')).toBe('card');
   });
 
-  it('always uses full account display mode', () => {
-	 expect(normalizeAccountDisplayMode(undefined)).toBe('full');
-	 expect(normalizeAccountDisplayMode('visible')).toBe('full');
-	 expect(normalizeAccountDisplayMode('masked')).toBe('full');
+  it('preserves the selected account display mode', () => {
+    expect(normalizeAccountDisplayMode(undefined)).toBe('full');
+    expect(normalizeAccountDisplayMode('visible')).toBe('full');
+    expect(normalizeAccountDisplayMode('masked')).toBe('masked');
   });
 
   it('normalizes persisted overview ui state', () => {
@@ -131,23 +131,23 @@ describe('accountOverviewState', () => {
     });
   });
 
-  it('resolves masked and full account labels with full account tooltip text', () => {
+  it('does not expose full account values in masked mode', () => {
     const row = createAccountRow({
-      account: 'very-long-account-name@example.com',
-      displayAccount: 'very-long-account-name@example.com',
-      accountMasked: 'ver***@example.com',
+      account: 'sk-1234567890abcdef',
+      displayAccount: 'DS-姜元 #1',
+      accountMasked: 'sk-1...cdef',
     });
 
     expect(resolveAccountDisplayText(row, 'masked')).toMatchObject({
-      primary: 'ver***@example.com',
-      fullAccount: 'very-long-account-name@example.com',
+      primary: 'DS-姜元 #1',
+      secondary: 'sk-1...cdef',
+      fullAccount: 'sk-1234567890abcdef',
     });
-    expect(resolveAccountDisplayText(row, 'masked').title).toContain(
-      'very-long-account-name@example.com'
-    );
+    expect(resolveAccountDisplayText(row, 'masked').title).not.toContain('sk-1234567890abcdef');
     expect(resolveAccountDisplayText(row, 'full')).toMatchObject({
-      primary: 'very-long-account-name@example.com',
-      fullAccount: 'very-long-account-name@example.com',
+      primary: 'DS-姜元 #1',
+      secondary: 'sk-1234567890abcdef',
+      fullAccount: 'sk-1234567890abcdef',
     });
   });
 

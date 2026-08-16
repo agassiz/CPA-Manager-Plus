@@ -243,7 +243,9 @@ describe('RealtimeEventsPanel', () => {
     expect(markup).not.toContain('Input 10 · Output 23 · Reasoning 3');
     expect(markup).toContain('>10</span>');
     expect(markup).toContain('>23</span>');
-    expect(markup).toContain('>5</span>');
+    expect(markup).toContain('>4</span>');
+    expect(markup).toContain('>1</span>');
+    expect(markup).toContain('M21.2 6.8');
     expect(markup).toContain('realtimeTokenInfo');
     expect(markup).toContain('26.7%');
     expect(markup).toContain('aria-label="Usage"');
@@ -431,7 +433,7 @@ describe('RealtimeEventsPanel', () => {
     );
   });
 
-  it('uses cache read tokens without double-counting mirrored cached tokens', () => {
+  it('renders cache creation tokens separately from cache read tokens', () => {
     const markup = renderPanel(
       baseRow({
         cachedTokens: 4,
@@ -440,7 +442,8 @@ describe('RealtimeEventsPanel', () => {
       })
     );
 
-    expect(markup).toContain('>5</span>');
+    expect(markup).toContain('>4</span>');
+    expect(markup).toContain('>1</span>');
     expect(markup).toContain('realtimeTokenInfo');
   });
 
