@@ -238,7 +238,12 @@ export const resolveAccountDisplayText = (
     secondaryCandidates.find((value) => hasReadableAccountValue(value) && value !== primary) || '';
   const titleParts = Array.from(
     new Set(
-      [primary, displayMode === 'full' ? fullAccount : maskedAccount, secondary].filter(
+      [
+        primary,
+        displayMode === 'full' || fullAccount.includes('@') ? fullAccount : '',
+        displayMode === 'full' ? fullAccount : maskedAccount,
+        secondary,
+      ].filter(
         hasReadableAccountValue
       )
     )

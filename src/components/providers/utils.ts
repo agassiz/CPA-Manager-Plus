@@ -155,6 +155,7 @@ const EMPTY_RECENT_USAGE_ENTRY: RecentRequestUsageEntry = {
   success: 0,
   failed: 0,
   recentRequests: [],
+  authIndices: [],
 };
 
 const normalizeProviderRecentKey = (value: unknown): string =>
@@ -197,6 +198,15 @@ export function getProviderTotalStats(
 ): { success: number; failure: number } {
   const entry = getProviderRecentUsageEntry(usageByProvider, provider, apiKey, baseUrl);
   return { success: entry.success, failure: entry.failed };
+}
+
+export function getProviderAuthIndices(
+  usageByProvider: ProviderRecentUsageMap,
+  provider: string,
+  apiKey?: string,
+  baseUrl?: string
+): string[] {
+  return getProviderRecentUsageEntry(usageByProvider, provider, apiKey, baseUrl).authIndices ?? [];
 }
 
 export function getProviderRecentWindowStats(
@@ -269,6 +279,19 @@ export function getOpenAIProviderTotalStats(
       };
     },
     { success: 0, failure: 0 }
+  );
+}
+
+export function getOpenAIProviderAuthIndices(
+  provider: OpenAIProviderConfig,
+  usageByProvider: ProviderRecentUsageMap
+): string[] {
+  return Array.from(
+    new Set(
+      (provider.apiKeyEntries || []).flatMap((entry) =>
+        getProviderAuthIndices(usageByProvider, provider.name, entry.apiKey, provider.baseUrl)
+      )
+    )
   );
 }
 

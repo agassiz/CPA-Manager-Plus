@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -38,6 +38,7 @@ interface AdditionalProviderSectionProps {
   onEdit: (resource: ProviderResource) => void;
   onDelete: (resource: ProviderResource) => void;
   onToggle: (resource: ProviderResource, enabled: boolean) => void;
+  renderSelection?: (resource: ProviderResource) => ReactNode;
 }
 
 export function AdditionalProviderSection({
@@ -51,6 +52,7 @@ export function AdditionalProviderSection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: AdditionalProviderSectionProps) {
   const { t, i18n } = useTranslation();
   const logo = PROVIDER_LOGOS[brand];
@@ -152,6 +154,7 @@ export function AdditionalProviderSection({
             <Fragment>
               <ProviderCardTitle
                 title={resource.name ?? providerName}
+                selection={renderSelection?.(resource)}
                 disabled={resource.disabled}
                 success={stats.success}
                 failure={stats.failure}

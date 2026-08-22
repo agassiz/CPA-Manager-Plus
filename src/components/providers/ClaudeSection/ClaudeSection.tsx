@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -30,6 +30,7 @@ interface ClaudeSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onToggle: (index: number, enabled: boolean) => void;
+  renderSelection?: (config: ProviderKeyConfig, index: number) => ReactNode;
 }
 
 export function ClaudeSection({
@@ -42,6 +43,7 @@ export function ClaudeSection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: ClaudeSectionProps) {
   const { t } = useTranslation();
   const actionsDisabled = disableControls || loading || isSwitching;
@@ -127,6 +129,7 @@ export function ClaudeSection({
               <Fragment>
                 <ProviderCardTitle
                   title={item.name || t('ai_providers.claude_item_title')}
+                  selection={renderSelection?.(item, index)}
                   disabled={configDisabled}
                   success={stats.success}
                   failure={stats.failure}

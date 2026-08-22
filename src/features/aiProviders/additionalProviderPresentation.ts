@@ -1,6 +1,7 @@
 import {
   getOpenAIProviderRecentStatusData,
   getOpenAIProviderTotalStats,
+  getProviderAuthIndices,
   getProviderRecentBuckets,
   getProviderRecentStatusData,
   getProviderTotalStats,
@@ -25,6 +26,7 @@ export interface ProviderCredentialEntry {
   proxyUrl?: string;
   success: number;
   failure: number;
+  authIndices: string[];
 }
 
 const getUsageProvider = (brand: ProviderBrand): string =>
@@ -49,6 +51,12 @@ const getSponsorCredentials = (
         apiKey: entry.apiKey,
         proxyUrl: entry.proxyUrl,
         ...stats,
+        authIndices: getProviderAuthIndices(
+          usageByProvider,
+          config.name,
+          entry.apiKey,
+          config.baseUrl
+        ),
       });
     });
   });
@@ -58,6 +66,7 @@ const getSponsorCredentials = (
       apiKey: config.apiKey,
       proxyUrl: config.proxyUrl,
       ...getProviderTotalStats(usageByProvider, 'codex', config.apiKey, config.baseUrl),
+      authIndices: getProviderAuthIndices(usageByProvider, 'codex', config.apiKey, config.baseUrl),
     });
   });
   raw.claude.forEach(({ config, index }) => {
@@ -66,6 +75,7 @@ const getSponsorCredentials = (
       apiKey: config.apiKey,
       proxyUrl: config.proxyUrl,
       ...getProviderTotalStats(usageByProvider, 'claude', config.apiKey, config.baseUrl),
+      authIndices: getProviderAuthIndices(usageByProvider, 'claude', config.apiKey, config.baseUrl),
     });
   });
   raw.gemini.forEach(({ config, index }) => {
@@ -74,6 +84,7 @@ const getSponsorCredentials = (
       apiKey: config.apiKey,
       proxyUrl: config.proxyUrl,
       ...getProviderTotalStats(usageByProvider, 'gemini', config.apiKey, config.baseUrl),
+      authIndices: getProviderAuthIndices(usageByProvider, 'gemini', config.apiKey, config.baseUrl),
     });
   });
 
@@ -94,6 +105,12 @@ export const getAdditionalProviderCredentials = (
       apiKey: entry.apiKey,
       proxyUrl: entry.proxyUrl,
       ...getProviderTotalStats(usageByProvider, config.name, entry.apiKey, config.baseUrl),
+      authIndices: getProviderAuthIndices(
+        usageByProvider,
+        config.name,
+        entry.apiKey,
+        config.baseUrl
+      ),
     }));
   }
   const config = resource.raw as ProviderKeyConfig;
@@ -104,6 +121,12 @@ export const getAdditionalProviderCredentials = (
       apiKey: config.apiKey,
       proxyUrl: config.proxyUrl,
       ...getProviderTotalStats(
+        usageByProvider,
+        getUsageProvider(resource.brand),
+        config.apiKey,
+        config.baseUrl
+      ),
+      authIndices: getProviderAuthIndices(
         usageByProvider,
         getUsageProvider(resource.brand),
         config.apiKey,
@@ -128,6 +151,16 @@ export const getAdditionalProviderStats = (
     { success: 0, failure: 0 }
   );
 };
+
+export const getAdditionalProviderAuthIndices = (
+  resource: ProviderResource,
+  usageByProvider: ProviderRecentUsageMap
+): string[] =>
+  Array.from(
+    new Set(
+      getAdditionalProviderCredentials(resource, usageByProvider).flatMap((entry) => entry.authIndices)
+    )
+  );
 
 export const getAdditionalProviderStatusData = (
   resource: ProviderResource,

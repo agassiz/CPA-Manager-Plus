@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -30,6 +30,7 @@ interface VertexSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onToggle: (index: number, enabled: boolean) => void;
+  renderSelection?: (config: ProviderKeyConfig, index: number) => ReactNode;
 }
 
 export function VertexSection({
@@ -42,6 +43,7 @@ export function VertexSection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: VertexSectionProps) {
   const { t } = useTranslation();
   const actionsDisabled = disableControls || loading || isSwitching;
@@ -117,6 +119,7 @@ export function VertexSection({
               <Fragment>
                 <ProviderCardTitle
                   title={`${t('ai_providers.vertex_item_title')} #${index + 1}`}
+                  selection={renderSelection?.(item, index)}
                   disabled={configDisabled}
                   success={stats.success}
                   failure={stats.failure}

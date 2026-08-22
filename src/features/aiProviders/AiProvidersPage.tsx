@@ -12,8 +12,10 @@ import {
 } from '@/components/providers';
 import {
   getOpenAIProviderRecentStatusData,
+  getOpenAIProviderAuthIndices,
   getOpenAIProviderTotalStats,
   getProviderConfigKey,
+  getProviderAuthIndices,
   getProviderRecentStatusData,
   getProviderTotalStats,
   hasDisableAllModelsRule,
@@ -24,11 +26,12 @@ import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer'
 import { DropdownMenu } from '@/components/ui/DropdownMenu';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconPlus, IconSearch, IconSlidersHorizontal } from '@/components/ui/icons';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { providersApi } from '@/services/api';
+import { providersApi, usageCounterSnapshotsApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore, useThemeStore } from '@/stores';
 import { STORAGE_KEY_AI_PROVIDERS_LIST_MODE } from '@/utils/constants';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
@@ -50,6 +53,7 @@ import {
 import { AdditionalProviderSection } from './AdditionalProviderSection';
 import {
   getAdditionalProviderCredentials,
+  getAdditionalProviderAuthIndices,
   getAdditionalProviderStats,
   getAdditionalProviderStatusData,
 } from './additionalProviderPresentation';
@@ -166,6 +170,10 @@ export function AiProvidersPage() {
   const [providerListSelectedModels, setProviderListSelectedModels] = useState<Set<string>>(
     () => new Set()
   );
+  const [selectedProviderRowIds, setSelectedProviderRowIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [counterSnapshotsUpdating, setCounterSnapshotsUpdating] = useState(false);
 
   const [configSwitchingKey, setConfigSwitchingKey] = useState<string | null>(null);
 
@@ -650,6 +658,7 @@ export function AiProvidersPage() {
         priority: item.priority ?? 0,
         success: stats.success,
         failure: stats.failure,
+        authIndices: getProviderAuthIndices(usageByProvider, 'gemini', item.apiKey, item.baseUrl),
         statusData: getProviderRecentStatusData(
           usageByProvider,
           'gemini',
@@ -682,6 +691,7 @@ export function AiProvidersPage() {
         priority: item.priority ?? 0,
         success: stats.success,
         failure: stats.failure,
+        authIndices: getProviderAuthIndices(usageByProvider, 'codex', item.apiKey, item.baseUrl),
         statusData: getProviderRecentStatusData(
           usageByProvider,
           'codex',
@@ -714,6 +724,7 @@ export function AiProvidersPage() {
         priority: item.priority ?? 0,
         success: stats.success,
         failure: stats.failure,
+        authIndices: getProviderAuthIndices(usageByProvider, 'claude', item.apiKey, item.baseUrl),
         statusData: getProviderRecentStatusData(
           usageByProvider,
           'claude',
@@ -746,6 +757,7 @@ export function AiProvidersPage() {
         priority: item.priority ?? 0,
         success: stats.success,
         failure: stats.failure,
+        authIndices: getProviderAuthIndices(usageByProvider, 'vertex', item.apiKey, item.baseUrl),
         statusData: getProviderRecentStatusData(
           usageByProvider,
           'vertex',
@@ -780,6 +792,7 @@ export function AiProvidersPage() {
         priority: item.priority ?? 0,
         success: stats.success,
         failure: stats.failure,
+        authIndices: getOpenAIProviderAuthIndices(item, usageByProvider),
         statusData: getOpenAIProviderRecentStatusData(item, usageByProvider),
         disabled: item.disabled === true,
         canToggle: true,
@@ -822,6 +835,7 @@ export function AiProvidersPage() {
           priority: resource.priority,
           success: stats.success,
           failure: stats.failure,
+          authIndices: getAdditionalProviderAuthIndices(resource, usageByProvider),
           statusData: getAdditionalProviderStatusData(resource, usageByProvider),
           disabled: resource.disabled,
           canToggle: true,
@@ -847,6 +861,79 @@ export function AiProvidersPage() {
     sortDir: providerListSortDir,
     selectedModels: activeProviderModels,
   });
+  const selectedProviderRows = allUnifiedRows.filter((row) => selectedProviderRowIds.has(row.id));
+  const selectedProviderAuthIndices = Array.from(
+    new Set(selectedProviderRows.flatMap((row) => row.authIndices ?? []))
+  );
+  const setProviderRowSelected = (rowId: string, selected: boolean) => {
+    setSelectedProviderRowIds((previous) => {
+      const next = new Set(previous);
+      if (selected) next.add(rowId);
+      else next.delete(rowId);
+      return next;
+    });
+  };
+  const renderProviderSelection = (rowId: string, name: string) => {
+    const row = allUnifiedRows.find((candidate) => candidate.id === rowId);
+    const selectable = (row?.authIndices?.length ?? 0) > 0;
+    return (
+      <SelectionCheckbox
+        checked={selectedProviderRowIds.has(rowId)}
+        onChange={(selected) => setProviderRowSelected(rowId, selected)}
+        disabled={!selectable}
+        ariaLabel={t('ai_providers.counter_snapshot_select_row', { name })}
+      />
+    );
+  };
+
+  const handleSelectedProviderCounterSnapshot = (action: 'reset' | 'restore') => {
+    if (selectedProviderAuthIndices.length === 0) {
+      showNotification(t('ai_providers.counter_snapshot_unavailable'), 'error');
+      return;
+    }
+
+    const resetting = action === 'reset';
+    showConfirmation({
+      title: t(
+        resetting
+          ? 'ai_providers.counter_snapshot_reset_title'
+          : 'ai_providers.counter_snapshot_restore_title'
+      ),
+      message: t(
+        resetting
+          ? 'ai_providers.counter_snapshot_reset_confirm'
+          : 'ai_providers.counter_snapshot_restore_confirm',
+        { count: selectedProviderRows.length }
+      ),
+      variant: resetting ? 'primary' : 'secondary',
+      confirmText: t('common.confirm'),
+      onConfirm: async () => {
+        setCounterSnapshotsUpdating(true);
+        try {
+          if (resetting) {
+            await usageCounterSnapshotsApi.reset(selectedProviderAuthIndices);
+          } else {
+            await usageCounterSnapshotsApi.restore(selectedProviderAuthIndices);
+          }
+          await refreshRecentRequests();
+          showNotification(
+            t(
+              resetting
+                ? 'ai_providers.counter_snapshot_reset_success'
+                : 'ai_providers.counter_snapshot_restore_success',
+              { count: selectedProviderRows.length }
+            ),
+            'success'
+          );
+        } catch (err: unknown) {
+          const message = getErrorMessage(err);
+          showNotification(`${t('notification.update_failed')}: ${message}`, 'error');
+        } finally {
+          setCounterSnapshotsUpdating(false);
+        }
+      },
+    });
+  };
 
   return (
     <div className={styles.container}>
@@ -854,14 +941,45 @@ export function AiProvidersPage() {
         {error && <div className="error-box">{error}</div>}
 
         <div className={styles.displayOptionsItem}>
-          <Button
-            size="sm"
-            onClick={() => setAddProviderModalOpen(true)}
-            disabled={disableControls || loading}
-          >
-            <IconPlus size={15} />
-            {t('ai_providers.add_provider')}
-          </Button>
+          <div className={styles.displayOptionsActions}>
+            <Button
+              size="sm"
+              onClick={() => setAddProviderModalOpen(true)}
+              disabled={disableControls || loading}
+            >
+              <IconPlus size={15} />
+              {t('ai_providers.add_provider')}
+            </Button>
+            <div className={styles.counterSnapshotActions}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleSelectedProviderCounterSnapshot('reset')}
+                disabled={
+                  disableControls ||
+                  loading ||
+                  counterSnapshotsUpdating ||
+                  selectedProviderAuthIndices.length === 0
+                }
+                loading={counterSnapshotsUpdating}
+              >
+                {t('ai_providers.counter_snapshot_reset_button')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleSelectedProviderCounterSnapshot('restore')}
+                disabled={
+                  disableControls ||
+                  loading ||
+                  counterSnapshotsUpdating ||
+                  selectedProviderAuthIndices.length === 0
+                }
+              >
+                {t('ai_providers.counter_snapshot_restore_button')}
+              </Button>
+            </div>
+          </div>
           <DropdownMenu
             ariaLabel={t('ai_providers.display_options_label')}
             triggerLabel={t('ai_providers.display_options_label')}
@@ -915,6 +1033,8 @@ export function AiProvidersPage() {
               rows={unifiedRows}
               loading={loading}
               actionsDisabled={disableControls || loading || isSwitching}
+              selectedRowIds={selectedProviderRowIds}
+              onSelectedRowIdsChange={setSelectedProviderRowIds}
             />
           </div>
         ) : (
@@ -942,6 +1062,12 @@ export function AiProvidersPage() {
                     enabled
                   )
                 }
+                renderSelection={(item, index) =>
+                  renderProviderSelection(
+                    `openai:${item.name}:${resolveSourceIndex(nativeOpenAIResources, index)}`,
+                    item.name
+                  )
+                }
               />
             </div>
 
@@ -966,6 +1092,15 @@ export function AiProvidersPage() {
                     'codex',
                     resolveSourceIndex(nativeCodexResources, index),
                     enabled
+                  )
+                }
+                renderSelection={(item, index) =>
+                  renderProviderSelection(
+                    `codex:${getProviderConfigKey(
+                      item,
+                      resolveSourceIndex(nativeCodexResources, index)
+                    )}`,
+                    item.name || t('ai_providers.codex_item_title')
                   )
                 }
               />
@@ -997,6 +1132,15 @@ export function AiProvidersPage() {
                     enabled
                   )
                 }
+                renderSelection={(item, index) =>
+                  renderProviderSelection(
+                    `claude:${getProviderConfigKey(
+                      item,
+                      resolveSourceIndex(nativeClaudeResources, index)
+                    )}`,
+                    item.name || t('ai_providers.claude_item_title')
+                  )
+                }
               />
             </div>
 
@@ -1021,6 +1165,15 @@ export function AiProvidersPage() {
                     'vertex',
                     resolveSourceIndex(nativeVertexResources, index),
                     enabled
+                  )
+                }
+                renderSelection={(item, index) =>
+                  renderProviderSelection(
+                    `vertex:${getProviderConfigKey(
+                      item,
+                      resolveSourceIndex(nativeVertexResources, index)
+                    )}`,
+                    `${t('ai_providers.vertex_item_title')} #${index + 1}`
                   )
                 }
               />
@@ -1049,6 +1202,15 @@ export function AiProvidersPage() {
                     enabled
                   )
                 }
+                renderSelection={(item, index) =>
+                  renderProviderSelection(
+                    `gemini:${getProviderConfigKey(
+                      item,
+                      resolveSourceIndex(nativeGeminiResources, index)
+                    )}`,
+                    `${t('ai_providers.gemini_item_title')} #${index + 1}`
+                  )
+                }
               />
             </div>
 
@@ -1071,6 +1233,12 @@ export function AiProvidersPage() {
                   onDelete={deleteAdditionalProvider}
                   onToggle={(resource, enabled) =>
                     void setAdditionalProviderEnabled(resource, enabled)
+                  }
+                  renderSelection={(resource) =>
+                    renderProviderSelection(
+                      resource.id,
+                      resource.name ?? t(`providersPage.providerNames.${brand}`)
+                    )
                   }
                 />
               </div>

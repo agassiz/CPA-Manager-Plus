@@ -317,7 +317,8 @@ const buildFailureMetaText = (row: MonitoringEventRow, t: TFunction) => {
 const buildFailureDetails = (row: MonitoringEventRow, t: TFunction) => {
   if (!row.failed) return null;
   const summary = maskSensitiveText(row.failSummary || '');
-  if (!row.failStatusCode && !summary) return null;
+  const copyBody = row.failBody || row.failSummary || '';
+  if (!row.failStatusCode && !summary && !copyBody) return null;
   const statusText = row.failStatusCode
     ? `${shortLabel(t, 'monitoring.fail_status_code_short', 'monitoring.fail_status_code')} ${row.failStatusCode}`
     : '';
@@ -326,7 +327,7 @@ const buildFailureDetails = (row: MonitoringEventRow, t: TFunction) => {
     statusText,
     summary,
     label: buildFailureMetaText(row, t),
-    copyText: [statusText, summary].filter(Boolean).join('\n'),
+    copyText: [statusText, copyBody].filter(Boolean).join('\n'),
   };
 };
 

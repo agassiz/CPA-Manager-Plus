@@ -207,6 +207,13 @@ $openai-toolbar-control-height: 36px;
   overflow-wrap: anywhere;
 }
 
+.providerCardSelection {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 .providerCardTitleRow :global(.status-badge) {
   flex: 0 0 auto;
   margin: 0;
@@ -1161,6 +1168,19 @@ $openai-toolbar-control-height: 36px;
   gap: $spacing-md;
 }
 
+.displayOptionsActions,
+.counterSnapshotActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.counterSnapshotActions {
+  padding-left: $spacing-sm;
+  border-left: 1px solid var(--border-subtle);
+}
+
 .providerTypeList {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1452,6 +1472,12 @@ $openai-toolbar-control-height: 36px;
   width: 1%;
   text-align: right !important;
   white-space: nowrap;
+}
+
+.unifiedProviderSelectionCell {
+  width: 1%;
+  padding-right: 0 !important;
+  text-align: center !important;
 }
 
 .unifiedProviderActions {

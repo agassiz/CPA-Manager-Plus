@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -30,6 +30,7 @@ interface GeminiSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onToggle: (index: number, enabled: boolean) => void;
+  renderSelection?: (config: GeminiKeyConfig, index: number) => ReactNode;
 }
 
 export function GeminiSection({
@@ -42,6 +43,7 @@ export function GeminiSection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: GeminiSectionProps) {
   const { t } = useTranslation();
   const actionsDisabled = disableControls || loading || isSwitching;
@@ -127,6 +129,7 @@ export function GeminiSection({
               <Fragment>
                 <ProviderCardTitle
                   title={`${t('ai_providers.gemini_item_title')} #${index + 1}`}
+                  selection={renderSelection?.(item, index)}
                   disabled={configDisabled}
                   success={stats.success}
                   failure={stats.failure}

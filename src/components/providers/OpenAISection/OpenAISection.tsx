@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -59,6 +59,7 @@ interface OpenAISectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onToggle: (index: number, enabled: boolean) => void;
+  renderSelection?: (provider: OpenAIProviderConfig, index: number) => ReactNode;
 }
 
 const getApiKeyEntryRenderKey = (
@@ -80,6 +81,7 @@ export function OpenAISection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: OpenAISectionProps) {
   const { t } = useTranslation();
   const pageTransitionLayer = usePageTransitionLayer();
@@ -511,6 +513,7 @@ export function OpenAISection({
         <div className={styles.openaiProviderMeta}>
           <ProviderCardTitle
             title={provider.name}
+            selection={renderSelection?.(provider, originalIndex)}
             disabled={providerDisabled}
             success={stats.success}
             failure={stats.failure}
@@ -566,6 +569,7 @@ export function OpenAISection({
           <ProviderStatusBar statusData={statusData} />
         </div>
         <div className={styles.openaiProviderActions}>
+          {renderSelection ? renderSelection(provider, originalIndex) : null}
           {provider.priority !== undefined && (
             <div className={styles.providerActionPriority}>
               <span className={styles.providerPriorityBadge}>

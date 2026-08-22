@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi, usageServiceApi } from '@/services/api';
+import { authFilesApi, usageCounterSnapshotsApi, usageServiceApi } from '@/services/api';
 import { apiClient } from '@/services/api/client';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
@@ -45,6 +45,7 @@ export type UseAuthFilesDataResult = {
   deletingAll: boolean;
   clearingRuntimeErrors: boolean;
   clearingUsageStats: boolean;
+  counterSnapshotsUpdating: boolean;
   statusUpdating: Record<string, boolean>;
   batchStatusUpdating: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -61,6 +62,8 @@ export type UseAuthFilesDataResult = {
   handleDeleteAll: (options: DeleteAllOptions) => void;
   handleClearRuntimeErrors: () => void;
   handleClearUsageStats: () => void;
+  handleResetSelectedCounters: () => void;
+  handleRestoreSelectedCounters: () => void;
   handleDownload: (name: string) => Promise<void>;
   handleStatusToggle: (item: AuthFileItem, enabled: boolean) => Promise<void>;
   toggleSelect: (name: string) => void;
@@ -105,6 +108,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
   const [deletingAll, setDeletingAll] = useState(false);
   const [clearingRuntimeErrors, setClearingRuntimeErrors] = useState(false);
   const [clearingUsageStats, setClearingUsageStats] = useState(false);
+  const [counterSnapshotsUpdating, setCounterSnapshotsUpdating] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<Record<string, boolean>>({});
   const [batchStatusUpdating, setBatchStatusUpdating] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -609,6 +613,73 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
     });
   }, [apiBase, loadFiles, managementKey, showConfirmation, showNotification, t]);
 
+  const handleSelectedCounterSnapshot = useCallback(
+    (action: 'reset' | 'restore') => {
+      const selected = new Set(selectedFiles);
+      const authIndices = files
+        .filter((file) => selected.has(file.name))
+        .map((file) => String(file.authIndex ?? file.auth_index ?? '').trim())
+        .filter(Boolean);
+      const uniqueAuthIndices = Array.from(new Set(authIndices));
+      if (uniqueAuthIndices.length === 0) {
+        showNotification(t('auth_files.counter_snapshot_unavailable'), 'error');
+        return;
+      }
+
+      const resetting = action === 'reset';
+      showConfirmation({
+        title: t(
+          resetting
+            ? 'auth_files.counter_snapshot_reset_title'
+            : 'auth_files.counter_snapshot_restore_title'
+        ),
+        message: t(
+          resetting
+            ? 'auth_files.counter_snapshot_reset_confirm'
+            : 'auth_files.counter_snapshot_restore_confirm',
+          { count: uniqueAuthIndices.length }
+        ),
+        variant: resetting ? 'primary' : 'secondary',
+        confirmText: t('common.confirm'),
+        onConfirm: async () => {
+          setCounterSnapshotsUpdating(true);
+          try {
+            if (resetting) {
+              await usageCounterSnapshotsApi.reset(uniqueAuthIndices);
+            } else {
+              await usageCounterSnapshotsApi.restore(uniqueAuthIndices);
+            }
+            await loadFiles();
+            showNotification(
+              t(
+                resetting
+                  ? 'auth_files.counter_snapshot_reset_success'
+                  : 'auth_files.counter_snapshot_restore_success',
+                { count: uniqueAuthIndices.length }
+              ),
+              'success'
+            );
+          } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : '';
+            showNotification(`${t('notification.update_failed')}: ${errorMessage}`, 'error');
+          } finally {
+            setCounterSnapshotsUpdating(false);
+          }
+        },
+      });
+    },
+    [files, loadFiles, selectedFiles, showConfirmation, showNotification, t]
+  );
+
+  const handleResetSelectedCounters = useCallback(
+    () => handleSelectedCounterSnapshot('reset'),
+    [handleSelectedCounterSnapshot]
+  );
+  const handleRestoreSelectedCounters = useCallback(
+    () => handleSelectedCounterSnapshot('restore'),
+    [handleSelectedCounterSnapshot]
+  );
+
   const handleStatusToggle = useCallback(
     async (item: AuthFileItem, enabled: boolean) => {
       const name = item.name;
@@ -831,6 +902,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
     deletingAll,
     clearingRuntimeErrors,
     clearingUsageStats,
+    counterSnapshotsUpdating,
     statusUpdating,
     batchStatusUpdating,
     fileInputRef,
@@ -843,6 +915,8 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
     handleDeleteAll,
     handleClearRuntimeErrors,
     handleClearUsageStats,
+    handleResetSelectedCounters,
+    handleRestoreSelectedCounters,
     handleDownload,
     handleStatusToggle,
     toggleSelect,

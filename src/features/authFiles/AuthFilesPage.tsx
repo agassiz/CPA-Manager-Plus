@@ -166,6 +166,7 @@ export function AuthFilesPage() {
     deletingAll,
     clearingRuntimeErrors,
     clearingUsageStats,
+    counterSnapshotsUpdating,
     statusUpdating,
     batchStatusUpdating,
     fileInputRef,
@@ -178,6 +179,8 @@ export function AuthFilesPage() {
     handleDeleteAll,
     handleClearRuntimeErrors,
     handleClearUsageStats,
+    handleResetSelectedCounters,
+    handleRestoreSelectedCounters,
     handleDownload,
     handleStatusToggle,
     toggleSelect,
@@ -1512,6 +1515,23 @@ export function AuthFilesPage() {
                   </Button>
                 </div>
                 <div className={styles.batchActionRight}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleResetSelectedCounters}
+                    disabled={disableControls || selectedNames.length === 0 || counterSnapshotsUpdating}
+                    loading={counterSnapshotsUpdating}
+                  >
+                    {t('auth_files.counter_snapshot_reset_button')}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRestoreSelectedCounters}
+                    disabled={disableControls || selectedNames.length === 0 || counterSnapshotsUpdating}
+                  >
+                    {t('auth_files.counter_snapshot_restore_button')}
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"

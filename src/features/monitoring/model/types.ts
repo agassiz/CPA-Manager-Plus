@@ -193,6 +193,7 @@ export type MonitoringEventRow = {
   executorType?: string;
   failStatusCode?: number | null;
   failSummary?: string;
+  failBody?: string;
   taskKey: string;
   searchText: string;
 };

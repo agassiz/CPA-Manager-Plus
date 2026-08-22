@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -45,6 +45,7 @@ interface CodexSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onToggle: (index: number, enabled: boolean) => void;
+  renderSelection?: (config: ProviderKeyConfig, index: number) => ReactNode;
 }
 
 export function CodexSection({
@@ -57,6 +58,7 @@ export function CodexSection({
   onEdit,
   onDelete,
   onToggle,
+  renderSelection,
 }: CodexSectionProps) {
   const { t } = useTranslation();
   const actionsDisabled = disableControls || loading || isSwitching;
@@ -401,6 +403,7 @@ export function CodexSection({
                 <Fragment>
                   <ProviderCardTitle
                     title={item.name || t('ai_providers.codex_item_title')}
+                    selection={renderSelection?.(item, originalIndex)}
                     disabled={configDisabled}
                     success={stats.success}
                     failure={stats.failure}

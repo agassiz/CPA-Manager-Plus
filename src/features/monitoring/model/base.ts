@@ -55,8 +55,10 @@ export const maskEmailLike = (value: string) => {
   const trimmed = value.trim();
   const match = trimmed.match(/^([^@\s]{1,3})[^@\s]*@(.+)$/);
   if (match) return `${match[1]}***@${match[2]}`;
-  if (trimmed.length <= 10) return trimmed;
-  return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
+  if (/^(?:sk|rc)-/i.test(trimmed) && trimmed.length > 10) {
+    return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
+  }
+  return trimmed;
 };
 
 export const maskAuthIndex = (value: string) => {

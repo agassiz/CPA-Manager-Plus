@@ -319,9 +319,15 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       throw new Error(t('config_management.visual.api_keys.alias_unavailable'));
     }
 
+    const items = [
+      ...apiKeyAliases.filter(
+        (item) => String(item.apiKeyHash || '').trim().toLowerCase() !== apiKeyHash
+      ),
+      { apiKeyHash, alias: trimmedAlias },
+    ];
     const response = await usageServiceApi.saveApiKeyAliases(
       serviceBase,
-      [{ apiKeyHash, alias: trimmedAlias }],
+      items,
       managementKey,
       activeApiKeyHashes,
       allowOrphanAliasCleanup

@@ -13,6 +13,7 @@ export type PayloadParamValidationErrorCode =
 
 export type VisualConfigFieldPath =
   | 'port'
+  | 'maxRequestBodyMb'
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
   | 'requestRetry'
@@ -125,6 +126,7 @@ export type VisualConfigValues = {
   loggingToFile: boolean;
   logsMaxTotalSizeMb: string;
   errorLogsMaxFiles: string;
+  maxRequestBodyMb: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
   imageFallbackModel: string;
@@ -212,6 +214,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   loggingToFile: false,
   logsMaxTotalSizeMb: '',
   errorLogsMaxFiles: '',
+  maxRequestBodyMb: '',
   proxyUrl: '',
   forceModelPrefix: false,
   imageFallbackModel: '',

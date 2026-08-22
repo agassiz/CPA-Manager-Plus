@@ -68,6 +68,35 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
+  it('removes access rules for API keys deleted in the visual editor', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'api-keys:',
+      '  - client-a',
+      '  - client-b',
+      'api-key-access:',
+      '  - api-key: client-a',
+      '    models:',
+      '      - gpt-5.5',
+      '  - api-key: client-b',
+      '    providers:',
+      '      - codex:0',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+      harness.getCurrent().setVisualValues({ apiKeysText: 'client-b' });
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).not.toContain('api-key: client-a');
+    expect(savedYaml).toContain('api-key: client-b');
+
+    harness.unmount();
+  });
+
   it('round-trips the Responses compact fallback model', () => {
     const harness = mountUseVisualConfig();
     const yaml = ['codex:', '  responses-compact-fallback-model: claude-sonnet-4-6', ''].join('\n');

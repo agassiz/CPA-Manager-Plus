@@ -219,6 +219,7 @@ export function VisualConfigEditor({
   const portError = getValidationMessage(t, validationErrors?.port);
   const logsMaxSizeError = getValidationMessage(t, validationErrors?.logsMaxTotalSizeMb);
   const errorLogsMaxFilesError = getValidationMessage(t, validationErrors?.errorLogsMaxFiles);
+  const maxRequestBodyMbError = getValidationMessage(t, validationErrors?.maxRequestBodyMb);
   const requestRetryError = getValidationMessage(t, validationErrors?.requestRetry);
   const maxRetryCredentialsError = getValidationMessage(t, validationErrors?.maxRetryCredentials);
   const maxRetryIntervalError = getValidationMessage(t, validationErrors?.maxRetryInterval);
@@ -337,7 +338,7 @@ export function VisualConfigEditor({
         title: t('config_management.visual.sections.system.title'),
         description: t('config_management.visual.sections.system.description'),
         icon: IconDiamond,
-        errorCount: countErrors(['logsMaxTotalSizeMb', 'errorLogsMaxFiles']),
+        errorCount: countErrors(['maxRequestBodyMb', 'logsMaxTotalSizeMb', 'errorLogsMaxFiles']),
       },
       {
         id: 'network',
@@ -809,6 +810,16 @@ export function VisualConfigEditor({
                   onChange={(e) => onChange({ errorLogsMaxFiles: e.target.value })}
                   disabled={disabled}
                   error={errorLogsMaxFilesError}
+                />
+                <Input
+                  label={t('config_management.visual.sections.system.max_request_body_mb')}
+                  type="number"
+                  placeholder="16"
+                  value={values.maxRequestBodyMb}
+                  onChange={(e) => onChange({ maxRequestBodyMb: e.target.value })}
+                  disabled={disabled}
+                  hint={t('config_management.visual.sections.system.max_request_body_mb_hint')}
+                  error={maxRequestBodyMbError}
                 />
               </SectionGrid>
             </SectionStack>

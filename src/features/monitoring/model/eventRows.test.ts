@@ -146,6 +146,17 @@ describe('buildEventRows', () => {
     expect(row.sourceMasked).toBe('Codex Team A');
   });
 
+  it('keeps the complete failure body separate from the display summary', () => {
+    const [row] = buildRows({
+      failed: true,
+      fail_summary: 'HTTP 502',
+      fail_body: '{"error":"' + 'x'.repeat(240) + '"}',
+    });
+
+    expect(row.failSummary).toBe('HTTP 502');
+    expect(row.failBody).toBe('{"error":"' + 'x'.repeat(240) + '"}');
+  });
+
   it('prefers API key auth labels over masked key account snapshots', () => {
     const [row] = buildRows({
       source: 'm:sk******D1',

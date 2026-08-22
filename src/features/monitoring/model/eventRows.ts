@@ -158,6 +158,7 @@ export const buildEventRows = (
       const normalizedFailStatusCode =
         Number.isFinite(failStatusCode) && failStatusCode > 0 ? failStatusCode : null;
       const failSummary = readString(detail.fail_summary ?? detail.failSummary);
+      const failBody = readString(detail.fail_body ?? detail.failBody);
 
       return {
         id: `${detail.timestamp}-${detail.__modelName || '-'}-${sourceKey}-${authIndex}-${index}`,
@@ -212,6 +213,7 @@ export const buildEventRows = (
         executorType,
         failStatusCode: normalizedFailStatusCode,
         failSummary,
+        failBody,
         taskKey,
         searchText: buildSearchText(
           detail.__modelName,

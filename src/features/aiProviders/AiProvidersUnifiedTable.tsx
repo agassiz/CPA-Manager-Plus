@@ -2,6 +2,7 @@ import { useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconPencil, IconTrash2 } from '@/components/ui/icons';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
@@ -24,6 +25,7 @@ export type AiProviderListRow = {
   statusLabel?: string;
   success: number;
   failure: number;
+  authIndices?: string[];
   statusData: StatusBarData;
   disabled: boolean;
   canToggle: boolean;
@@ -37,6 +39,8 @@ type AiProvidersUnifiedTableProps = {
   rows: AiProviderListRow[];
   loading: boolean;
   actionsDisabled: boolean;
+  selectedRowIds: ReadonlySet<string>;
+  onSelectedRowIdsChange: (next: Set<string>) => void;
 };
 
 type HoverDetailsProps = {
@@ -117,12 +121,33 @@ export function AiProvidersUnifiedTable({
   rows,
   loading,
   actionsDisabled,
+  selectedRowIds,
+  onSelectedRowIdsChange,
 }: AiProvidersUnifiedTableProps) {
   const { t } = useTranslation();
   const displayRows = rows
     .map((row, index) => ({ row, index }))
     .sort((left, right) => Number(left.row.disabled) - Number(right.row.disabled) || left.index - right.index)
     .map(({ row }) => row);
+  const selectableRows = displayRows.filter((row) => (row.authIndices?.length ?? 0) > 0);
+  const allSelectableSelected =
+    selectableRows.length > 0 && selectableRows.every((row) => selectedRowIds.has(row.id));
+
+  const toggleRow = (id: string, selected: boolean) => {
+    const next = new Set(selectedRowIds);
+    if (selected) next.add(id);
+    else next.delete(id);
+    onSelectedRowIdsChange(next);
+  };
+
+  const toggleAll = (selected: boolean) => {
+    const next = new Set(selectedRowIds);
+    selectableRows.forEach((row) => {
+      if (selected) next.add(row.id);
+      else next.delete(row.id);
+    });
+    onSelectedRowIdsChange(next);
+  };
 
   if (loading && rows.length === 0) {
     return <div className="hint">{t('common.loading')}</div>;
@@ -137,6 +162,14 @@ export function AiProvidersUnifiedTable({
       <table className={styles.unifiedProviderTable}>
         <thead>
           <tr>
+            <th className={styles.unifiedProviderSelectionCell}>
+              <SelectionCheckbox
+                checked={allSelectableSelected}
+                onChange={toggleAll}
+                ariaLabel={t('ai_providers.counter_snapshot_select_all')}
+                disabled={selectableRows.length === 0}
+              />
+            </th>
             <th>{t('ai_providers.unified_provider')}</th>
             <th>{t('ai_providers.unified_name')}</th>
             <th>{t('ai_providers.unified_base_url')}</th>
@@ -151,6 +184,14 @@ export function AiProvidersUnifiedTable({
         <tbody>
           {displayRows.map((row) => (
             <tr key={row.id} className={row.disabled ? styles.unifiedProviderRowDisabled : ''}>
+              <td className={styles.unifiedProviderSelectionCell}>
+                <SelectionCheckbox
+                  checked={selectedRowIds.has(row.id)}
+                  onChange={(selected) => toggleRow(row.id, selected)}
+                  ariaLabel={t('ai_providers.counter_snapshot_select_row', { name: row.name })}
+                  disabled={(row.authIndices?.length ?? 0) === 0}
+                />
+              </td>
               <td>
                 <span className={`${styles.unifiedProviderBadge} ${row.providerClassName ?? ''}`}>
                   {row.provider}

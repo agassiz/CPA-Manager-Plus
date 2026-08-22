@@ -108,6 +108,17 @@ function parseAPIKeyAccessRules(raw: unknown): VisualConfigValues['apiKeyAccessR
   });
 }
 
+function serializeAPIKeyAccessRules(
+  rules: VisualConfigValues['apiKeyAccessRules']
+): Array<Record<string, unknown>> {
+  return rules.map((rule) => ({
+    'api-key': rule.apiKey,
+    models: rule.models,
+    'auth-ids': rule.authIds,
+    providers: rule.providers,
+  }));
+}
+
 type YamlDocument = ReturnType<typeof parseDocument>;
 type YamlPath = string[];
 
@@ -441,6 +452,7 @@ export function getVisualConfigValidationErrors(
 ): VisualConfigValidationErrors {
   return {
     port: getPortError(values.port),
+    maxRequestBodyMb: getNonNegativeIntegerError(values.maxRequestBodyMb),
     errorLogsMaxFiles: getNonNegativeIntegerError(values.errorLogsMaxFiles),
     logsMaxTotalSizeMb: getNonNegativeIntegerError(values.logsMaxTotalSizeMb),
     requestRetry: getNonNegativeIntegerError(values.requestRetry),
@@ -553,6 +565,7 @@ function getNextDirtyFields(
   (
     [
       'rmDisableAutoUpdatePanel',
+      'maxRequestBodyMb',
       'errorLogsMaxFiles',
       'pluginsEnabled',
       'codexForceSuperCategory',
@@ -901,6 +914,7 @@ export function useVisualConfig() {
         loggingToFile: Boolean(parsed['logging-to-file']),
         logsMaxTotalSizeMb: String(parsed['logs-max-total-size-mb'] ?? ''),
         errorLogsMaxFiles: String(parsed['error-logs-max-files'] ?? ''),
+        maxRequestBodyMb: String(parsed['max-request-body-mb'] ?? ''),
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
         forceModelPrefix: Boolean(parsed['force-model-prefix']),
@@ -1123,6 +1137,15 @@ export function useVisualConfig() {
         } else if (docHas(doc, ['api-keys'])) {
           doc.deleteIn(['api-keys']);
         }
+        const activeAPIKeys = new Set(apiKeys);
+        const apiKeyAccessRules = values.apiKeyAccessRules.filter((rule) =>
+          activeAPIKeys.has(rule.apiKey)
+        );
+        if (apiKeyAccessRules.length > 0) {
+          doc.setIn(['api-key-access'], serializeAPIKeyAccessRules(apiKeyAccessRules));
+        } else if (docHas(doc, ['api-key-access'])) {
+          doc.deleteIn(['api-key-access']);
+        }
         deleteLegacyApiKeysProvider(doc);
 
         setBooleanInDoc(doc, ['debug'], values.debug);
@@ -1140,6 +1163,7 @@ export function useVisualConfig() {
         setBooleanInDoc(doc, ['logging-to-file'], values.loggingToFile);
         setIntFromStringInDoc(doc, ['logs-max-total-size-mb'], values.logsMaxTotalSizeMb);
         setIntFromStringInDoc(doc, ['error-logs-max-files'], values.errorLogsMaxFiles);
+        setIntFromStringInDoc(doc, ['max-request-body-mb'], values.maxRequestBodyMb);
         setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
         setBooleanInDoc(doc, ['force-model-prefix'], values.forceModelPrefix);
         if (

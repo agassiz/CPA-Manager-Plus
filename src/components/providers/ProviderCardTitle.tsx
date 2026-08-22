@@ -4,6 +4,7 @@ import styles from '@/features/aiProviders/AiProvidersPage.module.scss';
 
 interface ProviderCardTitleProps {
   title: ReactNode;
+  selection?: ReactNode;
   disabled?: boolean;
   success: number;
   failure: number;
@@ -11,6 +12,7 @@ interface ProviderCardTitleProps {
 
 export function ProviderCardTitle({
   title,
+  selection,
   disabled = false,
   success,
   failure,
@@ -19,6 +21,7 @@ export function ProviderCardTitle({
 
   return (
     <div className={styles.providerCardTitleRow}>
+      {selection ? <div className={styles.providerCardSelection}>{selection}</div> : null}
       <div className={styles.providerCardTitle}>{title}</div>
       {disabled ? (
         <span className="status-badge warning">{t('ai_providers.config_disabled_badge')}</span>

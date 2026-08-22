@@ -315,6 +315,7 @@ export interface DashboardRecentFailure {
   duration_ms: number | null;
   fail_status_code?: number | null;
   fail_summary?: string;
+  fail_body?: string;
 }
 
 export interface DashboardSummaryResponse {
@@ -922,6 +923,7 @@ export interface MonitoringAnalyticsRecentFailure {
   duration_ms: number | null;
   fail_status_code?: number | null;
   fail_summary?: string;
+  fail_body?: string;
   response_metadata?: ResponseHeaderMetadata;
   header_quota_recover_at_ms?: number | null;
   header_quota_used_percent?: number | null;
@@ -972,6 +974,7 @@ export interface MonitoringAnalyticsEventRow {
   failed: boolean;
   fail_status_code?: number | null;
   fail_summary?: string;
+  fail_body?: string;
   response_metadata?: ResponseHeaderMetadata;
   header_quota_recover_at_ms?: number | null;
   header_quota_used_percent?: number | null;
@@ -1702,6 +1705,7 @@ const buildFallbackDashboardSummary = (
       duration_ms: detail.latency_ms ?? null,
       fail_status_code: detail.fail_status_code ?? null,
       fail_summary: detail.fail_summary || detail.fail_body,
+      fail_body: detail.fail_body,
     }));
 
   const totalTokenSegments = [
@@ -2167,6 +2171,7 @@ const buildFallbackMonitoringEvents = (
       failed: detail.failed === true,
       fail_status_code: detail.fail_status_code ?? null,
       fail_summary: monitoringText(detail.fail_summary || detail.fail_body),
+      fail_body: monitoringText(detail.fail_body),
     };
   });
   return {
@@ -2384,6 +2389,7 @@ export const buildFallbackMonitoringAnalytics = (
       duration_ms: toDashboardNumber(detail.latency_ms) || null,
       fail_status_code: detail.fail_status_code ?? null,
       fail_summary: monitoringText(detail.fail_summary || detail.fail_body),
+      fail_body: monitoringText(detail.fail_body),
     }));
 
   const days = Math.max((request.to_ms - request.from_ms) / (24 * 60 * 60 * 1000), 1);

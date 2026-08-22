@@ -26,6 +26,7 @@ export interface RecentRequestUsageEntry {
   success: number;
   failed: number;
   recentRequests: RecentRequestBucket[];
+  authIndices?: string[];
 }
 
 export type ApiKeyUsageResponse = Record<
@@ -37,6 +38,8 @@ export type ApiKeyUsageResponse = Record<
       failed?: unknown;
       recent_requests?: unknown;
       recentRequests?: unknown;
+      auth_indices?: unknown;
+      authIndices?: unknown;
     }
   >
 >;
@@ -104,15 +107,28 @@ export function normalizeRecentRequestUsageEntry(input: unknown): RecentRequestU
       success: 0,
       failed: 0,
       recentRequests: [],
+      authIndices: [],
     };
   }
 
   const record = input as Record<string, unknown>;
+  const rawAuthIndices = Array.isArray(record.auth_indices)
+    ? record.auth_indices
+    : Array.isArray(record.authIndices)
+      ? record.authIndices
+      : [];
 
   return {
     success: normalizeUsageTotal(record.success),
     failed: normalizeUsageTotal(record.failed),
     recentRequests: normalizeRecentRequestBuckets(record.recent_requests ?? record.recentRequests),
+    authIndices: Array.from(
+      new Set(
+        rawAuthIndices
+          .map(normalizeRecentRequestAuthIndex)
+          .filter((authIndex): authIndex is string => Boolean(authIndex))
+      )
+    ),
   };
 }
 
