@@ -162,6 +162,10 @@ export interface UsageClearResponse {
   [key: string]: unknown;
 }
 
+export interface FailureClearResponse extends UsageClearResponse {
+  logs_removed?: number;
+}
+
 export interface DashboardSummaryWindow {
   today_start_ms: number;
   now_ms: number;
@@ -1174,6 +1178,19 @@ export const usageServiceApi = {
     return withUsageServiceError(async () => {
       const response = await axios.delete<UsageClearResponse>(
         buildUrl(base, '/v0/management/usage'),
+        {
+          timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
+          headers: authHeaders(managementKey),
+        }
+      );
+      return response.data;
+    });
+  },
+
+  clearFailures: async (base: string, managementKey?: string): Promise<FailureClearResponse> => {
+    return withUsageServiceError(async () => {
+      const response = await axios.delete<FailureClearResponse>(
+        buildUrl(base, '/v0/management/usage/failures'),
         {
           timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
           headers: authHeaders(managementKey),

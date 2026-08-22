@@ -85,8 +85,46 @@ const initialAvailability: PanelFeatureAvailability = {
 
 let cachedAvailabilityKey = '';
 let cachedAvailability: PanelFeatureAvailability | null = null;
+let cachedAvailabilityExpiresAtMs = 0;
 let inFlightAvailabilityRequest: PanelFeatureAvailabilityRequest | null = null;
 let latestAvailabilityRequestKey = '';
+
+// 能力探测失败时只做短期缓存，避免一次瞬时故障长期隐藏监控入口。
+const TRANSIENT_AVAILABILITY_TTL_MS = 15 * 1000;
+const PROBE_RETRY_DELAYS_MS = [300, 900];
+
+const readCachedAvailability = (key: string): PanelFeatureAvailability | null => {
+  if (cachedAvailabilityKey !== key || !cachedAvailability) return null;
+  if (cachedAvailabilityExpiresAtMs <= Date.now()) return null;
+  return cachedAvailability;
+};
+
+const readProbeErrorStatus = (error: unknown): number | undefined => {
+  if (error === null || typeof error !== 'object') return undefined;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' ? status : undefined;
+};
+
+type ProbeFailureKind = 'capability_missing' | 'auth' | 'transient';
+
+// 只有服务端确实缺少该管理端点才算能力缺失。鉴权失败不重试（服务端会按失败次数封禁 IP），
+// 超时、限流和 5xx 视为瞬时故障可以重试。
+const classifyProbeFailure = (error: unknown): ProbeFailureKind => {
+  const status = readProbeErrorStatus(error);
+  if (status === 404 || status === 405 || status === 501) return 'capability_missing';
+  if (status === 401 || status === 403) return 'auth';
+  return 'transient';
+};
+
+const waitMs = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+type PanelFeatureAvailabilityProbeResult = {
+  availability: PanelFeatureAvailability;
+  cacheable: boolean;
+};
 
 const buildAvailabilityRequestKey = ({
   apiBase,
@@ -95,33 +133,57 @@ const buildAvailabilityRequestKey = ({
 }: PanelFeatureAvailabilityRequestInput): string =>
   [normalizeApiBase(panelBase), normalizeApiBase(apiBase), managementKey].join('\u001f');
 
-async function detectPanelFeatureAvailability({
-  apiBase,
-  managementKey,
-  panelBase,
-}: PanelFeatureAvailabilityRequestInput): Promise<PanelFeatureAvailability> {
+export async function detectPanelFeatureAvailability(
+  { apiBase, managementKey, panelBase }: PanelFeatureAvailabilityRequestInput,
+  retryDelaysMs: number[] = PROBE_RETRY_DELAYS_MS
+): Promise<PanelFeatureAvailabilityProbeResult> {
   const normalizedApiBase = normalizeApiBase(apiBase);
   const normalizedPanelBase = normalizeApiBase(panelBase);
   if (!managementKey || !normalizedApiBase) {
-    return buildUnavailableAvailability({
-      apiBase: normalizedApiBase,
-      panelBase: normalizedPanelBase,
-      reason: 'service_not_configured',
-    });
+    return {
+      availability: buildUnavailableAvailability({
+        apiBase: normalizedApiBase,
+        panelBase: normalizedPanelBase,
+        reason: 'service_not_configured',
+      }),
+      cacheable: true,
+    };
   }
 
-  try {
-    await usageServiceApi.getUsage(normalizedApiBase, managementKey);
-    return buildNativeRequestMonitoringAvailability({
-      apiBase: normalizedApiBase,
-      panelBase: normalizedPanelBase,
-    });
-  } catch {
-    return buildUnavailableAvailability({
-      apiBase: normalizedApiBase,
-      panelBase: normalizedPanelBase,
-      reason: 'service_unavailable',
-    });
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await usageServiceApi.getUsage(normalizedApiBase, managementKey);
+      return {
+        availability: buildNativeRequestMonitoringAvailability({
+          apiBase: normalizedApiBase,
+          panelBase: normalizedPanelBase,
+        }),
+        cacheable: true,
+      };
+    } catch (error) {
+      const failureKind = classifyProbeFailure(error);
+      if (failureKind === 'capability_missing') {
+        return {
+          availability: buildUnavailableAvailability({
+            apiBase: normalizedApiBase,
+            panelBase: normalizedPanelBase,
+            reason: 'service_unavailable',
+          }),
+          cacheable: true,
+        };
+      }
+      if (failureKind === 'auth' || attempt >= retryDelaysMs.length) {
+        // 瞬时故障不隐藏入口：页面自身会展示错误，探测结果稍后重试。
+        return {
+          availability: buildNativeRequestMonitoringAvailability({
+            apiBase: normalizedApiBase,
+            panelBase: normalizedPanelBase,
+          }),
+          cacheable: false,
+        };
+      }
+      await waitMs(retryDelaysMs[attempt]);
+    }
   }
 }
 
@@ -129,18 +191,22 @@ function requestPanelFeatureAvailability(
   input: PanelFeatureAvailabilityRequestInput
 ): { key: string; promise: Promise<PanelFeatureAvailability> } {
   const key = buildAvailabilityRequestKey(input);
-  if (cachedAvailabilityKey === key && cachedAvailability) {
-    return { key, promise: Promise.resolve(cachedAvailability) };
+  const cached = readCachedAvailability(key);
+  if (cached) {
+    return { key, promise: Promise.resolve(cached) };
   }
   if (inFlightAvailabilityRequest?.key === key) {
     return inFlightAvailabilityRequest;
   }
 
   latestAvailabilityRequestKey = key;
-  const promise = detectPanelFeatureAvailability(input).then((availability) => {
+  const promise = detectPanelFeatureAvailability(input).then(({ availability, cacheable }) => {
     if (latestAvailabilityRequestKey === key) {
       cachedAvailabilityKey = key;
       cachedAvailability = availability;
+      cachedAvailabilityExpiresAtMs = cacheable
+        ? Number.POSITIVE_INFINITY
+        : Date.now() + TRANSIENT_AVAILABILITY_TTL_MS;
     }
     return availability;
   });
@@ -166,15 +232,13 @@ export function usePanelFeatureAvailability(): PanelFeatureAvailability {
     [apiBase, managementKey, panelBase]
   );
   const requestKey = useMemo(() => buildAvailabilityRequestKey(requestInput), [requestInput]);
-  const [state, setState] = useState<PanelFeatureAvailability>(() =>
-    cachedAvailabilityKey === requestKey && cachedAvailability
-      ? cachedAvailability
-      : initialAvailability
+  const [state, setState] = useState<PanelFeatureAvailability>(
+    () => readCachedAvailability(requestKey) ?? initialAvailability
   );
 
   useEffect(() => {
     let cancelled = false;
-    const hasCachedAvailability = cachedAvailabilityKey === requestKey && cachedAvailability;
+    const hasCachedAvailability = readCachedAvailability(requestKey) !== null;
     if (!hasCachedAvailability) {
       queueMicrotask(() => {
         if (cancelled) return;

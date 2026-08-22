@@ -61,6 +61,11 @@ describe('useUsageData', () => {
       success: true,
       removed: true,
     });
+    vi.spyOn(usageServiceApi, 'clearFailures').mockResolvedValue({
+      success: true,
+      removed: true,
+      logs_removed: 1,
+    });
     vi.spyOn(usageServiceApi, 'syncModelPrices').mockResolvedValue({
       prices: {
         'gpt-4o': { prompt: 1, completion: 2, cache: 0.5, source: 'sync' },
@@ -124,6 +129,31 @@ describe('useUsageData', () => {
     });
 
     expect(usageServiceApi.clearUsage).toHaveBeenCalledWith(
+      'http://127.0.0.1:8317',
+      'management-key'
+    );
+  });
+
+  it('clears failure statistics through the request monitoring service base', async () => {
+    let current: UseUsageDataReturn | null = null;
+
+    function Harness({ onReady }: { onReady: (value: UseUsageDataReturn) => void }) {
+      const value = useUsageData();
+      useEffect(() => {
+        onReady(value);
+      }, [onReady, value]);
+      return null;
+    }
+
+    await act(async () => {
+      create(<Harness onReady={(value) => { current = value; }} />);
+    });
+
+    await act(async () => {
+      await current?.clearFailures();
+    });
+
+    expect(usageServiceApi.clearFailures).toHaveBeenCalledWith(
       'http://127.0.0.1:8317',
       'management-key'
     );

@@ -8,6 +8,7 @@ import {
   type ModelPriceSyncOptions,
   type ModelPriceSyncResponse,
   type UsageClearResponse,
+  type FailureClearResponse,
   type UsageExportResponse,
   type UsageImportResponse,
 } from '@/services/api/usageService';
@@ -42,6 +43,7 @@ export interface UseUsageDataReturn {
   loadApiKeyAliases: () => Promise<void>;
   syncModelPrices: (modelsOrOptions?: string[] | ModelPriceSyncOptions) => Promise<ModelPriceSyncResponse>;
   clearUsage: () => Promise<UsageClearResponse>;
+  clearFailures: () => Promise<FailureClearResponse>;
   exportUsage: () => Promise<UsageExportResponse>;
   importUsage: (file: File) => Promise<UsageImportResponse>;
   loadUsage: () => Promise<void>;
@@ -126,6 +128,13 @@ export function useUsageData({
       throw new Error('usage_import_export_requires_usage_service');
     }
     return usageServiceApi.clearUsage(usageEventsServiceBase, managementKey);
+  }, [managementKey, usageEventsServiceBase]);
+
+  const clearFailuresFromApi = useCallback(async (): Promise<FailureClearResponse> => {
+    if (!usageEventsServiceBase) {
+      throw new Error('usage_import_export_requires_usage_service');
+    }
+    return usageServiceApi.clearFailures(usageEventsServiceBase, managementKey);
   }, [managementKey, usageEventsServiceBase]);
 
   const importUsageToApi = useCallback(
@@ -274,6 +283,7 @@ export function useUsageData({
     loadApiKeyAliases,
     syncModelPrices,
     clearUsage: clearUsageFromApi,
+    clearFailures: clearFailuresFromApi,
     exportUsage: exportUsageFromApi,
     importUsage: importUsageToApi,
     loadUsage,

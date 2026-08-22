@@ -189,6 +189,7 @@ export function MonitoringCenterPage() {
   const [usageExporting, setUsageExporting] = useState(false);
   const [usageImporting, setUsageImporting] = useState(false);
   const [usageClearing, setUsageClearing] = useState(false);
+  const [failureClearing, setFailureClearing] = useState(false);
   const [accountQuotaStates, setAccountQuotaStates] = useState<Record<string, AccountQuotaState>>(
     {}
   );
@@ -291,6 +292,7 @@ export function MonitoringCenterPage() {
     apiKeyAliases,
     loadApiKeyAliases,
     clearUsage,
+    clearFailures,
     exportUsage,
     importUsage,
   } = useUsageData({ loadUsageEvents: false });
@@ -1174,6 +1176,48 @@ export function MonitoringCenterPage() {
     t,
   ]);
 
+  const handleFailureClear = useCallback(() => {
+    if (!requestMonitoringAvailability.available) {
+      showNotification(t('usage_stats.import_export_requires_usage_service'), 'warning');
+      return;
+    }
+    showConfirmation({
+      title: t('usage_stats.clear_failures_title'),
+      message: t('usage_stats.clear_failures_confirm'),
+      confirmText: t('common.confirm'),
+      variant: 'danger',
+      onConfirm: async () => {
+        setFailureClearing(true);
+        try {
+          const result = await clearFailures();
+          const cleared = result.removed === true || result.reset === true || result.success === true;
+          if (cleared) {
+            clearMonitoringCustomTimeRange();
+            setSelectedStatus('all');
+          }
+          showNotification(
+            cleared ? t('usage_stats.clear_failures_success') : t('usage_stats.clear_failures_none'),
+            cleared ? 'success' : 'info'
+          );
+          await refreshAll();
+        } catch (error: unknown) {
+          const message = resolveUsageTransferError(error);
+          showNotification(`${t('notification.update_failed')}${message ? `: ${message}` : ''}`, 'error');
+        } finally {
+          setFailureClearing(false);
+        }
+      },
+    });
+  }, [
+    clearFailures,
+    refreshAll,
+    requestMonitoringAvailability.available,
+    resolveUsageTransferError,
+    showConfirmation,
+    showNotification,
+    t,
+  ]);
+
   const importUsageFile = useCallback(
     async (file: File) => {
       setUsageImporting(true);
@@ -1278,11 +1322,13 @@ export function MonitoringCenterPage() {
         usageExporting={usageExporting}
         usageImporting={usageImporting}
         usageClearing={usageClearing}
+        failureClearing={failureClearing}
         loggingToFile={isFileLogsAvailable(config)}
         modelPricesAvailable={requestMonitoringAvailability.modelPricesAvailable}
         usageImportInputRef={usageImportInputRef}
         t={t}
         onUsageClear={handleUsageClear}
+        onFailureClear={handleFailureClear}
         onUsageExport={handleUsageExport}
         onUsageImportClick={handleUsageImportClick}
         onUsageImportChange={handleUsageImportChange}

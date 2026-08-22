@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores';
 import {
   buildNativeRequestMonitoringAvailability,
   buildUnavailableAvailability,
+  detectPanelFeatureAvailability,
   usePanelFeatureAvailability,
 } from './usePanelFeatureAvailability';
 
@@ -98,6 +99,82 @@ describe('panel feature availability', () => {
       });
       getUsageSpy.mockRestore();
       vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps monitoring entries visible and skips caching after a transient probe failure', async () => {
+    const transientError = Object.assign(new Error('timeout of 15000ms exceeded'), {
+      code: 'ECONNABORTED',
+    });
+    const getUsageSpy = vi
+      .spyOn(usageServiceApi, 'getUsage')
+      .mockRejectedValue(transientError);
+
+    try {
+      const result = await detectPanelFeatureAvailability(
+        {
+          apiBase: 'http://cpa.local:8317',
+          managementKey: 'management-key',
+          panelBase: 'http://panel.local:5173',
+        },
+        [0, 0]
+      );
+
+      expect(getUsageSpy).toHaveBeenCalledTimes(3);
+      expect(result.cacheable).toBe(false);
+      expect(result.availability.requestMonitoringAvailable).toBe(true);
+      expect(result.availability.modelPricesAvailable).toBe(true);
+    } finally {
+      getUsageSpy.mockRestore();
+    }
+  });
+
+  it('does not retry an unauthorized probe and leaves the result uncached', async () => {
+    const unauthorizedError = Object.assign(new Error('invalid management key'), { status: 401 });
+    const getUsageSpy = vi
+      .spyOn(usageServiceApi, 'getUsage')
+      .mockRejectedValue(unauthorizedError);
+
+    try {
+      const result = await detectPanelFeatureAvailability(
+        {
+          apiBase: 'http://cpa.local:8317',
+          managementKey: 'management-key',
+          panelBase: 'http://panel.local:5173',
+        },
+        [0, 0]
+      );
+
+      expect(getUsageSpy).toHaveBeenCalledTimes(1);
+      expect(result.cacheable).toBe(false);
+      expect(result.availability.requestMonitoringAvailable).toBe(true);
+    } finally {
+      getUsageSpy.mockRestore();
+    }
+  });
+
+  it('marks features unavailable and caches the result when the endpoint is missing', async () => {
+    const missingEndpointError = Object.assign(new Error('not found'), { status: 404 });
+    const getUsageSpy = vi
+      .spyOn(usageServiceApi, 'getUsage')
+      .mockRejectedValue(missingEndpointError);
+
+    try {
+      const result = await detectPanelFeatureAvailability(
+        {
+          apiBase: 'http://cpa.local:8317',
+          managementKey: 'management-key',
+          panelBase: 'http://panel.local:5173',
+        },
+        [0, 0]
+      );
+
+      expect(getUsageSpy).toHaveBeenCalledTimes(1);
+      expect(result.cacheable).toBe(true);
+      expect(result.availability.requestMonitoringAvailable).toBe(false);
+      expect(result.availability.reason).toBe('service_unavailable');
+    } finally {
+      getUsageSpy.mockRestore();
     }
   });
 });

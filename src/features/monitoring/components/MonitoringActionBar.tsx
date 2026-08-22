@@ -15,11 +15,13 @@ type MonitoringActionBarProps = {
   usageExporting: boolean;
   usageImporting: boolean;
   usageClearing: boolean;
+  failureClearing: boolean;
   loggingToFile: boolean;
   modelPricesAvailable: boolean;
   usageImportInputRef: RefObject<HTMLInputElement | null>;
   t: TFunction;
   onUsageClear: () => void;
+  onFailureClear: () => void;
   onUsageExport: () => void | Promise<void>;
   onUsageImportClick: () => void;
   onUsageImportChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -37,11 +39,13 @@ export function MonitoringActionBar({
   usageExporting,
   usageImporting,
   usageClearing,
+  failureClearing,
   loggingToFile,
   modelPricesAvailable,
   usageImportInputRef,
   t,
   onUsageClear,
+  onFailureClear,
   onUsageExport,
   onUsageImportClick,
   onUsageImportChange,
@@ -60,7 +64,7 @@ export function MonitoringActionBar({
           type="button"
           className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
           onClick={() => void onUsageExport()}
-          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing}
+          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing || failureClearing}
           title={
             usageTransferAvailable
               ? t('usage_stats.export')
@@ -74,7 +78,7 @@ export function MonitoringActionBar({
           type="button"
           className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
           onClick={onUsageImportClick}
-          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing}
+          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing || failureClearing}
           title={
             usageTransferAvailable
               ? t('usage_stats.import')
@@ -88,7 +92,7 @@ export function MonitoringActionBar({
           type="button"
           className={`${styles.actionButton} ${styles.actionButtonDanger}`}
           onClick={onUsageClear}
-          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing}
+          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing || failureClearing}
           title={
             usageTransferAvailable
               ? t('usage_stats.clear')
@@ -97,6 +101,16 @@ export function MonitoringActionBar({
         >
           <IconTrash2 size={16} />
           <span>{usageClearing ? t('common.loading') : t('usage_stats.clear')}</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+          onClick={onFailureClear}
+          disabled={!usageTransferAvailable || usageExporting || usageImporting || usageClearing || failureClearing}
+          title={t('usage_stats.clear_failures')}
+        >
+          <IconTrash2 size={16} />
+          <span>{failureClearing ? t('common.loading') : t('usage_stats.clear_failures')}</span>
         </button>
         {modelPricesAvailable ? (
           <Link
