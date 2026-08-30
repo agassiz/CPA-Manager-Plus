@@ -26,6 +26,28 @@ describe('getAuthFileQuotaErrorMessage', () => {
       '请更新 CPA 版本或检查更新'
     );
   });
+
+  it('官方上游返回 404 时展示真实错误而不是提示更新 CPA', () => {
+    expect(
+      getAuthFileQuotaErrorMessage(t, {
+        status: 'error',
+        error: '404 official endpoint not found',
+        errorStatus: 404,
+        upstreamError: true,
+      })
+    ).toBe('404 official endpoint not found');
+  });
+
+  it('官方上游返回 403 时展示真实错误而不是提示检查凭证', () => {
+    expect(
+      getAuthFileQuotaErrorMessage(t, {
+        status: 'error',
+        error: '403 blocked by provider',
+        errorStatus: 403,
+        upstreamError: true,
+      })
+    ).toBe('403 blocked by provider');
+  });
 });
 
 describe('buildEmbeddedCodexQuota', () => {

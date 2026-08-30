@@ -76,7 +76,10 @@
 .dropdown {
   position: fixed;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  // --glass-border is a white hairline meant for tinted glass surfaces; on the opaque
+  // light dropdown background it disappears, so the floating panel needs a real border
+  // like the other overlays (see DropdownMenu).
+  border: 1px solid var(--app-border-strong);
   border-radius: var(--app-radius-md);
   padding: 6px;
   box-shadow: var(--glass-shadow);

@@ -44,7 +44,7 @@ export function ModelPricesPage() {
   const { showNotification } = useNotificationStore();
   const featureAvailability = usePanelFeatureAvailability();
   const {
-    usage,
+    modelCallStats,
     loading,
     modelPrices,
     useResponseModelForBilling,
@@ -66,14 +66,14 @@ export function ModelPricesPage() {
   const [manualEditorOpen, setManualEditorOpen] = useState(false);
 
   const syncModels = useMemo(
-    () => buildSyncPriceModelsFromUsage(usage, modelPrices),
-    [modelPrices, usage]
+    () => buildSyncPriceModelsFromUsage(modelCallStats, modelPrices),
+    [modelCallStats, modelPrices]
   );
 
   const candidateSets = useMemo(() => syncResult?.candidates ?? [], [syncResult?.candidates]);
   const rows = useMemo(
-    () => buildModelPriceRows(usage, modelPrices, candidateSets),
-    [candidateSets, modelPrices, usage]
+    () => buildModelPriceRows(modelCallStats, modelPrices, candidateSets),
+    [candidateSets, modelCallStats, modelPrices]
   );
   const summary = useMemo(() => buildModelPriceSummary(rows), [rows]);
   const visibleRows = useMemo(

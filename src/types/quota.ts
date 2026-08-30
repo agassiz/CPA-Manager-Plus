@@ -237,6 +237,7 @@ export interface ClaudeQuotaState {
   planType?: string | null;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 // Quota state types
@@ -254,6 +255,7 @@ export interface AntigravityQuotaState {
   creditBalance?: number | null;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 export interface GeminiCliQuotaBucketState {
@@ -274,6 +276,7 @@ export interface GeminiCliQuotaState {
   creditBalance?: number | null;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 export interface CodexQuotaWindow {
@@ -298,6 +301,7 @@ export interface CodexQuotaState {
   observedAtMs?: number;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 // Kimi API payload types
@@ -359,6 +363,7 @@ export interface KimiQuotaState {
   rows: KimiQuotaRow[];
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 // xAI/Grok API payload types
@@ -417,6 +422,7 @@ export interface XaiQuotaState {
   billing: XaiBillingSummary | null;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 // Kiro (AWS CodeWhisperer) API payload types
@@ -491,4 +497,5 @@ export interface KiroQuotaState {
   overageStatus?: string | null;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }

@@ -2,12 +2,13 @@ import { useCallback, useMemo, useReducer } from 'react';
 import { isMap, parse as parseYaml, parseDocument } from 'yaml';
 import type {
   CodexContextWindowOverride,
+  CodexIdentityMode,
   DisableImageGenerationMode,
   UsageModelEntry,
   VisualConfigValues,
   VisualConfigValidationErrors,
 } from '@/types/visualConfig';
-import { DEFAULT_VISUAL_VALUES, makeClientId } from '@/types/visualConfig';
+import { CODEX_IDENTITY_MODES, DEFAULT_VISUAL_VALUES, makeClientId } from '@/types/visualConfig';
 import {
   arePayloadFilterRulesEqual,
   arePayloadRulesEqual,
@@ -29,6 +30,20 @@ export {
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+// Reads codex.identity-mode and falls back to the legacy identity-confuse boolean,
+// which the backend still accepts as a read-only compatibility key.
+function parseCodexIdentityMode(codex: Record<string, unknown> | null): CodexIdentityMode {
+  const raw = codex?.['identity-mode'] ?? codex?.identityMode;
+  if (typeof raw === 'string') {
+    const normalized = raw.trim().toLowerCase();
+    if ((CODEX_IDENTITY_MODES as string[]).includes(normalized)) {
+      return normalized as CodexIdentityMode;
+    }
+  }
+  const legacy = codex?.['identity-confuse'] ?? codex?.identityConfuse;
+  return legacy === true ? 'confuse' : 'off';
 }
 
 function extractApiKeyValue(raw: unknown): string | null {
@@ -592,7 +607,7 @@ function getNextDirtyFields(
       'claudeHeaderStabilizeDeviceProfile',
       'codexHeaderUserAgent',
       'codexHeaderBetaFeatures',
-      'codexIdentityConfuse',
+      'codexIdentityMode',
       'augmentSilentModeModel',
       'augmentCodebaseRetrievalModel',
       'augmentUseConfiguredCompletionModels',
@@ -978,7 +993,7 @@ export function useVisualConfig() {
           typeof codexHeaderDefaults?.['beta-features'] === 'string'
             ? codexHeaderDefaults['beta-features']
             : '',
-        codexIdentityConfuse: Boolean(codex?.['identity-confuse'] ?? codex?.identityConfuse),
+        codexIdentityMode: parseCodexIdentityMode(codex),
 
         quotaSwitchProject: Boolean(quotaExceeded?.['switch-project'] ?? true),
         quotaSwitchPreviewModel: Boolean(quotaExceeded?.['switch-preview-model'] ?? true),
@@ -1255,12 +1270,21 @@ export function useVisualConfig() {
           deleteIfMapEmpty(doc, ['codex-header-defaults']);
         }
 
+        const codexIdentityModePath = ['codex', 'identity-mode'];
+        const codexIdentityModeCamelPath = ['codex', 'identityMode'];
+        // identity-confuse is a read-only compatibility key on the backend; the visual
+        // editor always writes identity-mode and drops the legacy spellings.
         const codexIdentityConfusePath = ['codex', 'identity-confuse'];
         const codexIdentityConfuseLegacyPath = ['codex', 'identityConfuse'];
+        const codexHasIdentityKey =
+          docHas(doc, codexIdentityModePath) ||
+          docHas(doc, codexIdentityModeCamelPath) ||
+          docHas(doc, codexIdentityConfusePath) ||
+          docHas(doc, codexIdentityConfuseLegacyPath);
         if (
           docHas(doc, ['codex']) ||
-          docHas(doc, codexIdentityConfuseLegacyPath) ||
-          values.codexIdentityConfuse ||
+          codexHasIdentityKey ||
+          values.codexIdentityMode !== 'off' ||
           values.codexForceSuperCategory ||
           values.codexBugMode ||
           values.responsesCompactFallbackModel.trim() ||
@@ -1269,19 +1293,24 @@ export function useVisualConfig() {
           dirtyFields.has('codexBugMode') ||
           dirtyFields.has('responsesCompactFallbackModel') ||
           dirtyFields.has('codexModelContextWindowOverrides') ||
-          dirtyFields.has('codexIdentityConfuse')
+          dirtyFields.has('codexIdentityMode')
         ) {
           ensureMapInDoc(doc, ['codex']);
           if (
-            values.codexIdentityConfuse ||
-            dirtyFields.has('codexIdentityConfuse') ||
-            docHas(doc, codexIdentityConfusePath) ||
-            docHas(doc, codexIdentityConfuseLegacyPath)
+            values.codexIdentityMode !== 'off' ||
+            dirtyFields.has('codexIdentityMode') ||
+            codexHasIdentityKey
           ) {
-            doc.setIn(codexIdentityConfusePath, values.codexIdentityConfuse);
+            doc.setIn(codexIdentityModePath, values.codexIdentityMode);
           }
-          if (docHas(doc, codexIdentityConfuseLegacyPath)) {
-            doc.deleteIn(codexIdentityConfuseLegacyPath);
+          for (const legacyPath of [
+            codexIdentityModeCamelPath,
+            codexIdentityConfusePath,
+            codexIdentityConfuseLegacyPath,
+          ]) {
+            if (docHas(doc, legacyPath)) {
+              doc.deleteIn(legacyPath);
+            }
           }
           if (
             values.codexForceSuperCategory ||

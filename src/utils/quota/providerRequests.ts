@@ -227,7 +227,9 @@ export const fetchAntigravityQuota = async (
     return { groups: [], creditBalance: await creditBalancePromise };
   }
 
-  throw createStatusError(lastError || t('common.unknown_error'), priorityStatus ?? lastStatus);
+  throw createStatusError(lastError || t('common.unknown_error'), priorityStatus ?? lastStatus, {
+    upstream: true,
+  });
 };
 
 const fetchAntigravityCreditBalance = async (authIndex: string): Promise<number | null> => {
@@ -508,7 +510,7 @@ export const fetchCodexQuota = async (
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+    throw createStatusError(getApiCallErrorMessage(result), result.statusCode, { upstream: true });
   }
 
   const payload = parseCodexUsagePayload(result.body ?? result.bodyText);
@@ -572,7 +574,7 @@ const consumeCodexRateLimitResetCredit = async (
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+    throw createStatusError(getApiCallErrorMessage(result), result.statusCode, { upstream: true });
   }
 };
 
@@ -692,7 +694,9 @@ export const fetchGeminiCliQuotaBuckets = async (
     data: JSON.stringify({ project: projectId }),
   });
   if (quotaResponse.statusCode < 200 || quotaResponse.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(quotaResponse), quotaResponse.statusCode);
+    throw createStatusError(getApiCallErrorMessage(quotaResponse), quotaResponse.statusCode, {
+      upstream: true,
+    });
   }
 
   const payload = parseGeminiCliQuotaPayload(quotaResponse.body ?? quotaResponse.bodyText);
@@ -844,7 +848,7 @@ export const fetchClaudeQuota = async (
   const result = usageResult.value;
 
   if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+    throw createStatusError(getApiCallErrorMessage(result), result.statusCode, { upstream: true });
   }
 
   const payload = parseClaudeUsagePayload(result.body ?? result.bodyText);
@@ -880,7 +884,7 @@ export const fetchKimiQuota = async (file: AuthFileItem, t: TFunction): Promise<
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+    throw createStatusError(getApiCallErrorMessage(result), result.statusCode, { upstream: true });
   }
 
   const payload = parseKimiUsagePayload(result.body ?? result.bodyText);
@@ -1069,7 +1073,9 @@ export const fetchXaiQuota = async (
   // request as a compatibility path for those credentials and older proxy versions.
   const billingResult = await xaiRequest(authIndex, XAI_BILLING_URL);
   if (billingResult.statusCode < 200 || billingResult.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(billingResult), billingResult.statusCode);
+    throw createStatusError(getApiCallErrorMessage(billingResult), billingResult.statusCode, {
+      upstream: true,
+    });
   }
 
   const summary = xaiBillingSummaryFromResult(billingResult);

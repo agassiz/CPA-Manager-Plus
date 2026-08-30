@@ -237,7 +237,7 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
-  it('clears camelCase codex identityConfuse when disabling from visual editor', () => {
+  it('migrates legacy codex identityConfuse to identity-mode from visual editor', () => {
     const harness = mountUseVisualConfig();
     const yaml = [
       'host: 127.0.0.1',
@@ -251,16 +251,65 @@ describe('useVisualConfig', () => {
       const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
       expect(result.ok).toBe(true);
     });
-    expect(harness.getCurrent().visualValues.codexIdentityConfuse).toBe(true);
+    expect(harness.getCurrent().visualValues.codexIdentityMode).toBe('confuse');
 
     act(() => {
-      harness.getCurrent().setVisualValues({ codexIdentityConfuse: false });
+      harness.getCurrent().setVisualValues({ codexIdentityMode: 'off' });
     });
 
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).not.toContain('identityConfuse: true');
     expect(savedYaml).not.toContain('identityConfuse:');
-    expect(savedYaml).toContain('identity-confuse: false');
+    expect(savedYaml).not.toContain('identity-confuse:');
+    expect(savedYaml).toContain('identity-mode: off');
+    expect(savedYaml).toContain('other-setting: kept');
+
+    harness.unmount();
+  });
+
+  it('reads codex identity-mode and writes the selected tier', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['host: 127.0.0.1', 'codex:', '  identity-mode: device', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexIdentityMode).toBe('device');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexIdentityMode: 'full' });
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).toContain('identity-mode: full');
+
+    harness.unmount();
+  });
+
+  it('drops the legacy identity-confuse key when writing identity-mode', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'host: 127.0.0.1',
+      'codex:',
+      '  identity-confuse: true',
+      '  other-setting: kept',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexIdentityMode).toBe('confuse');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexIdentityMode: 'full' });
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).not.toContain('identity-confuse:');
+    expect(savedYaml).toContain('identity-mode: full');
     expect(savedYaml).toContain('other-setting: kept');
 
     harness.unmount();

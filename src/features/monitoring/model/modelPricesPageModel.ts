@@ -1,9 +1,9 @@
-import { collectUsageDetailsWithEndpoint, type ModelPrice } from '@/utils/usage';
+import { type ModelPrice } from '@/utils/usage';
 import type {
   ModelPriceSyncCandidate,
   ModelPriceSyncCandidateSet,
+  UsageModelCallStats,
 } from '@/services/api/usageService';
-import type { UsagePayload } from '@/features/monitoring/hooks/useUsageData';
 
 export type ModelPriceFilter = 'all' | 'missing' | 'saved' | 'candidates';
 export type ModelPriceSyncStrategy = 'selected' | 'credential_matches' | 'credentials';
@@ -87,13 +87,12 @@ export const applyCandidatePrice = (
 });
 
 export const buildSyncPriceModelsFromUsage = (
-  usage: UsagePayload | null,
+  modelCallStats: UsageModelCallStats[],
   prices: Record<string, ModelPrice>
 ) => {
   const models = new Set<string>(Object.keys(prices));
-  collectUsageDetailsWithEndpoint(usage).forEach((detail) => {
-    if (detail.__modelName) models.add(detail.__modelName);
-    if (detail.__resolvedModel) models.add(detail.__resolvedModel);
+  modelCallStats.forEach((entry) => {
+    if (entry.model) models.add(entry.model);
   });
   return Array.from(models)
     .filter(Boolean)
@@ -118,7 +117,7 @@ export const buildCandidateMap = (candidateSets: ModelPriceSyncCandidateSet[] = 
 };
 
 export const buildModelPriceRows = (
-  usage: UsagePayload | null,
+  modelCallStats: UsageModelCallStats[],
   prices: Record<string, ModelPrice>,
   candidateSets: ModelPriceSyncCandidateSet[] = []
 ): ModelPriceRow[] => {
@@ -145,18 +144,12 @@ export const buildModelPriceRows = (
   Object.keys(prices).forEach(ensureRow);
   candidateMap.forEach((_candidates, model) => ensureRow(model));
 
-  collectUsageDetailsWithEndpoint(usage).forEach((detail) => {
-    if (detail.failed) return;
-    if (detail.__modelName) {
-      const row = ensureRow(detail.__modelName);
-      row.calls += 1;
-      row.requestedCalls += 1;
-    }
-    if (detail.__resolvedModel && detail.__resolvedModel !== detail.__modelName) {
-      const row = ensureRow(detail.__resolvedModel);
-      row.calls += 1;
-      row.resolvedCalls += 1;
-    }
+  modelCallStats.forEach((entry) => {
+    if (!entry.model) return;
+    const row = ensureRow(entry.model);
+    row.calls += entry.calls;
+    row.requestedCalls += entry.requested_calls;
+    row.resolvedCalls += entry.resolved_calls;
   });
 
   return Array.from(rowMap.values()).sort(

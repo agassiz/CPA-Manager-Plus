@@ -6,7 +6,7 @@ import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AuthFileItem } from '@/types';
 import { useQuotaStore } from '@/stores';
-import { getStatusFromError } from '@/utils/quota';
+import { getStatusFromError, isUpstreamStatusError } from '@/utils/quota';
 import type { QuotaConfig } from './quotaConfigs';
 
 type QuotaScope = 'page' | 'all';
@@ -21,6 +21,7 @@ interface LoadQuotaResult<TData> {
   data?: TData;
   error?: string;
   errorStatus?: number;
+  upstreamError?: boolean;
 }
 
 const MAX_CONCURRENCY = 20;
@@ -88,7 +89,8 @@ export function useQuotaLoader<TState, TData>(config: QuotaConfig<TState, TData>
             } catch (err: unknown) {
               const message = err instanceof Error ? err.message : t('common.unknown_error');
               const errorStatus = getStatusFromError(err);
-              result = { name: file.name, status: 'error', error: message, errorStatus };
+              const upstreamError = isUpstreamStatusError(err);
+              result = { name: file.name, status: 'error', error: message, errorStatus, upstreamError };
             }
 
             if (requestId !== requestIdRef.current) return;
@@ -100,7 +102,8 @@ export function useQuotaLoader<TState, TData>(config: QuotaConfig<TState, TData>
               } else {
                 nextState[result.name] = config.buildErrorState(
                   result.error || t('common.unknown_error'),
-                  result.errorStatus
+                  result.errorStatus,
+                  result.upstreamError
                 );
               }
               return nextState;

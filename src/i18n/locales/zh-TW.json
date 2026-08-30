@@ -2283,8 +2283,23 @@
           "stabilize_device": "穩定設備指紋",
           "stabilize_device_desc": "固定 OS/Arch，並按憑證/API Key 穩定軟體指紋",
           "beta_features": "Beta Features",
-          "identity_confuse": "啟用 Codex 身份混淆",
-          "identity_confuse_desc": "寫入 codex.identity-confuse，讓 CPA 混合 Codex 請求身份 Header 以提升相容性"
+          "identity_mode": "Codex 身份策略",
+          "identity_mode_hint": "寫入 codex.identity-mode。收斂檔（裝置/完全）僅在多人共用同一憑證時有意義，且不會改變 prompt_cache_key",
+          "identity_mode_off": "關閉：原樣透傳客戶端標識",
+          "identity_mode_confuse": "混淆：依憑證重新映射，憑證間互不關聯",
+          "identity_mode_device": "裝置收斂：裝置按憑證固定，工作階段按客戶端工作階段區分並在憑證內保持穩定",
+          "identity_mode_full": "完全收斂：裝置按憑證固定，工作階段按客戶端工作階段區分，執行緒在憑證內合併為一個"
+          ,"identity_mode_help_aria": "查看四種身份策略的說明"
+          ,"identity_mode_help_title": "怎麼選？看這裡的例子"
+          ,"identity_flow_client": "真實客戶端/工作階段"
+          ,"identity_flow_credential": "服務端憑證輪詢"
+          ,"identity_flow_upstream": "上游判定身份"
+          ,"identity_flow_example": "例：3 個客戶端各有長期工作階段，每個工作階段連續請求很多次；請求可能依次使用憑證 A、B、C。模式決定上游最後看到哪些標識。"
+          ,"identity_mode_help_off": "原樣透傳。例：3 個真實客戶端各有 1 個長期工作階段，每個工作階段連續請求很多次；請求輪詢到不同憑證時，上游仍按客戶端原始標識分別看到它們。"
+          ,"identity_mode_help_confuse": "按憑證分別重新映射。例：同一客戶端的連續請求從憑證 A 輪詢到 B 時，上游會看到兩套互不相關的裝置/工作階段；僅在 fill-first 或 session-affinity 路由下生效。"
+          ,"identity_mode_help_device": "裝置按憑證固定，工作階段由「憑證 + 客戶端原始工作階段」派生。例：同一客戶端在 A 上重複請求會保持同一工作階段，切到 B 會得到不同工作階段；A 上的另一個客戶端也有不同工作階段。"
+          ,"identity_mode_help_full": "裝置按憑證固定，工作階段仍由「憑證 + 客戶端原始工作階段」區分，執行緒在同一憑證內合併。例：同一客戶端從 A 切到 B 時裝置/工作階段不同；A 上多個客戶端共用一個執行緒。"
+          ,"identity_mode_help_footnote": "以上收斂檔都不改變 prompt_cache_key：同一客戶端原始工作階段的快取鍵不隨憑證切換；但上游裝置/工作階段身份會按憑證區分。"
         },
         "network": {
           "title": "網路設定",

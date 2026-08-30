@@ -295,7 +295,7 @@ export function MonitoringCenterPage() {
     clearFailures,
     exportUsage,
     importUsage,
-  } = useUsageData({ loadUsageEvents: false });
+  } = useUsageData({ loadModelCallStats: false });
 
   const monitoringScopeFilters = useMemo(
     () => ({

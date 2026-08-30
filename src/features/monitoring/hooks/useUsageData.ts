@@ -11,6 +11,7 @@ import {
   type FailureClearResponse,
   type UsageExportResponse,
   type UsageImportResponse,
+  type UsageModelCallStats,
 } from '@/services/api/usageService';
 import { useAuthStore } from '@/stores';
 import {
@@ -30,7 +31,7 @@ export interface UsagePayload {
 }
 
 export interface UseUsageDataReturn {
-  usage: UsagePayload | null;
+  modelCallStats: UsageModelCallStats[];
   loading: boolean;
   error: string;
   lastRefreshedAt: Date | null;
@@ -46,19 +47,20 @@ export interface UseUsageDataReturn {
   clearFailures: () => Promise<FailureClearResponse>;
   exportUsage: () => Promise<UsageExportResponse>;
   importUsage: (file: File) => Promise<UsageImportResponse>;
-  loadUsage: () => Promise<void>;
+  loadModelCallStats: () => Promise<void>;
 }
 
 export interface UseUsageDataOptions {
-  loadUsageEvents?: boolean;
+  /** Loads per-model call counts for the model price view. Other views leave it off. */
+  loadModelCallStats?: boolean;
 }
 
 export function useUsageData({
-  loadUsageEvents = true,
+  loadModelCallStats: shouldLoadModelCallStats = true,
 }: UseUsageDataOptions = {}): UseUsageDataReturn {
   const managementKey = useAuthStore((state) => state.managementKey);
   const featureAvailability = usePanelFeatureAvailability();
-  const [usage, setUsage] = useState<UsagePayload | null>(null);
+  const [modelCallStats, setModelCallStats] = useState<UsageModelCallStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
@@ -184,12 +186,12 @@ export function useUsageData({
     }
   }, [getApiKeyAliasesFromApi]);
 
-  const loadUsage = useCallback(async () => {
+  const loadModelCallStats = useCallback(async () => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
-    if (!loadUsageEvents) {
+    if (!shouldLoadModelCallStats) {
       setUsageServiceAvailable(false);
-      setUsage(null);
+      setModelCallStats([]);
       setLastRefreshedAt(null);
       setLoading(false);
       setError('');
@@ -202,16 +204,17 @@ export function useUsageData({
     try {
       if (!usageEventsServiceBase) {
         setUsageServiceAvailable(false);
-        setUsage(null);
+        setModelCallStats([]);
         setLastRefreshedAt(null);
         return;
       }
       setUsageServiceAvailable(true);
-      const payload = await usageServiceApi.getUsage(usageEventsServiceBase, managementKey, {
-        includeDetails: true,
-      });
+      const payload = await usageServiceApi.getUsageModelStats(
+        usageEventsServiceBase,
+        managementKey
+      );
       if (requestIdRef.current !== requestId) return;
-      setUsage(payload ?? null);
+      setModelCallStats(Array.isArray(payload?.items) ? payload.items : []);
       setLastRefreshedAt(new Date());
     } catch (err) {
       if (requestIdRef.current !== requestId) return;
@@ -221,13 +224,13 @@ export function useUsageData({
         setLoading(false);
       }
     }
-  }, [loadUsageEvents, managementKey, usageEventsServiceBase]);
+  }, [managementKey, shouldLoadModelCallStats, usageEventsServiceBase]);
 
   useEffect(() => {
     void loadModelPricesFromStorage();
     void loadApiKeyAliases();
-    void loadUsage();
-  }, [loadApiKeyAliases, loadModelPricesFromStorage, loadUsage]);
+    void loadModelCallStats();
+  }, [loadApiKeyAliases, loadModelCallStats, loadModelPricesFromStorage]);
 
   const setModelPrices = useCallback(
     async (prices: Record<string, ModelPrice>) => {
@@ -270,7 +273,7 @@ export function useUsageData({
   );
 
   return {
-    usage,
+    modelCallStats,
     loading,
     error,
     lastRefreshedAt,
@@ -286,6 +289,6 @@ export function useUsageData({
     clearFailures: clearFailuresFromApi,
     exportUsage: exportUsageFromApi,
     importUsage: importUsageToApi,
-    loadUsage,
+    loadModelCallStats,
   };
 }

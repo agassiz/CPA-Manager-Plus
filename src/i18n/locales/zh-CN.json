@@ -2269,8 +2269,23 @@
           "stabilize_device": "稳定设备指纹",
           "stabilize_device_desc": "固定 OS/Arch，并按凭据/API Key 稳定软件指纹",
           "beta_features": "Beta Features",
-          "identity_confuse": "启用 Codex 身份混淆",
-          "identity_confuse_desc": "写入 codex.identity-confuse，让 CPA 混合 Codex 请求身份 Header 以提升兼容性"
+          "identity_mode": "Codex 身份策略",
+          "identity_mode_hint": "写入 codex.identity-mode。收敛档（设备/完全）仅在多人共享同一凭据时有意义，且不会改变 prompt_cache_key",
+          "identity_mode_off": "关闭：原样透传客户端标识",
+          "identity_mode_confuse": "混淆：按凭据重映射，凭据间互不关联",
+          "identity_mode_device": "设备收敛：设备按凭证固定，会话按客户端会话区分并在凭证内保持稳定",
+          "identity_mode_full": "完全收敛：设备按凭证固定，会话按客户端会话区分，线程在凭证内合并为一个"
+          ,"identity_mode_help_aria": "查看四档身份策略的说明"
+          ,"identity_mode_help_title": "怎么选？看这里的例子"
+          ,"identity_flow_client": "真实客户端/会话"
+          ,"identity_flow_credential": "服务端凭证轮询"
+          ,"identity_flow_upstream": "上游判定身份"
+          ,"identity_flow_example": "例：3 个客户端各有长期会话，每个会话连续请求很多次；请求可能依次使用凭证 A、B、C。模式决定上游最终看到哪些标识。"
+          ,"identity_mode_help_off": "原样透传。例：3 个真实客户端各有 1 个长期会话，每个会话连续请求很多次；请求轮询到不同凭据时，上游仍按客户端原始标识分别看到它们。"
+          ,"identity_mode_help_confuse": "按凭据分别重映射。例：同一个客户端的连续请求从凭据 A 轮询到 B 时，上游会看到两套互不关联的设备/会话；仅在 fill-first 或 session-affinity 路由下生效。"
+          ,"identity_mode_help_device": "设备按凭据固定，会话由“凭据 + 客户端原始会话”派生。例：同一客户端在 A 上重复请求会保持同一会话，切到 B 会得到不同会话；A 上的另一个客户端也有不同会话。"
+          ,"identity_mode_help_full": "设备按凭据固定，会话仍由“凭据 + 客户端原始会话”区分，线程在同一凭据内合并。例：同一客户端从 A 切到 B 时设备/会话不同；A 上多个客户端共用一个线程。"
+          ,"identity_mode_help_footnote": "以上收敛档都不改变 prompt_cache_key：同一客户端原始会话的缓存键不随凭据切换；但上游设备/会话身份会按凭据区分。"
         },
         "network": {
           "title": "网络配置",

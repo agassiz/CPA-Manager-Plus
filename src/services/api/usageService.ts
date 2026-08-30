@@ -140,6 +140,17 @@ export interface ApiKeyAliasesResponse {
   items: ApiKeyAlias[];
 }
 
+export interface UsageModelCallStats {
+  model: string;
+  calls: number;
+  requested_calls: number;
+  resolved_calls: number;
+}
+
+export interface UsageModelStatsResponse {
+  items: UsageModelCallStats[];
+}
+
 export interface UsageImportResponse {
   format?: string;
   added: number;
@@ -1170,6 +1181,22 @@ export const usageServiceApi = {
         headers: authHeaders(managementKey),
         params: options.includeDetails ? { details: 1 } : undefined,
       });
+      return response.data;
+    });
+  },
+
+  getUsageModelStats: async (
+    base: string,
+    managementKey?: string
+  ): Promise<UsageModelStatsResponse> => {
+    return withUsageServiceError(async () => {
+      const response = await axios.get<UsageModelStatsResponse>(
+        buildUrl(base, '/v0/management/usage/model-stats'),
+        {
+          timeout: USAGE_SERVICE_TIMEOUT_MS,
+          headers: authHeaders(managementKey),
+        }
+      );
       return response.data;
     });
   },

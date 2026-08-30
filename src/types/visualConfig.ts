@@ -1,5 +1,12 @@
 export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat';
+export type CodexIdentityMode = 'off' | 'confuse' | 'device' | 'full';
+export const CODEX_IDENTITY_MODES: CodexIdentityMode[] = [
+  'off',
+  'confuse',
+  'device',
+  'full',
+];
 export type APIKeyAccessRuleConfig = {
   apiKey: string;
   models: string[];
@@ -164,7 +171,7 @@ export type VisualConfigValues = {
   claudeHeaderStabilizeDeviceProfile: boolean;
   codexHeaderUserAgent: string;
   codexHeaderBetaFeatures: string;
-  codexIdentityConfuse: boolean;
+  codexIdentityMode: CodexIdentityMode;
   augmentSilentModeModel: string;
   augmentCodebaseRetrievalModel: string;
   augmentUseConfiguredCompletionModels: boolean;
@@ -252,7 +259,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   claudeHeaderStabilizeDeviceProfile: false,
   codexHeaderUserAgent: '',
   codexHeaderBetaFeatures: '',
-  codexIdentityConfuse: false,
+  codexIdentityMode: 'off',
   augmentSilentModeModel: '',
   augmentCodebaseRetrievalModel: '',
   augmentUseConfiguredCompletionModels: false,

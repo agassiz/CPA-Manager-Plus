@@ -2315,8 +2315,23 @@
           "stabilize_device": "Stabilize Device Profile",
           "stabilize_device_desc": "Pin OS/Arch and stabilize the software fingerprint per credential/API key",
           "beta_features": "Beta Features",
-          "identity_confuse": "Enable Codex Identity Confuse",
-          "identity_confuse_desc": "Write codex.identity-confuse to let CPA mix Codex request identity headers for compatibility"
+          "identity_mode": "Codex Identity Mode",
+          "identity_mode_hint": "Writes codex.identity-mode. The converging modes (device/full) only matter when several people share one credential, and none of them change prompt_cache_key",
+          "identity_mode_off": "Off: forward the client identity untouched",
+          "identity_mode_confuse": "Confuse: remap per credential so credentials look unrelated",
+          "identity_mode_device": "Device: the device is credential-scoped; sessions stay distinct and stable per client session within that credential",
+          "identity_mode_full": "Full: the device is credential-scoped, sessions stay client-distinct, and threads merge within a credential"
+          ,"identity_mode_help_aria": "View explanations for the four identity modes"
+          ,"identity_mode_help_title": "Which mode should I choose?"
+          ,"identity_flow_client": "Real clients/sessions"
+          ,"identity_flow_credential": "Credential rotation"
+          ,"identity_flow_upstream": "Upstream identity"
+          ,"identity_flow_example": "Example: 3 clients keep long-lived sessions and make many requests; requests may use credentials A, B, and C in rotation. The mode determines what identity upstream sees."
+          ,"identity_mode_help_off": "Forward unchanged. Example: 3 real clients each keep one long-lived session and make many requests; when requests rotate across credentials, upstream still sees each client's original identity."
+          ,"identity_mode_help_confuse": "Remap per credential. Example: when one client's ongoing requests rotate from credential A to B, upstream sees two unrelated device/session identities; active only with fill-first or session-affinity routing."
+          ,"identity_mode_help_device": "The device is credential-scoped; the session is derived from credential + original client session. Example: repeated requests on A keep one session, moving to B gives a different session, and another client on A gets its own session."
+          ,"identity_mode_help_full": "The device is credential-scoped, sessions remain distinct by original client session, and threads merge within a credential. Example: moving from A to B changes device/session; multiple clients on A share one thread."
+          ,"identity_mode_help_footnote": "All converging modes leave prompt_cache_key unchanged: a client's original session keeps its cache key across credential changes, while upstream device/session identity remains credential-specific."
         },
         "network": {
           "title": "Network Configuration",

@@ -16,6 +16,7 @@ import type { AntigravityQuotaState, AuthFileItem, CodexQuotaState, KiroQuotaSta
 import {
   buildCodexQuotaWindows,
   getStatusFromError,
+  isUpstreamStatusError,
   parseCodexUsagePayload,
 } from '@/utils/quota';
 import { authFilesApi } from '@/services/api/authFiles';
@@ -27,7 +28,12 @@ import {
 import { QuotaProgressBar } from '@/features/authFiles/components/QuotaProgressBar';
 import styles from '@/features/authFiles/AuthFilesPage.module.scss';
 
-export type QuotaState = { status?: string; error?: string; errorStatus?: number } | undefined;
+export type QuotaState = {
+  status?: string;
+  error?: string;
+  errorStatus?: number;
+  upstreamError?: boolean;
+} | undefined;
 const noopQuotaStateUpdater = (() => undefined) as unknown as (updater: unknown) => void;
 const getQuotaConfig = (type: QuotaProviderType) => {
   if (type === 'antigravity') return ANTIGRAVITY_CONFIG;
@@ -67,8 +73,17 @@ export const getAuthFileQuotaErrorMessage = (t: TFunction, quota: QuotaState): s
   const quotaErrorStatus =
     quota && typeof quota === 'object' && 'errorStatus' in quota ? quota.errorStatus : undefined;
   const quotaError = quota && typeof quota === 'object' && 'error' in quota ? quota.error : undefined;
+  const quotaUpstreamError =
+    quota && typeof quota === 'object' && 'upstreamError' in quota
+      ? quota.upstreamError
+      : undefined;
 
-  return resolveQuotaErrorMessage(t, quotaErrorStatus, quotaError || t('common.unknown_error'));
+  return resolveQuotaErrorMessage(
+    t,
+    quotaErrorStatus,
+    quotaError || t('common.unknown_error'),
+    quotaUpstreamError
+  );
 };
 
 export const buildEmbeddedCodexQuota = (
@@ -267,7 +282,7 @@ export function useAuthFileQuotaRefresh(
       fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
       buildLoadingState: () => unknown;
       buildSuccessState: (data: unknown) => unknown;
-      buildErrorState: (message: string, status?: number) => unknown;
+      buildErrorState: (message: string, status?: number, upstreamError?: boolean) => unknown;
       renderQuotaItems: (quota: unknown, t: TFunction, helpers: unknown) => unknown;
     };
 
@@ -291,12 +306,13 @@ export function useAuthFileQuotaRefresh(
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('common.unknown_error');
       const status = getStatusFromError(err);
+      const upstreamError = isUpstreamStatusError(err);
       updateQuotaState((prev: Record<string, unknown>) => ({
         ...prev,
         [file.name]: preserveCodexPlanType(
           quotaType,
           prev[file.name],
-          config.buildErrorState(message, status)
+          config.buildErrorState(message, status, upstreamError)
         )
       }));
       requestAuthFilesRefresh();

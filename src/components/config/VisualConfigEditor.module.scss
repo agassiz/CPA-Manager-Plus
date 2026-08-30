@@ -581,10 +581,17 @@
 }
 
 .fieldLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.fieldLabelText {
+  min-width: 0;
 }
 
 .fieldControl {

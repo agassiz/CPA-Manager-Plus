@@ -1,0 +1,111 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: help;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color);
+    background: var(--app-accent-soft);
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.panel {
+  position: fixed;
+  z-index: 2020;
+  width: min(340px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-strong);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+  pointer-events: none;
+}
+
+.title {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.term {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.description {
+  color: var(--text-secondary);
+}
+
+.identityFlow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.identityFlowLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-accent-soft);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.identityFlowExample {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.identityFlowList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footnote {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}

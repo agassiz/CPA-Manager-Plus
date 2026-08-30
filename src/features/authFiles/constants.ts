@@ -144,10 +144,14 @@ export const clampCardPageSize = (value: number) =>
 export const resolveQuotaErrorMessage = (
   t: TFunction,
   status: number | undefined,
-  fallback: string
+  fallback: string,
+  upstreamError?: boolean
 ): string => {
-  if (status === 404) return t('common.quota_update_required');
-  if (status === 403) return t('common.quota_check_credential');
+  // A 404/403 from the management API itself (old CPA missing endpoints) maps to
+  // canned hints. The same codes coming from the official upstream through the
+  // api-call passthrough describe the provider network, so show the real error.
+  if (status === 404 && !upstreamError) return t('common.quota_update_required');
+  if (status === 403 && !upstreamError) return t('common.quota_check_credential');
   return fallback;
 };
 

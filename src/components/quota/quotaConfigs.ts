@@ -100,7 +100,7 @@ export interface QuotaConfig<TState, TData> {
   storeSetter: keyof QuotaStore;
   buildLoadingState: () => TState;
   buildSuccessState: (data: TData) => TState;
-  buildErrorState: (message: string, status?: number) => TState;
+  buildErrorState: (message: string, status?: number, upstreamError?: boolean) => TState;
   cardClassName: string;
   controlsClassName: string;
   controlClassName: string;
@@ -552,11 +552,12 @@ export const CLAUDE_CONFIG: QuotaConfig<
     extraUsage: data.extraUsage,
     planType: data.planType,
   }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     windows: [],
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.claudeCard,
   controlsClassName: styles.claudeControls,
@@ -579,11 +580,12 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
     groups: data.groups,
     creditBalance: data.creditBalance,
   }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     groups: [],
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.antigravityCard,
   controlsClassName: styles.antigravityControls,
@@ -626,11 +628,12 @@ export const CODEX_CONFIG: QuotaConfig<
     rateLimitResetCredits: data.rateLimitResetCredits,
     rateLimitResetCreditsError: data.rateLimitResetCreditsError,
   }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     windows: [],
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.codexCard,
   controlsClassName: styles.codexControls,
@@ -681,11 +684,12 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<
       creditBalance: supplementarySnapshot.creditBalance ?? data.creditBalance,
     };
   },
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     buckets: [],
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.geminiCliCard,
   controlsClassName: styles.geminiCliControls,
@@ -756,11 +760,12 @@ export const KIMI_CONFIG: QuotaConfig<KimiQuotaState, KimiQuotaRow[]> = {
   storeSetter: 'setKimiQuota',
   buildLoadingState: () => ({ status: 'loading', rows: [] }),
   buildSuccessState: (rows) => ({ status: 'success', rows }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     rows: [],
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.kiroCard,
   controlsClassName: styles.kiroControls,
@@ -969,7 +974,7 @@ export const KIRO_CONFIG: QuotaConfig<
     overageQuota: data.overageQuota,
     overageStatus: data.overageStatus,
   }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     subscriptionTitle: null,
     baseQuota: null,
@@ -978,6 +983,7 @@ export const KIRO_CONFIG: QuotaConfig<
     overageStatus: null,
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.kimiCard,
   controlsClassName: styles.kimiControls,
@@ -1070,11 +1076,12 @@ export const XAI_CONFIG: QuotaConfig<XaiQuotaState, XaiBillingSummary> = {
   storeSetter: 'setXaiQuota',
   buildLoadingState: () => ({ status: 'loading', billing: null }),
   buildSuccessState: (billing) => ({ status: 'success', billing }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, upstreamError) => ({
     status: 'error',
     billing: null,
     error: message,
     errorStatus: status,
+    upstreamError,
   }),
   cardClassName: styles.kimiCard,
   controlsClassName: styles.kimiControls,

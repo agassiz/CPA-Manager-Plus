@@ -8,38 +8,18 @@ import {
   buildSyncPriceModelsFromUsage,
   filterModelPriceRows,
 } from './modelPricesPageModel';
+import type { UsageModelCallStats } from '@/services/api/usageService';
 
-const usage = {
-  apis: {
-    'POST /v1/chat/completions': {
-      models: {
-        'alias-fast': {
-          details: [
-            {
-              timestamp: '2026-05-22T00:00:00Z',
-              source: 'source',
-              resolved_model: 'gpt-5.5',
-              tokens: {},
-              failed: false,
-            },
-            {
-              timestamp: '2026-05-22T00:01:00Z',
-              source: 'source',
-              resolved_model: 'gpt-5.5',
-              tokens: {},
-              failed: true,
-            },
-          ],
-        },
-      },
-    },
-  },
-};
+// Successful calls only: the backend already excludes failures from these counters.
+const modelCallStats: UsageModelCallStats[] = [
+  { model: 'alias-fast', calls: 1, requested_calls: 1, resolved_calls: 0 },
+  { model: 'gpt-5.5', calls: 1, requested_calls: 0, resolved_calls: 1 },
+];
 
 describe('modelPricesPageModel', () => {
   it('builds sync models from requested, resolved, and saved prices', () => {
     expect(
-      buildSyncPriceModelsFromUsage(usage, {
+      buildSyncPriceModelsFromUsage(modelCallStats, {
         'manual-model': { prompt: 1, completion: 2, cache: 0.5 },
       })
     ).toEqual(['alias-fast', 'gpt-5.5', 'manual-model']);
@@ -52,7 +32,7 @@ describe('modelPricesPageModel', () => {
 
   it('marks missing models with candidates before saved rows', () => {
     const rows = buildModelPriceRows(
-      usage,
+      modelCallStats,
       {
         'gpt-5.5': { prompt: 1, completion: 2, cache: 0.5 },
       },
@@ -87,17 +67,22 @@ describe('modelPricesPageModel', () => {
     expect(filterModelPriceRows(rows, 'candidates', '')).toHaveLength(1);
   });
 
-  it('counts calls from management API wrapped usage payloads', () => {
-    const rows = buildModelPriceRows(
-      { usage },
-      {
-        'alias-fast': { prompt: 1, completion: 2, cache: 0.5 },
-      }
-    );
+  it('counts resolved response models as their own rows', () => {
+    const rows = buildModelPriceRows(modelCallStats, {
+      'alias-fast': { prompt: 1, completion: 2, cache: 0.5 },
+    });
 
     expect(rows.find((row) => row.model === 'alias-fast')).toMatchObject({
       calls: 1,
       requestedCalls: 1,
+      resolvedCalls: 0,
+      hasPrice: true,
+    });
+    expect(rows.find((row) => row.model === 'gpt-5.5')).toMatchObject({
+      calls: 1,
+      requestedCalls: 0,
+      resolvedCalls: 1,
+      hasPrice: false,
     });
   });
 

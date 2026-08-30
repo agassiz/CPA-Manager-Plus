@@ -89,7 +89,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 export function useUsageAnalytics() {
   const config = useConfigStore((state) => state.config);
-  const { apiKeyAliases, loadApiKeyAliases } = useUsageData({ loadUsageEvents: false });
+  const { apiKeyAliases, loadApiKeyAliases } = useUsageData({ loadModelCallStats: false });
   const [monitoringMeta, setMonitoringMeta] = useState<UsageAnalyticsMonitoringMeta>(
     EMPTY_USAGE_ANALYTICS_MONITORING_META
   );

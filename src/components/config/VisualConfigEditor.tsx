@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { Input } from '@/components/ui/Input';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
@@ -29,6 +30,7 @@ import { ConfigSection } from '@/components/config/ConfigSection';
 import { useRegisterConfigSidebarNavigation } from '@/features/config/configSidebarNavigation';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type {
+  CodexIdentityMode,
   PayloadFilterRule,
   PayloadParamValidationErrorCode,
   PayloadRule,
@@ -37,6 +39,7 @@ import type {
   VisualConfigValidationErrors,
   VisualConfigValues,
 } from '@/types/visualConfig';
+import { CODEX_IDENTITY_MODES } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
   CodexContextWindowOverridesEditor,
@@ -140,6 +143,7 @@ function SectionSubsection({
 
 function FieldShell({
   label,
+  labelAdornment,
   labelId,
   htmlFor,
   hint,
@@ -149,6 +153,7 @@ function FieldShell({
   children,
 }: {
   label: string;
+  labelAdornment?: ReactNode;
   labelId?: string;
   htmlFor?: string;
   hint?: string;
@@ -160,7 +165,8 @@ function FieldShell({
   return (
     <div className={styles.fieldShell}>
       <label id={labelId} htmlFor={htmlFor} className={styles.fieldLabel}>
-        {label}
+        <span className={styles.fieldLabelText}>{label}</span>
+        {labelAdornment}
       </label>
       {children}
       {error ? (
@@ -197,6 +203,8 @@ export function VisualConfigEditor({
   const disableImageGenerationHintId = `${disableImageGenerationLabelId}-hint`;
   const kiroCooldownStrategyLabelId = useId();
   const kiroCooldownStrategyHintId = `${kiroCooldownStrategyLabelId}-hint`;
+  const codexIdentityModeLabelId = useId();
+  const codexIdentityModeHintId = `${codexIdentityModeLabelId}-hint`;
   const keepaliveInputId = useId();
   const keepaliveHintId = `${keepaliveInputId}-hint`;
   const keepaliveErrorId = `${keepaliveInputId}-error`;
@@ -1173,15 +1181,83 @@ export function VisualConfigEditor({
                         onChange={(e) => onChange({ codexHeaderBetaFeatures: e.target.value })}
                         disabled={disabled}
                       />
-                      <ToggleRow
-                        title={t('config_management.visual.sections.headers.identity_confuse')}
-                        description={t(
-                          'config_management.visual.sections.headers.identity_confuse_desc'
-                        )}
-                        checked={values.codexIdentityConfuse}
-                        disabled={disabled}
-                        onChange={(codexIdentityConfuse) => onChange({ codexIdentityConfuse })}
-                      />
+                      <FieldShell
+                        label={t('config_management.visual.sections.headers.identity_mode')}
+                        labelAdornment={
+                          <InfoTooltip
+                            ariaLabel={t(
+                              'config_management.visual.sections.headers.identity_mode_help_aria'
+                            )}
+                            title={t(
+                              'config_management.visual.sections.headers.identity_mode_help_title'
+                            )}
+                            content={
+                              <div className={styles.identityFlow}>
+                                <div className={styles.identityFlowLine}>
+                                  {t(
+                                    'config_management.visual.sections.headers.identity_flow_client'
+                                  )}
+                                  <span aria-hidden="true">→</span>
+                                  {t(
+                                    'config_management.visual.sections.headers.identity_flow_credential'
+                                  )}
+                                  <span aria-hidden="true">→</span>
+                                  {t(
+                                    'config_management.visual.sections.headers.identity_flow_upstream'
+                                  )}
+                                </div>
+                                <div className={styles.identityFlowExample}>
+                                  {t(
+                                    'config_management.visual.sections.headers.identity_flow_example'
+                                  )}
+                                </div>
+                                <ul className={styles.identityFlowList}>
+                                  {CODEX_IDENTITY_MODES.map((mode) => (
+                                    <li key={mode}>
+                                      <span className={styles.term}>
+                                        {t(
+                                          `config_management.visual.sections.headers.identity_mode_${mode}`
+                                        )}
+                                      </span>
+                                      <span className={styles.description}>
+                                        {' '}
+                                        {t(
+                                          `config_management.visual.sections.headers.identity_mode_help_${mode}`
+                                        )}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            }
+                            footnote={t(
+                              'config_management.visual.sections.headers.identity_mode_help_footnote'
+                            )}
+                          />
+                        }
+                        labelId={codexIdentityModeLabelId}
+                        hint={t('config_management.visual.sections.headers.identity_mode_hint')}
+                        hintId={codexIdentityModeHintId}
+                      >
+                        <Select
+                          value={values.codexIdentityMode}
+                          options={CODEX_IDENTITY_MODES.map((mode) => ({
+                            value: mode,
+                            label: t(
+                              `config_management.visual.sections.headers.identity_mode_${mode}`
+                            ),
+                          }))}
+                          id={`${codexIdentityModeLabelId}-select`}
+                          disabled={disabled}
+                          ariaLabelledBy={codexIdentityModeLabelId}
+                          ariaDescribedBy={codexIdentityModeHintId}
+                          onChange={(nextValue) =>
+                            onChange({
+                              codexIdentityMode: nextValue as CodexIdentityMode,
+                            })
+                          }
+                        />
+                      </FieldShell>
                     </SectionGrid>
                   </SectionSubsection>
                 </SectionStack>

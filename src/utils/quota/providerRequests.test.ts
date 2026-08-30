@@ -8,7 +8,7 @@ vi.mock('@/services/api/apiCall', () => ({
   getApiCallErrorMessage: () => 'request failed',
 }));
 
-import { buildXaiBillingSummary, fetchXaiQuota } from './providerRequests';
+import { buildXaiBillingSummary, fetchCodexQuota, fetchXaiQuota } from './providerRequests';
 
 const t = (key: string) => key;
 
@@ -98,5 +98,25 @@ describe('xAI quota requests', () => {
       2,
       expect.objectContaining({ authIndex: '8', url: 'https://cli-chat-proxy.grok.com/v1/billing' })
     );
+  });
+});
+
+describe('upstream status errors', () => {
+  it('marks api-call passthrough failures as upstream so 404 is not reported as an outdated CPA', async () => {
+    requestMock.mockReset();
+    requestMock.mockResolvedValueOnce({
+      statusCode: 404,
+      body: { error: { message: 'official endpoint not found' } },
+      bodyText: '',
+    });
+
+    const error = await fetchCodexQuota(
+      { name: 'codex-user.json', auth_index: '11' },
+      t as never
+    ).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error & { status?: number }).status).toBe(404);
+    expect((error as Error & { upstream?: boolean }).upstream).toBe(true);
   });
 });

@@ -46,10 +46,27 @@ export function formatCodexResetLabel(window?: CodexUsageWindow | null): string 
   return '-';
 }
 
-export function createStatusError(message: string, status?: number): Error & { status?: number } {
-  const error = new Error(message) as Error & { status?: number };
+export interface StatusErrorOptions {
+  /**
+   * True when `status` is the upstream provider's HTTP status passed through the
+   * management `api-call` endpoint (HTTP 200 wrapping `status_code`). Such codes
+   * describe the official network, not the CPA server itself, so the UI must not
+   * turn a 404 into an "update CPA" hint.
+   */
+  upstream?: boolean;
+}
+
+export function createStatusError(
+  message: string,
+  status?: number,
+  options?: StatusErrorOptions
+): Error & { status?: number; upstream?: boolean } {
+  const error = new Error(message) as Error & { status?: number; upstream?: boolean };
   if (status !== undefined) {
     error.status = status;
+  }
+  if (options?.upstream) {
+    error.upstream = true;
   }
   return error;
 }
@@ -66,6 +83,15 @@ export function getStatusFromError(err: unknown): number | undefined {
     }
   }
   return undefined;
+}
+
+export function isUpstreamStatusError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'upstream' in err &&
+    (err as { upstream?: unknown }).upstream === true
+  );
 }
 
 export function formatKimiResetHint(t: TFunction, hint?: string): string {

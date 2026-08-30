@@ -12,6 +12,10 @@
 .ruleRow { display: grid; grid-template-columns: auto minmax(130px, .55fr) minmax(240px, 1fr) auto; gap: $spacing-sm; align-items: center; }
 .monospace { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .scanners { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: $spacing-sm; label { color: var(--text-secondary); font-size: 13px; } }
+.thresholds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $spacing-sm $spacing-md; }
+.thresholdRow { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: $spacing-sm; align-items: center; label { color: var(--text-secondary); font-size: 13px; } }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: $spacing-md; }
+.metric { display: flex; flex-direction: column; gap: 4px; padding: $spacing-md; border: 1px solid var(--app-border); border-radius: $radius-md; span { color: var(--text-secondary); font-size: 12px; } strong { color: var(--text-primary); font-size: 18px; } }
 .tableWrap { overflow-x: auto; table { width: 100%; border-collapse: collapse; } th, td { padding: 10px 12px; border-bottom: 1px solid var(--app-border); text-align: left; vertical-align: top; font-size: 13px; } th { color: var(--text-secondary); white-space: nowrap; } }
 .preview { max-width: 360px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .badge { display: inline-flex; border-radius: $radius-full; padding: 2px 8px; background: var(--surface-subtle); font-weight: 600; }
@@ -24,6 +28,6 @@
 @media (max-width: $breakpoint-mobile) {
   .header { flex-direction: column; }
   .grid, .scanners { grid-template-columns: 1fr; }
+  .thresholds { grid-template-columns: 1fr; }
   .ruleRow { grid-template-columns: auto 1fr; > :nth-child(3) { grid-column: 1 / -1; } }
 }
-
