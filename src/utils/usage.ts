@@ -213,6 +213,7 @@ export function getServiceTierMultiplier(modelName: string, serviceTier?: string
     .trim()
     .toLowerCase();
   if (tier === 'flex') return 0.5;
+  if (tier === 'ultrafast') return 2;
   if (tier !== 'priority' && tier !== 'fast') return 1;
 
   const normalizedModel = String(modelName ?? '')

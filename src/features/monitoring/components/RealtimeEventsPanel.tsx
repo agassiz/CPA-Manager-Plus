@@ -159,6 +159,9 @@ const resolveServiceSpeedLabel = (serviceTier: string | null | undefined, t: TFu
   if (normalized === 'priority' || normalized === 'fast') {
     return t('monitoring.service_tier_fast');
   }
+  if (normalized === 'ultrafast') {
+    return t('monitoring.service_tier_ultrafast');
+  }
   if (normalized === 'default') {
     return t('monitoring.service_tier_default');
   }

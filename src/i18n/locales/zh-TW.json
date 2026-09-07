@@ -1649,6 +1649,7 @@
     "service_tier_standard": "標準",
     "service_tier_default": "預設",
     "service_tier_fast": "快速",
+    "service_tier_ultrafast": "極速",
     "executor_type": "執行器類型",
     "executor_type_short": "執行器",
     "security_policy": "安全策略",

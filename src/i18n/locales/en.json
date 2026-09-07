@@ -1661,6 +1661,7 @@
     "service_tier_standard": "Standard",
     "service_tier_default": "Default",
     "service_tier_fast": "Fast",
+    "service_tier_ultrafast": "Ultrafast",
     "executor_type": "Executor Type",
     "executor_type_short": "Executor",
     "security_policy": "Security Policy",
