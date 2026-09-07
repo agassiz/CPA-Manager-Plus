@@ -97,25 +97,46 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
-  it('round-trips the Responses compact fallback model', () => {
+  it('reads and writes the Codex global compact model key', () => {
     const harness = mountUseVisualConfig();
-    const yaml = ['codex:', '  responses-compact-fallback-model: claude-sonnet-4-6', ''].join('\n');
+    const yaml = ['codex:', '  responses-compact-model: claude-sonnet-4-6', ''].join('\n');
 
     act(() => {
       const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
       expect(result.ok).toBe(true);
     });
-    expect(harness.getCurrent().visualValues.responsesCompactFallbackModel).toBe(
+    expect(harness.getCurrent().visualValues.responsesCompactModel).toBe(
       'claude-sonnet-4-6'
     );
 
     act(() => {
-      harness.getCurrent().setVisualValues({ responsesCompactFallbackModel: 'claude-opus-4-6' });
+      harness.getCurrent().setVisualValues({ responsesCompactModel: 'claude-opus-4-6' });
     });
 
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).toContain('codex:');
-    expect(savedYaml).toContain('responses-compact-fallback-model: claude-opus-4-6');
+    expect(savedYaml).toContain('responses-compact-model: claude-opus-4-6');
+    expect(savedYaml).not.toContain('responses-compact-fallback-model');
+
+    harness.unmount();
+  });
+
+  it('removes the retired Codex global compact model mapping on save', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'codex:',
+      '  responses-compact-model-mapping:',
+      '    gpt-5.6-*: gpt-5.6-terra',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).not.toContain('responses-compact-model-mapping:');
 
     harness.unmount();
   });

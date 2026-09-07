@@ -1004,16 +1004,16 @@ export function VisualConfigEditor({
                 )}
                 <Input
                   label={t(
-                    'config_management.visual.sections.network.codex_compact_fallback_model'
+                    'config_management.visual.sections.network.codex_compact_model'
                   )}
-                  value={values.responsesCompactFallbackModel}
+                  value={values.responsesCompactModel}
                   placeholder="claude-sonnet-4-6"
                   disabled={disabled}
                   hint={t(
-                    'config_management.visual.sections.network.codex_compact_fallback_model_hint'
+                    'config_management.visual.sections.network.codex_compact_model_hint'
                   )}
                   onChange={(event) =>
-                    onChange({ responsesCompactFallbackModel: event.target.value })
+                    onChange({ responsesCompactModel: event.target.value })
                   }
                 />
                 <CodexContextWindowOverridesEditor

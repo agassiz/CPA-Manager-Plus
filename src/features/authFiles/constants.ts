@@ -305,6 +305,40 @@ export const applyCodexAuthFileExclusiveConfig = (
   return next;
 };
 
+export const readCodexAuthFileResponsesCompactMapping = (
+  value: Record<string, unknown>
+): Record<string, string> => {
+  const raw = value.responses_compact_model_mapping;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  return Object.entries(raw as Record<string, unknown>).reduce<Record<string, string>>(
+    (result, [model, target]) => {
+      if (typeof model === 'string' && typeof target === 'string') {
+        const trimmedModel = model.trim();
+        const trimmedTarget = target.trim();
+        if (trimmedModel && trimmedTarget) {
+          result[trimmedModel] = trimmedTarget;
+        }
+      }
+      return result;
+    },
+    {}
+  );
+};
+
+export const applyCodexAuthFileResponsesCompactMapping = (
+  value: Record<string, unknown>,
+  mapping: Record<string, string> | null
+): Record<string, unknown> => {
+  const next = { ...value };
+  if (mapping && Object.keys(mapping).length > 0) {
+    next.responses_compact_model_mapping = mapping;
+  } else {
+    delete next.responses_compact_model_mapping;
+  }
+  return next;
+};
+
 export function isRuntimeOnlyAuthFile(file: AuthFileItem): boolean {
   const raw = file['runtime_only'] ?? file.runtimeOnly;
   if (typeof raw === 'boolean') return raw;

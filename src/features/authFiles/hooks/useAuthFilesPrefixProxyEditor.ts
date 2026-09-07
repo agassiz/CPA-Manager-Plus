@@ -7,9 +7,11 @@ import {
   applyCodexAuthFileWebsockets,
   applyCodexAuthFileSuperCategory,
   applyCodexAuthFileExclusiveConfig,
+  applyCodexAuthFileResponsesCompactMapping,
   normalizeProviderKey,
   parsePriorityValue,
   readCodexAuthFileExclusiveConfig,
+  readCodexAuthFileResponsesCompactMapping,
   readCodexAuthFileSuperCategory,
   readCodexAuthFileWebsockets,
 } from '@/features/authFiles/constants';
@@ -19,7 +21,8 @@ type AuthFileHeadersErrorKey =
   | 'auth_files.headers_invalid_json'
   | 'auth_files.headers_invalid_object'
   | 'auth_files.headers_invalid_value'
-  | 'auth_files.exclusive_config_invalid';
+  | 'auth_files.exclusive_config_invalid'
+  | 'auth_files.responses_compact_mapping_invalid';
 type AuthFileContentErrorKey =
   | 'auth_files.prefix_proxy_invalid_json'
   | 'auth_files.prefix_proxy_html_challenge';
@@ -33,6 +36,7 @@ export type PrefixProxyEditorField =
   | 'exclusiveEnabled'
   | 'exclusiveModel'
   | 'exclusiveThreshold'
+  | 'responsesCompactMapping'
   | 'note'
   | 'headersText';
 
@@ -64,12 +68,74 @@ export type PrefixProxyEditorState = {
   exclusiveAllowed: boolean;
   exclusiveModels: string[];
   exclusiveModelsLoading: boolean;
+  responsesCompactMappingEnabled: boolean;
+  responsesCompactMappingEntries: CodexResponsesCompactMappingEntry[];
+  responsesCompactMappingTouched: boolean;
   note: string;
   noteTouched: boolean;
   headersText: string;
   headersTouched: boolean;
   headersError: string | null;
 };
+
+export type CodexResponsesCompactMappingEntry = {
+  id: string;
+  model: string;
+  target: string;
+};
+
+const createResponsesCompactMappingEntry = (): CodexResponsesCompactMappingEntry => ({
+  id: crypto.randomUUID(),
+  model: '',
+  target: '',
+});
+
+const codexResponsesCompactMappingFromEntries = (
+  entries: CodexResponsesCompactMappingEntry[]
+): Record<string, string> | null => {
+  const mapping: Record<string, string> = {};
+  for (const entry of entries) {
+    const model = entry.model.trim();
+    const target = entry.target.trim();
+    if (!model || !target) return null;
+    mapping[model] = target;
+  }
+  return mapping;
+};
+
+const hasInvalidResponsesCompactMappingEntries = (
+  entries: CodexResponsesCompactMappingEntry[]
+): boolean => {
+  const models = new Set<string>();
+  return entries.some((entry) => {
+    const model = entry.model.trim().toLowerCase();
+    const target = entry.target.trim();
+    if (!model || !target || models.has(model)) return true;
+    models.add(model);
+    return false;
+  });
+};
+
+const areResponsesCompactMappingsEqual = (
+  left: Record<string, string>,
+  right: Record<string, string>
+): boolean => {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => left[key] === right[key]);
+};
+
+const responsesCompactMappingEntriesFromMapping = (
+  mapping: Record<string, string>
+): CodexResponsesCompactMappingEntry[] =>
+  Object.entries(mapping)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([model, target]) => ({
+      id: crypto.randomUUID(),
+      model,
+      target,
+    }));
 
 export type UseAuthFilesPrefixProxyEditorOptions = {
   disableControls: boolean;
@@ -87,6 +153,13 @@ export type UseAuthFilesPrefixProxyEditorResult = {
     value: PrefixProxyEditorFieldValue
   ) => void;
   handlePrefixProxySave: () => Promise<void>;
+  addResponsesCompactMappingEntry: () => void;
+  updateResponsesCompactMappingEntry: (
+    id: string,
+    field: 'model' | 'target',
+    value: string
+  ) => void;
+  removeResponsesCompactMappingEntry: (id: string) => void;
 };
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
@@ -325,6 +398,25 @@ const buildAuthFileFieldsPatch = (
     }
   }
 
+  if (editor.providerKey === 'codex' && editor.responsesCompactMappingTouched) {
+    const originalMapping = readCodexAuthFileResponsesCompactMapping(original);
+    if (!editor.responsesCompactMappingEnabled) {
+      if (Object.keys(originalMapping).length > 0) {
+        patch.responses_compact_model_mapping = null;
+      }
+    } else {
+      const nextMapping = codexResponsesCompactMappingFromEntries(
+        editor.responsesCompactMappingEntries
+      );
+      if (!nextMapping) {
+        throw new Error(resolveHeadersError('auth_files.responses_compact_mapping_invalid'));
+      }
+      if (!areResponsesCompactMappingsEqual(originalMapping, nextMapping)) {
+        patch.responses_compact_model_mapping = nextMapping;
+      }
+    }
+  }
+
   return patch;
 };
 
@@ -378,6 +470,9 @@ const buildPrefixProxyUpdatedText = (
   if (patch.exclusive_config !== undefined) {
     next = applyCodexAuthFileExclusiveConfig(next, patch.exclusive_config);
   }
+  if (patch.responses_compact_model_mapping !== undefined) {
+    next = applyCodexAuthFileResponsesCompactMapping(next, patch.responses_compact_model_mapping);
+  }
 
   return JSON.stringify(next);
 };
@@ -400,9 +495,15 @@ export function useAuthFilesPrefixProxyEditor(
       Number(prefixProxyEditor.exclusiveThreshold.trim()) < 1 ||
       Number(prefixProxyEditor.exclusiveThreshold.trim()) > 100)
   );
+  const hasInvalidResponsesCompactMapping = Boolean(
+    prefixProxyEditor?.providerKey === 'codex' &&
+    prefixProxyEditor.responsesCompactMappingEnabled &&
+    hasInvalidResponsesCompactMappingEntries(prefixProxyEditor.responsesCompactMappingEntries)
+  );
   const hasBlockingValidationError = Boolean(
     (prefixProxyEditor?.headersTouched && prefixProxyEditor.headersError) ||
-    hasInvalidExclusiveConfig
+    hasInvalidExclusiveConfig ||
+    hasInvalidResponsesCompactMapping
   );
   const prefixProxyUpdatedText =
     prefixProxyEditor && !hasBlockingValidationError
@@ -459,6 +560,9 @@ export function useAuthFilesPrefixProxyEditor(
       exclusiveAllowed: Boolean(file.exclusive_config_allowed ?? file.exclusiveConfigAllowed),
       exclusiveModels: [],
       exclusiveModelsLoading: false,
+      responsesCompactMappingEnabled: false,
+      responsesCompactMappingEntries: [],
+      responsesCompactMappingTouched: false,
       note: '',
       noteTouched: false,
       headersText: '',
@@ -517,6 +621,8 @@ export function useAuthFilesPrefixProxyEditor(
       const exclusiveAllowed = Boolean(
         file.exclusive_config_allowed ?? file.exclusiveConfigAllowed
       );
+      const responsesCompactMapping =
+        providerKey === 'codex' ? readCodexAuthFileResponsesCompactMapping(json) : {};
       const note = typeof json.note === 'string' ? json.note : '';
       const headers = json.headers;
       let headersText = '';
@@ -552,6 +658,10 @@ export function useAuthFilesPrefixProxyEditor(
           exclusiveAllowed,
           exclusiveModels: [],
           exclusiveModelsLoading: providerKey === 'codex' && exclusiveAllowed,
+          responsesCompactMappingEnabled: Object.keys(responsesCompactMapping).length > 0,
+          responsesCompactMappingEntries:
+            responsesCompactMappingEntriesFromMapping(responsesCompactMapping),
+          responsesCompactMappingTouched: false,
           note,
           noteTouched: false,
           headersText,
@@ -612,6 +722,18 @@ export function useAuthFilesPrefixProxyEditor(
       if (field === 'exclusiveThreshold') {
         return { ...prev, exclusiveThreshold: String(value), exclusiveTouched: true };
       }
+      if (field === 'responsesCompactMapping') {
+        const enabled = Boolean(value);
+        return {
+          ...prev,
+          responsesCompactMappingEnabled: enabled,
+          responsesCompactMappingTouched: true,
+          responsesCompactMappingEntries:
+            enabled && prev.responsesCompactMappingEntries.length === 0
+              ? [createResponsesCompactMappingEntry()]
+              : prev.responsesCompactMappingEntries,
+        };
+      }
       if (field === 'note') return { ...prev, note: String(value), noteTouched: true };
       if (field === 'headersText') {
         const headersText = String(value);
@@ -662,6 +784,53 @@ export function useAuthFilesPrefixProxyEditor(
     }
   };
 
+  const addResponsesCompactMappingEntry = () => {
+    setPrefixProxyEditor((prev) =>
+      prev
+        ? {
+            ...prev,
+            responsesCompactMappingEntries: [
+              ...prev.responsesCompactMappingEntries,
+              createResponsesCompactMappingEntry(),
+            ],
+            responsesCompactMappingTouched: true,
+          }
+        : prev
+    );
+  };
+
+  const updateResponsesCompactMappingEntry = (
+    id: string,
+    field: 'model' | 'target',
+    value: string
+  ) => {
+    setPrefixProxyEditor((prev) =>
+      prev
+        ? {
+            ...prev,
+            responsesCompactMappingEntries: prev.responsesCompactMappingEntries.map((entry) =>
+              entry.id === id ? { ...entry, [field]: value } : entry
+            ),
+            responsesCompactMappingTouched: true,
+          }
+        : prev
+    );
+  };
+
+  const removeResponsesCompactMappingEntry = (id: string) => {
+    setPrefixProxyEditor((prev) =>
+      prev
+        ? {
+            ...prev,
+            responsesCompactMappingEntries: prev.responsesCompactMappingEntries.filter(
+              (entry) => entry.id !== id
+            ),
+            responsesCompactMappingTouched: true,
+          }
+        : prev
+    );
+  };
+
   return {
     prefixProxyEditor,
     prefixProxyUpdatedText,
@@ -670,5 +839,8 @@ export function useAuthFilesPrefixProxyEditor(
     closePrefixProxyEditor,
     handlePrefixProxyChange,
     handlePrefixProxySave,
+    addResponsesCompactMappingEntry,
+    updateResponsesCompactMappingEntry,
+    removeResponsesCompactMappingEntry,
   };
 }

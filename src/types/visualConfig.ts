@@ -13,6 +13,7 @@ export type APIKeyAccessRuleConfig = {
   authIds: string[];
   providers: string[];
 };
+
 export type PayloadParamValidationErrorCode =
   | 'payload_invalid_number'
   | 'payload_invalid_boolean'
@@ -137,7 +138,7 @@ export type VisualConfigValues = {
   proxyUrl: string;
   forceModelPrefix: boolean;
   imageFallbackModel: string;
-  responsesCompactFallbackModel: string;
+  responsesCompactModel: string;
   codexModelContextWindowOverrides: CodexContextWindowOverride[];
   codexForceSuperCategory: boolean;
   codexBugMode: boolean;
@@ -225,7 +226,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   proxyUrl: '',
   forceModelPrefix: false,
   imageFallbackModel: '',
-  responsesCompactFallbackModel: '',
+  responsesCompactModel: '',
   codexModelContextWindowOverrides: [],
   codexForceSuperCategory: false,
   codexBugMode: false,

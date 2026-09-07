@@ -2125,8 +2125,25 @@ button.authFileTableQuotaPrompt {
   gap: $spacing-sm;
 }
 
+.responsesCompactMappingList {
+  display: grid;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.responsesCompactMappingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
 @include mobile {
   .prefixProxyInlineFields {
+    grid-template-columns: 1fr;
+  }
+
+  .responsesCompactMappingRow {
     grid-template-columns: 1fr;
   }
 }
@@ -3091,7 +3108,9 @@ button.authFileTableQuotaPrompt {
 .superCategoryGroupHealthFill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  transition:
+    width 0.3s ease,
+    background-color 0.3s ease;
 }
 
 .superCategoryGroupHealthValue {

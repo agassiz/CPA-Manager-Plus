@@ -890,6 +890,11 @@
     "exclusive_config_threshold_label": "保留阈值（%）",
     "exclusive_config_threshold_placeholder": "1 - 100",
     "exclusive_config_invalid": "请从该认证文件支持的模型中选择专享模型，并填写 1 到 100 的整数阈值。",
+    "responses_compact_mapping_label": "Responses 压缩模型映射",
+    "responses_compact_mapping_hint": "仅重写 Codex /responses/compact 请求模型。键支持精确模型 ID 或 gpt-5.6-* 这类通配符。",
+    "responses_compact_mapping_model_placeholder": "请求模型，例如 gpt-5.6-*",
+    "responses_compact_mapping_target_placeholder": "压缩模型，例如 gpt-5.6-terra",
+    "responses_compact_mapping_invalid": "每条映射都必须填写请求模型和压缩模型，且请求模型不能重复。",
     "super_category_badge": "超级分类",
     "super_category_badge_title": "此 Codex 认证文件已开启超级分类",
     "super_category_display": "超级",
@@ -1633,6 +1638,7 @@
     "service_tier_standard": "标准",
     "service_tier_default": "默认",
     "service_tier_fast": "快速",
+    "service_tier_ultrafast": "极速",
     "executor_type": "执行器类型",
     "executor_type_short": "执行器",
     "security_policy": "安全策略",
@@ -2274,18 +2280,18 @@
           "identity_mode_off": "关闭：原样透传客户端标识",
           "identity_mode_confuse": "混淆：按凭据重映射，凭据间互不关联",
           "identity_mode_device": "设备收敛：设备按凭证固定，会话按客户端会话区分并在凭证内保持稳定",
-          "identity_mode_full": "完全收敛：设备按凭证固定，会话按客户端会话区分，线程在凭证内合并为一个"
-          ,"identity_mode_help_aria": "查看四档身份策略的说明"
-          ,"identity_mode_help_title": "怎么选？看这里的例子"
-          ,"identity_flow_client": "真实客户端/会话"
-          ,"identity_flow_credential": "服务端凭证轮询"
-          ,"identity_flow_upstream": "上游判定身份"
-          ,"identity_flow_example": "例：3 个客户端各有长期会话，每个会话连续请求很多次；请求可能依次使用凭证 A、B、C。模式决定上游最终看到哪些标识。"
-          ,"identity_mode_help_off": "原样透传。例：3 个真实客户端各有 1 个长期会话，每个会话连续请求很多次；请求轮询到不同凭据时，上游仍按客户端原始标识分别看到它们。"
-          ,"identity_mode_help_confuse": "按凭据分别重映射。例：同一个客户端的连续请求从凭据 A 轮询到 B 时，上游会看到两套互不关联的设备/会话；仅在 fill-first 或 session-affinity 路由下生效。"
-          ,"identity_mode_help_device": "设备按凭据固定，会话由“凭据 + 客户端原始会话”派生。例：同一客户端在 A 上重复请求会保持同一会话，切到 B 会得到不同会话；A 上的另一个客户端也有不同会话。"
-          ,"identity_mode_help_full": "设备按凭据固定，会话仍由“凭据 + 客户端原始会话”区分，线程在同一凭据内合并。例：同一客户端从 A 切到 B 时设备/会话不同；A 上多个客户端共用一个线程。"
-          ,"identity_mode_help_footnote": "以上收敛档都不改变 prompt_cache_key：同一客户端原始会话的缓存键不随凭据切换；但上游设备/会话身份会按凭据区分。"
+          "identity_mode_full": "完全收敛：设备按凭证固定，会话按客户端会话区分，线程在凭证内合并为一个",
+          "identity_mode_help_aria": "查看四档身份策略的说明",
+          "identity_mode_help_title": "怎么选？看这里的例子",
+          "identity_flow_client": "真实客户端/会话",
+          "identity_flow_credential": "服务端凭证轮询",
+          "identity_flow_upstream": "上游判定身份",
+          "identity_flow_example": "例：3 个客户端各有长期会话，每个会话连续请求很多次；请求可能依次使用凭证 A、B、C。模式决定上游最终看到哪些标识。",
+          "identity_mode_help_off": "原样透传。例：3 个真实客户端各有 1 个长期会话，每个会话连续请求很多次；请求轮询到不同凭据时，上游仍按客户端原始标识分别看到它们。",
+          "identity_mode_help_confuse": "按凭据分别重映射。例：同一个客户端的连续请求从凭据 A 轮询到 B 时，上游会看到两套互不关联的设备/会话；仅在 fill-first 或 session-affinity 路由下生效。",
+          "identity_mode_help_device": "设备按凭据固定，会话由“凭据 + 客户端原始会话”派生。例：同一客户端在 A 上重复请求会保持同一会话，切到 B 会得到不同会话；A 上的另一个客户端也有不同会话。",
+          "identity_mode_help_full": "设备按凭据固定，会话仍由“凭据 + 客户端原始会话”区分，线程在同一凭据内合并。例：同一客户端从 A 切到 B 时设备/会话不同；A 上多个客户端共用一个线程。",
+          "identity_mode_help_footnote": "以上收敛档都不改变 prompt_cache_key：同一客户端原始会话的缓存键不随凭据切换；但上游设备/会话身份会按凭据区分。"
         },
         "network": {
           "title": "网络配置",
@@ -2329,8 +2335,8 @@
           "ws_auth_desc": "启用 WebSocket 连接认证 (/v1/ws)",
           "enable_gemini_cli_endpoint": "启用 Gemini CLI 内部端点",
           "enable_gemini_cli_endpoint_desc": "启用 /v1internal:* 兼容端点",
-          "codex_compact_fallback_model": "Codex App 压缩回退模型",
-          "codex_compact_fallback_model_hint": "当 Codex App 请求 /responses/compact，而当前凭证没有原生压缩接口时，通过普通 Responses 链路生成上下文摘要。留空使用当前聊天模型；填写后使用指定模型，例如 Claude 模型。",
+          "codex_compact_model": "Codex 全局压缩模型",
+          "codex_compact_model_hint": "仅用于官方 Codex 压缩请求。匹配的凭证压缩模型映射优先；否则填写精确模型 ID 后，若该模型当前可用将优先使用；不可用则回退当前聊天模型。不支持通配符。留空则使用当前聊天模型。",
           "codex_context_window_overrides": "Codex 模型上下文覆盖",
           "codex_context_window_overrides_hint": "按 Codex 返回的模型 slug 精确匹配，并重写 context_window 与 max_context_window；未匹配模型不受影响。",
           "codex_context_window_overrides_empty": "暂无覆盖项。添加模型 slug 和最大上下文 token 数。",

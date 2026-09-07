@@ -20,12 +20,30 @@ export type AuthFilesPrefixProxyEditorModalProps = {
   onCopyText: (text: string) => void | Promise<void>;
   onSave: () => void;
   onChange: (field: PrefixProxyEditorField, value: PrefixProxyEditorFieldValue) => void;
+  addResponsesCompactMappingEntry: () => void;
+  updateResponsesCompactMappingEntry: (
+    id: string,
+    field: 'model' | 'target',
+    value: string
+  ) => void;
+  removeResponsesCompactMappingEntry: (id: string) => void;
 };
 
 export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEditorModalProps) {
   const { t } = useTranslation();
-  const { disableControls, editor, updatedText, dirty, onClose, onCopyText, onSave, onChange } =
-    props;
+  const {
+    disableControls,
+    editor,
+    updatedText,
+    dirty,
+    onClose,
+    onCopyText,
+    onSave,
+    onChange,
+    addResponsesCompactMappingEntry,
+    updateResponsesCompactMappingEntry,
+    removeResponsesCompactMappingEntry,
+  } = props;
   const formatJsonText = (text: string) => {
     if (!text) return '';
     try {
@@ -42,6 +60,18 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
       !Number.isInteger(Number(editor.exclusiveThreshold.trim())) ||
       Number(editor.exclusiveThreshold.trim()) < 1 ||
       Number(editor.exclusiveThreshold.trim()) > 100)
+  );
+  const responsesCompactMappingInvalid = Boolean(
+    editor?.responsesCompactMappingEnabled &&
+    (() => {
+      const models = new Set<string>();
+      return editor.responsesCompactMappingEntries.some((entry) => {
+        const model = entry.model.trim().toLowerCase();
+        if (!model || !entry.target.trim() || models.has(model)) return true;
+        models.add(model);
+        return false;
+      });
+    })()
   );
 
   return (
@@ -78,7 +108,8 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
               editor?.saving === true ||
               !dirty ||
               !editor?.json ||
-              Boolean(editor?.headersTouched && editor.headersError)
+              Boolean(editor?.headersTouched && editor.headersError) ||
+              responsesCompactMappingInvalid
             }
           >
             {t('common.save')}
@@ -203,6 +234,75 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
                           )}
                         </div>
                       )}
+                      <div className="form-group">
+                        <label>{t('auth_files.responses_compact_mapping_label')}</label>
+                        <ToggleSwitch
+                          checked={Boolean(editor.responsesCompactMappingEnabled)}
+                          onChange={(value) => onChange('responsesCompactMapping', value)}
+                          disabled={disableControls || editor.saving || !editor.json}
+                          ariaLabel={t('auth_files.responses_compact_mapping_label')}
+                        />
+                        <div className="hint">{t('auth_files.responses_compact_mapping_hint')}</div>
+                        {editor.responsesCompactMappingEnabled && (
+                          <div className={styles.responsesCompactMappingList}>
+                            {editor.responsesCompactMappingEntries.map((entry) => (
+                              <div key={entry.id} className={styles.responsesCompactMappingRow}>
+                                <input
+                                  className="input"
+                                  value={entry.model}
+                                  placeholder={t(
+                                    'auth_files.responses_compact_mapping_model_placeholder'
+                                  )}
+                                  disabled={disableControls || editor.saving || !editor.json}
+                                  onChange={(event) =>
+                                    updateResponsesCompactMappingEntry(
+                                      entry.id,
+                                      'model',
+                                      event.target.value
+                                    )
+                                  }
+                                />
+                                <input
+                                  className="input"
+                                  value={entry.target}
+                                  placeholder={t(
+                                    'auth_files.responses_compact_mapping_target_placeholder'
+                                  )}
+                                  disabled={disableControls || editor.saving || !editor.json}
+                                  onChange={(event) =>
+                                    updateResponsesCompactMappingEntry(
+                                      entry.id,
+                                      'target',
+                                      event.target.value
+                                    )
+                                  }
+                                />
+                                <Button
+                                  variant="danger"
+                                  size="xs"
+                                  onClick={() => removeResponsesCompactMappingEntry(entry.id)}
+                                  disabled={disableControls || editor.saving}
+                                >
+                                  {t('common.delete')}
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={addResponsesCompactMappingEntry}
+                              disabled={disableControls || editor.saving}
+                            >
+                              {t('common.add')}
+                            </Button>
+                            {responsesCompactMappingInvalid && (
+                              <div className="error-box">
+                                {t('auth_files.responses_compact_mapping_invalid')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                   <div className="form-group">

@@ -78,6 +78,7 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.service_tier': 'Speed',
     'monitoring.service_tier_short': 'Speed',
     'monitoring.service_tier_fast': 'Fast',
+    'monitoring.service_tier_ultrafast': 'Ultrafast',
     'monitoring.service_tier_default': 'Default',
     'monitoring.service_tier_standard': 'Standard',
     'monitoring.this_call_cost': 'Cost',
@@ -268,6 +269,17 @@ describe('RealtimeEventsPanel', () => {
     );
 
     expect(markup).toContain('Speed: Fast -&gt; Default');
+  });
+
+  it('renders ultrafast as a distinct speed label', () => {
+    const markup = renderPanel(
+      baseRow({
+        executorType: 'codex',
+        serviceTier: 'ultrafast',
+      })
+    );
+
+    expect(markup).toContain('Speed: Ultrafast');
   });
 
   it('renders security audit rejections as security policy records', () => {

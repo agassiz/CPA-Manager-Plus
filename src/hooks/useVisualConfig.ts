@@ -114,12 +114,14 @@ function parseAPIKeyAccessRules(raw: unknown): VisualConfigValues['apiKeyAccessR
             )
           )
         : [];
-    return [{
-      apiKey,
-      models: normalizeValues(rule.models, true),
-      authIds: normalizeValues(rule['auth-ids']),
-      providers: normalizeValues(rule.providers, true),
-    }];
+    return [
+      {
+        apiKey,
+        models: normalizeValues(rule.models, true),
+        authIds: normalizeValues(rule['auth-ids']),
+        providers: normalizeValues(rule.providers, true),
+      },
+    ];
   });
 }
 
@@ -593,7 +595,7 @@ function getNextDirtyFields(
       'disableAutoDisable',
       'disableImageGeneration',
       'imageFallbackModel',
-      'responsesCompactFallbackModel',
+      'responsesCompactModel',
       'authAutoRefreshWorkers',
       'enableGeminiCliEndpoint',
       'antigravitySignatureCacheEnabled',
@@ -937,9 +939,9 @@ export function useVisualConfig() {
           typeof parsed['image-fallback-model'] === 'string'
             ? parsed['image-fallback-model']
             : DEFAULT_VISUAL_VALUES.imageFallbackModel,
-        responsesCompactFallbackModel:
-          typeof codex?.['responses-compact-fallback-model'] === 'string'
-            ? codex['responses-compact-fallback-model']
+        responsesCompactModel:
+          typeof codex?.['responses-compact-model'] === 'string'
+            ? codex['responses-compact-model']
             : '',
         codexModelContextWindowOverrides: parseCodexModelContextWindowOverrides(
           codex?.['model-context-window-overrides']
@@ -1287,11 +1289,11 @@ export function useVisualConfig() {
           values.codexIdentityMode !== 'off' ||
           values.codexForceSuperCategory ||
           values.codexBugMode ||
-          values.responsesCompactFallbackModel.trim() ||
+          values.responsesCompactModel.trim() ||
           values.codexModelContextWindowOverrides.length > 0 ||
           dirtyFields.has('codexForceSuperCategory') ||
           dirtyFields.has('codexBugMode') ||
-          dirtyFields.has('responsesCompactFallbackModel') ||
+          dirtyFields.has('responsesCompactModel') ||
           dirtyFields.has('codexModelContextWindowOverrides') ||
           dirtyFields.has('codexIdentityMode')
         ) {
@@ -1329,15 +1331,15 @@ export function useVisualConfig() {
           if (
             shouldWriteManagedField(
               doc,
-              ['codex', 'responses-compact-fallback-model'],
+              ['codex', 'responses-compact-model'],
               dirtyFields,
-              'responsesCompactFallbackModel'
+              'responsesCompactModel'
             )
           ) {
             setStringInDoc(
               doc,
-              ['codex', 'responses-compact-fallback-model'],
-              values.responsesCompactFallbackModel
+              ['codex', 'responses-compact-model'],
+              values.responsesCompactModel
             );
           }
           if (
@@ -1356,6 +1358,9 @@ export function useVisualConfig() {
             } else if (docHas(doc, ['codex', 'model-context-window-overrides'])) {
               doc.deleteIn(['codex', 'model-context-window-overrides']);
             }
+          }
+          if (docHas(doc, ['codex', 'responses-compact-model-mapping'])) {
+            doc.deleteIn(['codex', 'responses-compact-model-mapping']);
           }
           deleteIfMapEmpty(doc, ['codex']);
         }

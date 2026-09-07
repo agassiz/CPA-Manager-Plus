@@ -230,6 +230,9 @@ export function AuthFilesPage() {
     closePrefixProxyEditor,
     handlePrefixProxyChange,
     handlePrefixProxySave,
+    addResponsesCompactMappingEntry,
+    updateResponsesCompactMappingEntry,
+    removeResponsesCompactMappingEntry,
   } = useAuthFilesPrefixProxyEditor({
     disableControls: connectionStatus !== 'connected',
     loadFiles,
@@ -1466,6 +1469,9 @@ export function AuthFilesPage() {
         onCopyText={copyTextWithNotification}
         onSave={handlePrefixProxySave}
         onChange={handlePrefixProxyChange}
+        addResponsesCompactMappingEntry={addResponsesCompactMappingEntry}
+        updateResponsesCompactMappingEntry={updateResponsesCompactMappingEntry}
+        removeResponsesCompactMappingEntry={removeResponsesCompactMappingEntry}
       />
 
       <AuthJsonPasteModal

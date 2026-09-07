@@ -614,6 +614,28 @@ describe('calculateCost model price preference', () => {
     expect(cost).toBeCloseTo(50);
   });
 
+  it('uses the ultrafast response tier at twice the standard price', () => {
+    const cost = calculateCost(
+      {
+        tokens: { input_tokens: 1_000_000 },
+        __modelName: 'gpt-5.6-sol',
+        service_tier: 'priority',
+        response_service_tier: 'ultrafast',
+      },
+      {
+        'gpt-5.6-sol': {
+          prompt: 5,
+          completion: 30,
+          cache: 0.5,
+          promptPriority: 12,
+          longContextInputTokenThreshold: 2_000_000,
+        },
+      }
+    );
+
+    expect(cost).toBeCloseTo(10);
+  });
+
 	it('uses explicit flex prices before applying the long-context policy', () => {
 		const cost = calculateCost(
 			{
@@ -863,8 +885,10 @@ describe('getServiceTierMultiplier', () => {
     expect(getServiceTierMultiplier('gpt-5.5', 'priority')).toBe(2.5);
     expect(getServiceTierMultiplier('gpt-5.6-sol', 'priority')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.6-sol', 'flex')).toBe(0.5);
+    expect(getServiceTierMultiplier('gpt-5.6-sol', 'ultrafast')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.3-codex', 'priority')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.4', 'unknown')).toBe(1);
     expect(getServiceTierMultiplier('unknown-model', 'priority')).toBe(1);
+    expect(getServiceTierMultiplier('unknown-model', 'ultrafast')).toBe(2);
   });
 });

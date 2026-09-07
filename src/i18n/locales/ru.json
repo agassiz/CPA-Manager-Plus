@@ -1633,6 +1633,7 @@
     "service_tier_standard": "Стандарт",
     "service_tier_default": "По умолчанию",
     "service_tier_fast": "Быстро",
+    "service_tier_ultrafast": "Ультрабыстро",
     "executor_type": "Тип исполнителя",
     "executor_type_short": "Исполнитель",
     "security_policy": "Политика безопасности",

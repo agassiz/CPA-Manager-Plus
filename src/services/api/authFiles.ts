@@ -17,6 +17,7 @@ export type AuthFileFieldsPatch = {
   websockets?: boolean;
   super_category?: boolean;
   exclusive_config?: { model: string; threshold: number } | null;
+  responses_compact_model_mapping?: Record<string, string> | null;
   headers?: Record<string, string>;
   priority?: number;
   note?: string;
