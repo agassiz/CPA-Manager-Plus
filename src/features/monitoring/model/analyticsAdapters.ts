@@ -898,6 +898,7 @@ export const buildUsageDetailsFromAnalyticsEvents = (
     fail_status_code: item.fail_status_code ?? null,
     fail_summary: readString(item.fail_summary),
     fail_body: readString(item.fail_body),
+    codex_turn_state_length: item.codex_turn_state_length ?? null,
     __modelName: item.model,
     __resolvedModel: readString(item.resolved_model),
     __endpoint: item.endpoint || `${item.method} ${item.path}`.trim(),

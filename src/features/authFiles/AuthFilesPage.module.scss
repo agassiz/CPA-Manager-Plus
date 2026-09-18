@@ -2040,7 +2040,7 @@ button.authFileTableQuotaPrompt {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
-  // 滚动交由 Modal 的 .modal-body 统一处理，避免编辑器内部再嵌套滚动容器。
+  // Let Modal own scrolling to avoid nested scroll containers in the editor.
   min-height: 0;
 }
 
@@ -2060,6 +2060,15 @@ button.authFileTableQuotaPrompt {
   border: 1px solid var(--danger-color);
   background-color: rgba($error-color, 0.1);
   color: var(--danger-color);
+  font-size: 12px;
+}
+
+.prefixProxyNoticeSuccess {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  border: 1px solid var(--success-color);
+  background-color: rgba($success-color, 0.1);
+  color: var(--success-color);
   font-size: 12px;
 }
 

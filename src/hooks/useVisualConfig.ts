@@ -32,6 +32,16 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function parseCodexTurnStateProxyProviderURLs(raw: unknown, legacy: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((value): value is string => typeof value === 'string');
+  }
+  if (typeof legacy === 'string' && legacy.trim() !== '') {
+    return [legacy];
+  }
+  return [];
+}
+
 // Reads codex.identity-mode and falls back to the legacy identity-confuse boolean,
 // which the backend still accepts as a read-only compatibility key.
 function parseCodexIdentityMode(codex: Record<string, unknown> | null): CodexIdentityMode {
@@ -464,6 +474,10 @@ function areCodexModelContextWindowOverridesEqual(
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 }
 
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 export function getVisualConfigValidationErrors(
   values: VisualConfigValues
 ): VisualConfigValidationErrors {
@@ -587,6 +601,8 @@ function getNextDirtyFields(
       'pluginsEnabled',
       'codexForceSuperCategory',
       'codexBugMode',
+      'codexRewriteTurnState',
+	  'codexTurnStateProxyAttemptTimeoutSeconds',
       'passthroughHeaders',
       'hideUpstreamErrorDetails',
       'disableClaudeCloakMode',
@@ -596,6 +612,7 @@ function getNextDirtyFields(
       'disableImageGeneration',
       'imageFallbackModel',
       'responsesCompactModel',
+      'forceSummaryCompaction',
       'authAutoRefreshWorkers',
       'enableGeminiCliEndpoint',
       'antigravitySignatureCacheEnabled',
@@ -787,6 +804,15 @@ function getNextDirtyFields(
       )
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'codexTurnStateProxyProviderUrls')) {
+    updateDirty(
+      'codexTurnStateProxyProviderUrls',
+      areStringArraysEqual(
+        nextValues.codexTurnStateProxyProviderUrls,
+        baselineValues.codexTurnStateProxyProviderUrls
+      )
+    );
+  }
   if (patch.streaming) {
     const streamingPatch = patch.streaming;
     if (Object.prototype.hasOwnProperty.call(streamingPatch, 'keepaliveSeconds')) {
@@ -943,11 +969,20 @@ export function useVisualConfig() {
           typeof codex?.['responses-compact-model'] === 'string'
             ? codex['responses-compact-model']
             : '',
+        forceSummaryCompaction: Boolean(codex?.['force-summary-compaction']),
         codexModelContextWindowOverrides: parseCodexModelContextWindowOverrides(
           codex?.['model-context-window-overrides']
         ),
         codexForceSuperCategory: Boolean(codex?.['force-super-category']),
         codexBugMode: Boolean(codex?.['bug-mode'] ?? codex?.bugMode),
+        codexRewriteTurnState: Boolean(codex?.['rewrite-turn-state'] ?? codex?.rewriteTurnState),
+        codexTurnStateProxyProviderUrls: parseCodexTurnStateProxyProviderURLs(
+          codex?.['turn-state-proxy-provider-urls'],
+          codex?.['turn-state-proxy-provider-url']
+        ),
+        codexTurnStateProxyAttemptTimeoutSeconds: String(
+          codex?.['turn-state-proxy-attempt-timeout-seconds'] ?? ''
+        ),
         passthroughHeaders: Boolean(parsed['passthrough-headers']),
         hideUpstreamErrorDetails: Boolean(
           parsed['hide-upstream-error-details'] ?? DEFAULT_VISUAL_VALUES.hideUpstreamErrorDetails
@@ -1289,11 +1324,19 @@ export function useVisualConfig() {
           values.codexIdentityMode !== 'off' ||
           values.codexForceSuperCategory ||
           values.codexBugMode ||
+          values.codexRewriteTurnState ||
+          values.codexTurnStateProxyProviderUrls.some((value) => value.trim() !== '') ||
+		  values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
           values.responsesCompactModel.trim() ||
+          values.forceSummaryCompaction ||
           values.codexModelContextWindowOverrides.length > 0 ||
           dirtyFields.has('codexForceSuperCategory') ||
           dirtyFields.has('codexBugMode') ||
+          dirtyFields.has('codexRewriteTurnState') ||
+          dirtyFields.has('codexTurnStateProxyProviderUrls') ||
+		  dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
           dirtyFields.has('responsesCompactModel') ||
+          dirtyFields.has('forceSummaryCompaction') ||
           dirtyFields.has('codexModelContextWindowOverrides') ||
           dirtyFields.has('codexIdentityMode')
         ) {
@@ -1328,6 +1371,42 @@ export function useVisualConfig() {
           ) {
             setBooleanInDoc(doc, ['codex', 'bug-mode'], values.codexBugMode);
           }
+		  if (
+			values.codexRewriteTurnState ||
+			dirtyFields.has('codexRewriteTurnState') ||
+			docHas(doc, ['codex', 'rewrite-turn-state'])
+		  ) {
+			setBooleanInDoc(doc, ['codex', 'rewrite-turn-state'], values.codexRewriteTurnState);
+		  }
+		  if (
+			values.codexTurnStateProxyProviderUrls.some((value) => value.trim() !== '') ||
+			dirtyFields.has('codexTurnStateProxyProviderUrls') ||
+			docHas(doc, ['codex', 'turn-state-proxy-provider-urls']) ||
+			docHas(doc, ['codex', 'turn-state-proxy-provider-url'])
+		  ) {
+			const providerURLs = values.codexTurnStateProxyProviderUrls
+				.map((value) => value.trim())
+				.filter(Boolean);
+			if (providerURLs.length > 0) {
+				doc.setIn(['codex', 'turn-state-proxy-provider-urls'], providerURLs);
+			} else if (docHas(doc, ['codex', 'turn-state-proxy-provider-urls'])) {
+				doc.deleteIn(['codex', 'turn-state-proxy-provider-urls']);
+			}
+			if (docHas(doc, ['codex', 'turn-state-proxy-provider-url'])) {
+				doc.deleteIn(['codex', 'turn-state-proxy-provider-url']);
+			}
+		  }
+		  if (
+			values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
+			dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
+			docHas(doc, ['codex', 'turn-state-proxy-attempt-timeout-seconds'])
+		  ) {
+			setIntFromStringInDoc(
+			  doc,
+			  ['codex', 'turn-state-proxy-attempt-timeout-seconds'],
+			  values.codexTurnStateProxyAttemptTimeoutSeconds
+			);
+		  }
           if (
             shouldWriteManagedField(
               doc,
@@ -1340,6 +1419,17 @@ export function useVisualConfig() {
               doc,
               ['codex', 'responses-compact-model'],
               values.responsesCompactModel
+            );
+          }
+          if (
+            values.forceSummaryCompaction ||
+            dirtyFields.has('forceSummaryCompaction') ||
+            docHas(doc, ['codex', 'force-summary-compaction'])
+          ) {
+            setBooleanInDoc(
+              doc,
+              ['codex', 'force-summary-compaction'],
+              values.forceSummaryCompaction
             );
           }
           if (

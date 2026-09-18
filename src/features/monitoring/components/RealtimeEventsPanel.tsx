@@ -112,6 +112,7 @@ const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   model: 160,
   endpoint: 220,
   clientIp: 140,
+  codexTurnStateLength: 120,
   authIndex: 150,
   provider: 150,
   reasoning: 120,
@@ -519,6 +520,8 @@ const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
       return t('monitoring.column_endpoint');
     case 'clientIp':
       return t('monitoring.column_client_ip');
+    case 'codexTurnStateLength':
+      return t('monitoring.column_codex_turn_state_length');
     case 'authIndex':
       return shortLabel(t, 'monitoring.auth_index_short', 'monitoring.auth_index');
     case 'provider':
@@ -889,6 +892,12 @@ export function RealtimeEventsPanel({
         );
       case 'clientIp':
         return <span className={styles.monoCell}>{formatOptionalText(row.clientIp)}</span>;
+      case 'codexTurnStateLength':
+        return (
+          <span className={styles.monoCell}>
+            {row.codexTurnStateLength == null ? '-' : row.codexTurnStateLength}
+          </span>
+        );
       case 'authIndex':
         return (
           <span className={styles.monoCell}>{row.authIndexMasked || row.authIndex || '-'}</span>

@@ -174,6 +174,7 @@ export type MonitoringEventRow = {
   channelHost: string;
   channelDisabled: boolean;
   failed: boolean;
+  codexTurnStateLength?: number | null;
   statsIncluded: boolean;
   latencyMs: number | null;
   ttftMs: number | null;

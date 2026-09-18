@@ -6,6 +6,7 @@ export type RealtimeColumnKey =
   | 'model'
   | 'endpoint'
   | 'clientIp'
+  | 'codexTurnStateLength'
   | 'authIndex'
   | 'provider'
   | 'reasoning'
@@ -32,6 +33,7 @@ export const REALTIME_COLUMN_KEYS: readonly RealtimeColumnKey[] = [
   'model',
   'endpoint',
   'clientIp',
+  'codexTurnStateLength',
   'authIndex',
   'provider',
   'reasoning',
@@ -51,6 +53,7 @@ export const DEFAULT_REALTIME_COLUMNS: readonly RealtimeColumnKey[] = [
   'model',
   'endpoint',
   'clientIp',
+  'codexTurnStateLength',
   'reasoning',
   'recent',
   'status',
@@ -68,6 +71,23 @@ const LEGACY_DEFAULT_REALTIME_COLUMNS: readonly RealtimeColumnKey[] = [
   'model',
   'endpoint',
   'authIndex',
+  'reasoning',
+  'recent',
+  'status',
+  'successRate',
+  'totalCalls',
+  'tps',
+  'latency',
+  'time',
+  'usage',
+  'cost',
+] as const;
+
+const PREVIOUS_CURRENT_DEFAULT_REALTIME_COLUMNS: readonly RealtimeColumnKey[] = [
+  'source',
+  'model',
+  'endpoint',
+  'clientIp',
   'reasoning',
   'recent',
   'status',
@@ -186,7 +206,11 @@ export const normalizeRealtimeColumns = (value: unknown): RealtimeColumnKey[] =>
       typeof item === 'string' && REALTIME_COLUMN_SET.has(item as RealtimeColumnKey)
   );
   const unique = Array.from(new Set(normalized));
-  const isKnownDefault = [LEGACY_DEFAULT_REALTIME_COLUMNS, PREVIOUS_DEFAULT_REALTIME_COLUMNS].some(
+  const isKnownDefault = [
+    LEGACY_DEFAULT_REALTIME_COLUMNS,
+    PREVIOUS_CURRENT_DEFAULT_REALTIME_COLUMNS,
+    PREVIOUS_DEFAULT_REALTIME_COLUMNS,
+  ].some(
     (columns) =>
       unique.length === columns.length && unique.every((item, index) => item === columns[index])
   );

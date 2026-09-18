@@ -1000,6 +1000,56 @@ export function VisualConfigEditor({
                       disabled={disabled}
                       onChange={(codexBugMode) => onChange({ codexBugMode })}
                     />
+					<ToggleRow
+					  title={t('config_management.visual.sections.network.codex_rewrite_turn_state')}
+					  description={t('config_management.visual.sections.network.codex_rewrite_turn_state_desc')}
+					  checked={values.codexRewriteTurnState}
+					  disabled={disabled}
+					  onChange={(codexRewriteTurnState) => onChange({ codexRewriteTurnState })}
+					/>
+					<div className={styles.turnStateProxyProviderField}>
+					  <div className="form-group">
+						<label htmlFor="codex-turn-state-proxy-provider-urls">
+						  {t(
+							'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls'
+						  )}
+						</label>
+						<textarea
+						  id="codex-turn-state-proxy-provider-urls"
+						  className={`input ${styles.turnStateProxyProviderTextarea}`}
+						  value={values.codexTurnStateProxyProviderUrls.join('\n')}
+						  disabled={disabled}
+						  rows={5}
+						  onChange={(event) =>
+							onChange({
+							  codexTurnStateProxyProviderUrls: event.target.value.split(/\r?\n/),
+							})
+						  }
+						/>
+						<div className="hint">
+						  {t(
+							'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls_hint'
+						  )}
+						</div>
+					  </div>
+					</div>
+					<Input
+					  label={t(
+						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds'
+					  )}
+					  type="number"
+					  min="1"
+					  max="120"
+					  placeholder="15"
+					  value={values.codexTurnStateProxyAttemptTimeoutSeconds}
+					  onChange={(event) =>
+						onChange({ codexTurnStateProxyAttemptTimeoutSeconds: event.target.value })
+					  }
+					  disabled={disabled}
+					  hint={t(
+						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds_hint'
+					  )}
+					/>
                   </>
                 )}
                 <Input
@@ -1015,6 +1065,17 @@ export function VisualConfigEditor({
                   onChange={(event) =>
                     onChange({ responsesCompactModel: event.target.value })
                   }
+                />
+                <ToggleRow
+                  title={t(
+                    'config_management.visual.sections.network.force_summary_compaction'
+                  )}
+                  description={t(
+                    'config_management.visual.sections.network.force_summary_compaction_desc'
+                  )}
+                  checked={values.forceSummaryCompaction}
+                  disabled={disabled}
+                  onChange={(forceSummaryCompaction) => onChange({ forceSummaryCompaction })}
                 />
                 <CodexContextWindowOverridesEditor
                   value={values.codexModelContextWindowOverrides}

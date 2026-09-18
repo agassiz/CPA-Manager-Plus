@@ -98,6 +98,8 @@ export interface UsageDetail {
   failSummary?: string;
   fail_body?: string;
   failBody?: string;
+  codex_turn_state_length?: number | null;
+  codexTurnStateLength?: number | null;
   __modelName?: string;
   __resolvedModel?: string;
   __timestampMs?: number;

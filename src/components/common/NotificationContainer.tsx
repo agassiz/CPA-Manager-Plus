@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '@/stores';
 import { IconX } from '@/components/ui/icons';
@@ -58,7 +59,7 @@ export function NotificationContainer() {
 
   if (!animatedNotifications.length) return null;
 
-  return (
+  const content = (
     <div className="notification-container">
       {animatedNotifications.map((notification) => (
         <div
@@ -78,4 +79,7 @@ export function NotificationContainer() {
       ))}
     </div>
   );
+
+  if (typeof document === 'undefined') return content;
+  return createPortal(content, document.body);
 }

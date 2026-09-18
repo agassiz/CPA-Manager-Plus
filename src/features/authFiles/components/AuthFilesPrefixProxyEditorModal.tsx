@@ -3,7 +3,9 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
+import { formatDateTime } from '@/utils/format';
 import type {
   PrefixProxyEditorField,
   PrefixProxyEditorFieldValue,
@@ -19,6 +21,9 @@ export type AuthFilesPrefixProxyEditorModalProps = {
   onClose: () => void;
   onCopyText: (text: string) => void | Promise<void>;
   onSave: () => void;
+  onSelectCodexTurnStateModel: (model: string) => void;
+  onRefreshCodexTurnState: () => void;
+  onCopyCodexTurnState: () => void;
   onChange: (field: PrefixProxyEditorField, value: PrefixProxyEditorFieldValue) => void;
   addResponsesCompactMappingEntry: () => void;
   updateResponsesCompactMappingEntry: (
@@ -30,7 +35,7 @@ export type AuthFilesPrefixProxyEditorModalProps = {
 };
 
 export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEditorModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     disableControls,
     editor,
@@ -39,6 +44,9 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
     onClose,
     onCopyText,
     onSave,
+    onSelectCodexTurnStateModel,
+    onRefreshCodexTurnState,
+    onCopyCodexTurnState,
     onChange,
     addResponsesCompactMappingEntry,
     updateResponsesCompactMappingEntry,
@@ -119,6 +127,17 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
     >
       {editor && (
         <div className={styles.prefixProxyEditor}>
+          {editor.turnStateNotice && (
+            <div
+              className={
+                editor.turnStateNotice.tone === 'success'
+                  ? styles.prefixProxyNoticeSuccess
+                  : styles.prefixProxyError
+              }
+            >
+              {editor.turnStateNotice.message}
+            </div>
+          )}
           {editor.loading ? (
             <div className={styles.prefixProxyLoading}>
               <LoadingSpinner size={14} />
@@ -145,6 +164,69 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
                       onChange={(e) => onChange('priority', e.target.value)}
                     />
                   </div>
+                  {editor.providerKey === 'codex' && editor.turnStateAllowed && (
+                    <>
+                      <div className="form-group">
+                        <label>{t('auth_files.codex_turn_state_model_label')}</label>
+                        <Select
+                          value={editor.codexTurnStateModel}
+                          options={editor.codexTurnStateModels.map((model) => ({
+                            value: model,
+                            label: model,
+                          }))}
+                          placeholder={t('auth_files.codex_turn_state_model_placeholder')}
+                          ariaLabel={t('auth_files.codex_turn_state_model_label')}
+                          disabled={
+                            disableControls ||
+                            editor.saving ||
+                            !editor.json ||
+                            editor.codexTurnStateModelsLoading ||
+                            editor.codexTurnStateModels.length === 0
+                          }
+                          onChange={onSelectCodexTurnStateModel}
+                        />
+                        <div className="hint">
+                          {editor.codexTurnStateModelsUnavailable
+                            ? t('auth_files.codex_turn_state_models_unavailable')
+                            : t('auth_files.codex_turn_state_model_hint')}
+                        </div>
+                      </div>
+                      <Input
+                        label={t('auth_files.codex_turn_state_label')}
+                        value={editor.codexTurnState}
+                        placeholder={t('auth_files.codex_turn_state_placeholder')}
+                        hint={t('auth_files.codex_turn_state_hint')}
+                        disabled
+                      />
+                      <div className="hint">
+                        {t('auth_files.codex_turn_state_expires_at', {
+                          time: editor.codexTurnStateExpiresAt
+                            ? formatDateTime(editor.codexTurnStateExpiresAt, i18n.language)
+                            : '-',
+                        })}
+                      </div>
+                      <Button
+                        variant="secondary"
+                        onClick={onCopyCodexTurnState}
+                        disabled={!editor.codexTurnState || editor.saving}
+                      >
+                        {t('common.copy')}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={onRefreshCodexTurnState}
+                        loading={editor.saving}
+                        disabled={
+                          disableControls ||
+                          editor.saving ||
+                          !editor.json ||
+                          !editor.codexTurnStateModel.trim()
+                        }
+                      >
+                        {t('common.refresh')}
+                      </Button>
+                    </>
+                  )}
                   <Input
                     label={t('auth_files.proxy_url_label')}
                     value={editor.proxyUrl}

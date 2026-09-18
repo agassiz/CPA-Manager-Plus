@@ -990,6 +990,7 @@ export interface MonitoringAnalyticsEventRow {
   fail_status_code?: number | null;
   fail_summary?: string;
   fail_body?: string;
+  codex_turn_state_length?: number | null;
   response_metadata?: ResponseHeaderMetadata;
   header_quota_recover_at_ms?: number | null;
   header_quota_used_percent?: number | null;

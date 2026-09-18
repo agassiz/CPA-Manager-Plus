@@ -121,6 +121,79 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
+  it('reads and writes the Codex force summary compaction key', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['codex:', '  force-summary-compaction: true', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.forceSummaryCompaction).toBe(true);
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ forceSummaryCompaction: false });
+    });
+    expect(harness.getCurrent().visualDirty).toBe(true);
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).toContain('force-summary-compaction: false');
+
+    harness.unmount();
+  });
+
+  it('migrates the legacy turn state provider into an ordered provider list', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['codex:', '  turn-state-proxy-provider-url: https://legacy.example/get', ''].join(
+      '\n'
+    );
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexTurnStateProxyProviderUrls).toEqual([
+      'https://legacy.example/get',
+    ]);
+
+    act(() => {
+      harness.getCurrent().setVisualValues({
+        codexTurnStateProxyProviderUrls: [
+          'https://provider-a.example/get',
+          'https://provider-b.example/get',
+        ],
+      });
+    });
+
+    const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(savedYaml).toContain('turn-state-proxy-provider-urls:');
+    expect(savedYaml).toContain('- https://provider-a.example/get');
+    expect(savedYaml).toContain('- https://provider-b.example/get');
+    expect(savedYaml).not.toContain('turn-state-proxy-provider-url:');
+
+    harness.unmount();
+  });
+
+  it('loads and saves the Codex turn state proxy attempt timeout', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['codex:', '  turn-state-proxy-attempt-timeout-seconds: 45', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexTurnStateProxyAttemptTimeoutSeconds).toBe('45');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexTurnStateProxyAttemptTimeoutSeconds: '60' });
+    });
+
+    expect(harness.getCurrent().applyVisualChangesToYaml(yaml)).toContain(
+      'turn-state-proxy-attempt-timeout-seconds: 60'
+    );
+    harness.unmount();
+  });
+
   it('removes the retired Codex global compact model mapping on save', () => {
     const harness = mountUseVisualConfig();
     const yaml = [

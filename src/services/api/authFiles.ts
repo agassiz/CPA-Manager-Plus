@@ -18,9 +18,33 @@ export type AuthFileFieldsPatch = {
   super_category?: boolean;
   exclusive_config?: { model: string; threshold: number } | null;
   responses_compact_model_mapping?: Record<string, string> | null;
+  codex_turn_state?: string | null;
   headers?: Record<string, string>;
   priority?: number;
   note?: string;
+};
+export type CodexTurnStateCacheStatus = {
+	model: string;
+	state: string;
+	obtained_at: string | null;
+	expires_at: string | null;
+	valid: boolean;
+};
+export type CodexTurnStateAcquireStats = {
+  provider_attempts: number;
+  proxy_candidates: number;
+  usable_proxies: number;
+  state_attempts: number;
+  state_valid: number;
+  state_invalid: number;
+  state_failed: number;
+  state_canceled: number;
+  state_timeout: number;
+  state_transport: number;
+  state_rejected: number;
+};
+export type CodexTurnStateRefreshResponse = CodexTurnStateCacheStatus & {
+	acquisition: CodexTurnStateAcquireStats;
 };
 type AuthFileBatchFailure = { name: string; error: string };
 type AuthFileBatchUploadResponse = {
@@ -436,6 +460,18 @@ export const authFilesApi = {
 
   patchFields: (name: string, fields: AuthFileFieldsPatch) =>
     apiClient.patch('/auth-files/fields', { name, ...fields }),
+
+  getCodexTurnState: (name: string, model: string) =>
+    apiClient.get<CodexTurnStateCacheStatus>(
+      `/auth-files/codex-turn-state?name=${encodeURIComponent(name)}&model=${encodeURIComponent(model)}`
+    ),
+
+  refreshCodexTurnState: (name: string, model: string) =>
+    apiClient.post<CodexTurnStateRefreshResponse>(
+      '/auth-files/codex-turn-state/refresh',
+      { name, model },
+      { timeout: 0 }
+    ),
 
   uploadFiles: async (files: File[]): Promise<AuthFileBatchUploadResult> => {
     const requestedNames = files.map((file) => file.name);

@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi, type AuthFileFieldsPatch } from '@/services/api';
-import type { AuthFileItem } from '@/types';
+import {
+  authFilesApi,
+  type AuthFileFieldsPatch,
+  type CodexTurnStateAcquireStats,
+} from '@/services/api';
+import type { ApiError, AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
+import { copyToClipboard } from '@/utils/clipboard';
 import {
   applyCodexAuthFileWebsockets,
   applyCodexAuthFileSuperCategory,
@@ -31,6 +36,8 @@ export type PrefixProxyEditorField =
   | 'prefix'
   | 'proxyUrl'
   | 'priority'
+  | 'codexTurnState'
+  | 'codexTurnStateModel'
   | 'websockets'
   | 'superCategory'
   | 'exclusiveEnabled'
@@ -41,6 +48,11 @@ export type PrefixProxyEditorField =
   | 'headersText';
 
 export type PrefixProxyEditorFieldValue = string | boolean;
+
+type PrefixProxyEditorNotice = {
+  tone: 'success' | 'error';
+  message: string;
+};
 
 export type PrefixProxyEditorState = {
   fileName: string;
@@ -56,11 +68,20 @@ export type PrefixProxyEditorState = {
   prefix: string;
   proxyUrl: string;
   priority: string;
+  codexTurnState: string;
+  codexTurnStateExpiresAt: string | null;
+  codexTurnStateModel: string;
+  codexTurnStateModels: string[];
+  codexTurnStateModelsLoading: boolean;
+  codexTurnStateModelsUnavailable: boolean;
+  turnStateNotice: PrefixProxyEditorNotice | null;
+  codexTurnStateTouched: boolean;
   websockets: boolean;
   websocketsTouched: boolean;
   superCategory: boolean;
   superCategoryTouched: boolean;
   superCategoryAllowed: boolean;
+  turnStateAllowed: boolean;
   exclusiveEnabled: boolean;
   exclusiveModel: string;
   exclusiveThreshold: string;
@@ -153,6 +174,9 @@ export type UseAuthFilesPrefixProxyEditorResult = {
     value: PrefixProxyEditorFieldValue
   ) => void;
   handlePrefixProxySave: () => Promise<void>;
+  selectCodexTurnStateModel: (model: string) => Promise<void>;
+  refreshCodexTurnState: () => Promise<void>;
+  copyCodexTurnState: () => Promise<void>;
   addResponsesCompactMappingEntry: () => void;
   updateResponsesCompactMappingEntry: (
     id: string,
@@ -164,6 +188,39 @@ export type UseAuthFilesPrefixProxyEditorResult = {
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const readCodexTurnStateAcquireStats = (error: unknown): CodexTurnStateAcquireStats | null => {
+  const data = (error as Partial<ApiError>)?.data;
+  if (!isRecordObject(data) || !isRecordObject(data.acquisition)) return null;
+  const stats = data.acquisition;
+  const keys: Array<keyof CodexTurnStateAcquireStats> = [
+    'provider_attempts',
+    'proxy_candidates',
+    'usable_proxies',
+    'state_attempts',
+    'state_valid',
+    'state_invalid',
+    'state_failed',
+    'state_canceled',
+    'state_timeout',
+    'state_transport',
+    'state_rejected',
+  ];
+  if (!keys.every((key) => typeof stats[key] === 'number' && stats[key] >= 0)) return null;
+  return {
+    provider_attempts: stats.provider_attempts as number,
+    proxy_candidates: stats.proxy_candidates as number,
+    usable_proxies: stats.usable_proxies as number,
+    state_attempts: stats.state_attempts as number,
+    state_valid: stats.state_valid as number,
+    state_invalid: stats.state_invalid as number,
+    state_failed: stats.state_failed as number,
+    state_canceled: stats.state_canceled as number,
+    state_timeout: stats.state_timeout as number,
+    state_transport: stats.state_transport as number,
+    state_rejected: stats.state_rejected as number,
+  };
+};
 
 const validateHeadersValue = (value: unknown): AuthFileHeadersErrorKey | null => {
   if (!isRecordObject(value)) {
@@ -340,6 +397,14 @@ const buildAuthFileFieldsPatch = (
     }
   }
 
+  if (editor.providerKey === 'codex' && editor.codexTurnStateTouched) {
+    const originalTurnState = normalizeTextField(original.codex_turn_state);
+    const nextTurnState = editor.codexTurnState.trim();
+    if (nextTurnState !== originalTurnState) {
+      patch.codex_turn_state = nextTurnState || null;
+    }
+  }
+
   if (editor.noteTouched) {
     const originalNote = normalizeTextField(original.note);
     const nextNote = editor.note.trim();
@@ -449,6 +514,13 @@ const buildPrefixProxyUpdatedText = (
       next.priority = patch.priority;
     }
   }
+  if (patch.codex_turn_state !== undefined) {
+    if (patch.codex_turn_state) {
+      next.codex_turn_state = patch.codex_turn_state;
+    } else {
+      delete next.codex_turn_state;
+    }
+  }
 
   if (patch.note !== undefined) {
     if (patch.note) {
@@ -548,11 +620,20 @@ export function useAuthFilesPrefixProxyEditor(
       prefix: '',
       proxyUrl: '',
       priority: '',
+      codexTurnState: '',
+      codexTurnStateExpiresAt: null,
+      codexTurnStateModel: '',
+      codexTurnStateModels: [],
+      codexTurnStateModelsLoading: fileProviderKey === 'codex',
+      codexTurnStateModelsUnavailable: false,
+      turnStateNotice: null,
+      codexTurnStateTouched: false,
       websockets: false,
       websocketsTouched: false,
       superCategory: false,
       superCategoryTouched: false,
       superCategoryAllowed: Boolean(file.super_category_allowed ?? file.superCategoryAllowed),
+      turnStateAllowed: Boolean(file.turn_state_allowed ?? file.turnStateAllowed),
       exclusiveEnabled: false,
       exclusiveModel: '',
       exclusiveThreshold: '',
@@ -607,6 +688,7 @@ export function useAuthFilesPrefixProxyEditor(
       const providerKey = normalizeProviderKey(
         String(json.type ?? json.provider ?? file.type ?? file.provider ?? '')
       );
+      const codexTurnState = '';
       const websockets = providerKey === 'codex' ? readCodexAuthFileWebsockets(json) : false;
       const superCategory =
         providerKey === 'codex'
@@ -616,6 +698,7 @@ export function useAuthFilesPrefixProxyEditor(
       const superCategoryAllowed = Boolean(
         file.super_category_allowed ?? file.superCategoryAllowed
       );
+      const turnStateAllowed = Boolean(file.turn_state_allowed ?? file.turnStateAllowed);
       const exclusiveConfig =
         providerKey === 'codex' ? readCodexAuthFileExclusiveConfig(json) : null;
       const exclusiveAllowed = Boolean(
@@ -646,11 +729,20 @@ export function useAuthFilesPrefixProxyEditor(
           prefix,
           proxyUrl,
           priority: priority !== undefined ? String(priority) : '',
+          codexTurnState,
+          codexTurnStateExpiresAt: null,
+          codexTurnStateModel: '',
+          codexTurnStateModels: [],
+          codexTurnStateModelsLoading: providerKey === 'codex',
+          codexTurnStateModelsUnavailable: false,
+          turnStateNotice: null,
+          codexTurnStateTouched: false,
           websockets,
           websocketsTouched: false,
           superCategory,
           superCategoryTouched: false,
           superCategoryAllowed,
+          turnStateAllowed,
           exclusiveEnabled: Boolean(exclusiveConfig),
           exclusiveModel: exclusiveConfig?.model ?? '',
           exclusiveThreshold: exclusiveConfig ? String(exclusiveConfig.threshold) : '',
@@ -670,21 +762,33 @@ export function useAuthFilesPrefixProxyEditor(
           error: null,
         };
       });
-      if (providerKey === 'codex' && exclusiveAllowed) {
+      if (providerKey === 'codex') {
         try {
           const models = await authFilesApi.getModelsForAuthFile(name);
+          const modelIDs = Array.from(
+            new Set(models.map((item) => item.id.trim()).filter(Boolean))
+          ).sort((left, right) => left.localeCompare(right));
           setPrefixProxyEditor((prev) =>
             !prev || prev.fileName !== name
               ? prev
               : {
                   ...prev,
-                  exclusiveModels: models.map((item) => item.id).filter(Boolean),
+                  codexTurnStateModels: modelIDs,
+                  codexTurnStateModelsLoading: false,
+                  exclusiveModels: modelIDs,
                   exclusiveModelsLoading: false,
                 }
           );
         } catch {
           setPrefixProxyEditor((prev) =>
-            !prev || prev.fileName !== name ? prev : { ...prev, exclusiveModelsLoading: false }
+            !prev || prev.fileName !== name
+              ? prev
+              : {
+                  ...prev,
+                  codexTurnStateModelsLoading: false,
+                  codexTurnStateModelsUnavailable: true,
+                  exclusiveModelsLoading: false,
+                }
           );
         }
       }
@@ -707,6 +811,18 @@ export function useAuthFilesPrefixProxyEditor(
       if (field === 'prefix') return { ...prev, prefix: String(value) };
       if (field === 'proxyUrl') return { ...prev, proxyUrl: String(value) };
       if (field === 'priority') return { ...prev, priority: String(value) };
+      if (field === 'codexTurnState') {
+        return { ...prev, codexTurnState: String(value), codexTurnStateTouched: true };
+      }
+      if (field === 'codexTurnStateModel') {
+        return {
+          ...prev,
+          codexTurnStateModel: String(value),
+          codexTurnState: '',
+          codexTurnStateExpiresAt: null,
+          turnStateNotice: null,
+        };
+      }
       if (field === 'websockets') {
         return { ...prev, websockets: Boolean(value), websocketsTouched: true };
       }
@@ -784,6 +900,126 @@ export function useAuthFilesPrefixProxyEditor(
     }
   };
 
+  const selectCodexTurnStateModel = async (model: string) => {
+    if (
+      !prefixProxyEditor?.json ||
+      prefixProxyEditor.providerKey !== 'codex' ||
+      !prefixProxyEditor.turnStateAllowed
+    ) {
+      return;
+    }
+    const name = prefixProxyEditor.fileName;
+    const normalizedModel = model.trim();
+    handlePrefixProxyChange('codexTurnStateModel', normalizedModel);
+    if (!normalizedModel) return;
+
+    try {
+      const status = await authFilesApi.getCodexTurnState(name, normalizedModel);
+      setPrefixProxyEditor((prev) =>
+        !prev || prev.fileName !== name || prev.codexTurnStateModel !== normalizedModel
+          ? prev
+          : {
+              ...prev,
+              codexTurnState: status.valid ? status.state : '',
+              codexTurnStateExpiresAt: status.valid ? status.expires_at : null,
+              codexTurnStateModel: status.model,
+            }
+      );
+    } catch {
+      // An empty state is expected when no cache has been created yet.
+    }
+  };
+
+  const refreshCodexTurnState = async () => {
+    if (
+      !prefixProxyEditor?.json ||
+      prefixProxyEditor.providerKey !== 'codex' ||
+      !prefixProxyEditor.turnStateAllowed
+    ) {
+      return;
+    }
+    const name = prefixProxyEditor.fileName;
+    const model = prefixProxyEditor.codexTurnStateModel.trim();
+    if (!model) return;
+    const formatAcquireStats = (stats: CodexTurnStateAcquireStats) =>
+      t('auth_files.codex_turn_state_refresh_attempts', {
+        providers: stats.provider_attempts,
+        candidates: stats.proxy_candidates,
+        usable: stats.usable_proxies,
+        requests: stats.state_attempts,
+        valid: stats.state_valid,
+        invalid: stats.state_invalid,
+        failed: stats.state_failed,
+        canceled: stats.state_canceled,
+        timeouts: stats.state_timeout,
+        transport: stats.state_transport,
+        rejected: stats.state_rejected,
+      });
+    setPrefixProxyEditor((prev) =>
+      prev && prev.fileName === name
+        ? { ...prev, saving: true, error: null, turnStateNotice: null }
+        : prev
+    );
+    try {
+      const status = await authFilesApi.refreshCodexTurnState(name, model);
+      setPrefixProxyEditor((prev) =>
+        prev && prev.fileName === name
+          ? {
+              ...prev,
+              codexTurnState: status.state,
+              codexTurnStateExpiresAt: status.expires_at,
+              codexTurnStateModel: status.model,
+              codexTurnStateTouched: false,
+              saving: false,
+              turnStateNotice: {
+                tone: 'success',
+                message: `${t('auth_files.codex_turn_state_refresh_success')} ${formatAcquireStats(status.acquisition)}`,
+              },
+            }
+          : prev
+      );
+      await loadFiles();
+    } catch (err: unknown) {
+      const stats = readCodexTurnStateAcquireStats(err);
+      const message = stats
+        ? `${t('auth_files.codex_turn_state_refresh_failed')} ${formatAcquireStats(stats)}`
+        : t('auth_files.codex_turn_state_refresh_failed');
+      setPrefixProxyEditor((prev) =>
+        prev && prev.fileName === name
+          ? {
+              ...prev,
+              saving: false,
+              turnStateNotice: {
+                tone: 'error',
+                message,
+              },
+            }
+          : prev
+      );
+      showNotification(message, 'error');
+    }
+  };
+
+  const copyCodexTurnState = async () => {
+    const state = prefixProxyEditor?.codexTurnState.trim();
+    if (!prefixProxyEditor || !state) return;
+    const fileName = prefixProxyEditor.fileName;
+    const copied = await copyToClipboard(state);
+    setPrefixProxyEditor((prev) =>
+      !prev || prev.fileName !== fileName
+        ? prev
+        : {
+            ...prev,
+            turnStateNotice: {
+              tone: copied ? 'success' : 'error',
+              message: copied
+                ? t('auth_files.codex_turn_state_copy_success')
+                : t('auth_files.codex_turn_state_copy_failed'),
+            },
+          }
+    );
+  };
+
   const addResponsesCompactMappingEntry = () => {
     setPrefixProxyEditor((prev) =>
       prev
@@ -839,6 +1075,9 @@ export function useAuthFilesPrefixProxyEditor(
     closePrefixProxyEditor,
     handlePrefixProxyChange,
     handlePrefixProxySave,
+    selectCodexTurnStateModel,
+    refreshCodexTurnState,
+    copyCodexTurnState,
     addResponsesCompactMappingEntry,
     updateResponsesCompactMappingEntry,
     removeResponsesCompactMappingEntry,

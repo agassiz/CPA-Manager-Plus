@@ -139,9 +139,13 @@ export type VisualConfigValues = {
   forceModelPrefix: boolean;
   imageFallbackModel: string;
   responsesCompactModel: string;
+  forceSummaryCompaction: boolean;
   codexModelContextWindowOverrides: CodexContextWindowOverride[];
   codexForceSuperCategory: boolean;
   codexBugMode: boolean;
+  codexRewriteTurnState: boolean;
+  codexTurnStateProxyProviderUrls: string[];
+  codexTurnStateProxyAttemptTimeoutSeconds: string;
   passthroughHeaders: boolean;
   hideUpstreamErrorDetails: boolean;
   disableClaudeCloakMode: boolean;
@@ -227,9 +231,13 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   forceModelPrefix: false,
   imageFallbackModel: '',
   responsesCompactModel: '',
+  forceSummaryCompaction: false,
   codexModelContextWindowOverrides: [],
   codexForceSuperCategory: false,
   codexBugMode: false,
+  codexRewriteTurnState: false,
+  codexTurnStateProxyProviderUrls: [],
+  codexTurnStateProxyAttemptTimeoutSeconds: '',
   passthroughHeaders: false,
   hideUpstreamErrorDetails: false,
   disableClaudeCloakMode: false,

@@ -51,6 +51,7 @@ describe('buildUsageDetailsFromAnalyticsEvents', () => {
         failed: true,
         fail_status_code: 429,
         fail_summary: 'rate limit exceeded',
+        codex_turn_state_length: 312,
       },
     ];
 
@@ -75,6 +76,7 @@ describe('buildUsageDetailsFromAnalyticsEvents', () => {
       failed: true,
       fail_status_code: 429,
       fail_summary: 'rate limit exceeded',
+      codex_turn_state_length: 312,
     });
   });
 

@@ -157,6 +157,13 @@ export const buildEventRows = (
           : Number(failStatusCodeRaw);
       const normalizedFailStatusCode =
         Number.isFinite(failStatusCode) && failStatusCode > 0 ? failStatusCode : null;
+      const codexTurnStateLengthRaw =
+        detail.codex_turn_state_length ?? detail.codexTurnStateLength;
+      const codexTurnStateLength = Number(codexTurnStateLengthRaw);
+      const normalizedCodexTurnStateLength =
+        Number.isFinite(codexTurnStateLength) && codexTurnStateLength > 0
+          ? codexTurnStateLength
+          : null;
       const failSummary = readString(detail.fail_summary ?? detail.failSummary);
       const failBody = readString(detail.fail_body ?? detail.failBody);
 
@@ -194,6 +201,7 @@ export const buildEventRows = (
         channelHost: channelMeta?.host || '-',
         channelDisabled: channelMeta?.disabled || false,
         failed: detail.failed === true,
+        codexTurnStateLength: normalizedCodexTurnStateLength,
         statsIncluded,
         latencyMs,
         ttftMs,

@@ -233,6 +233,9 @@ export function AuthFilesPage() {
     closePrefixProxyEditor,
     handlePrefixProxyChange,
     handlePrefixProxySave,
+    selectCodexTurnStateModel,
+    refreshCodexTurnState,
+    copyCodexTurnState,
     addResponsesCompactMappingEntry,
     updateResponsesCompactMappingEntry,
     removeResponsesCompactMappingEntry,
@@ -1477,6 +1480,9 @@ export function AuthFilesPage() {
         onClose={closePrefixProxyEditor}
         onCopyText={copyTextWithNotification}
         onSave={handlePrefixProxySave}
+        onSelectCodexTurnStateModel={(model) => void selectCodexTurnStateModel(model)}
+        onRefreshCodexTurnState={() => void refreshCodexTurnState()}
+        onCopyCodexTurnState={() => void copyCodexTurnState()}
         onChange={handlePrefixProxyChange}
         addResponsesCompactMappingEntry={addResponsesCompactMappingEntry}
         updateResponsesCompactMappingEntry={updateResponsesCompactMappingEntry}

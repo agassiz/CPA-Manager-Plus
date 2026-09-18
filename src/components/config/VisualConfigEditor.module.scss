@@ -519,6 +519,19 @@
   font-size: 12px;
 }
 
+.turnStateProxyProviderField {
+	grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.turnStateProxyProviderTextarea {
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+}
+
 @include mobile {
   .contextWindowOverridesHeader,
   .contextWindowOverrideRow {

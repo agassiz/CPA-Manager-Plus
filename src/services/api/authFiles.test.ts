@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
+    post: vi.fn(),
     postForm: vi.fn(),
   },
 }));
 
 vi.mock('./client', () => ({
   apiClient: {
+    post: mocks.post,
     postForm: mocks.postForm,
   },
 }));
@@ -15,7 +17,22 @@ vi.mock('./client', () => ({
 import { authFilesApi } from './authFiles';
 
 beforeEach(() => {
+  mocks.post.mockReset();
   mocks.postForm.mockReset();
+});
+
+describe('authFilesApi Codex turn state refresh', () => {
+  it('waits for all configured acquisition providers before timing out locally', async () => {
+    mocks.post.mockResolvedValue({});
+
+    await authFilesApi.refreshCodexTurnState('codex.json', 'gpt-5.6-terra');
+
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/auth-files/codex-turn-state/refresh',
+      { name: 'codex.json', model: 'gpt-5.6-terra' },
+      { timeout: 0 }
+    );
+  });
 });
 
 describe('authFilesApi save auth file upload contracts', () => {

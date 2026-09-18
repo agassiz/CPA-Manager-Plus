@@ -59,6 +59,8 @@ export interface AuthFileItem {
   superCategory?: boolean;
   super_category_allowed?: boolean;
   superCategoryAllowed?: boolean;
+  turn_state_allowed?: boolean;
+  turnStateAllowed?: boolean;
   exclusive_config?: { model: string; threshold: number };
   exclusiveConfig?: { model: string; threshold: number };
   exclusive_config_allowed?: boolean;
