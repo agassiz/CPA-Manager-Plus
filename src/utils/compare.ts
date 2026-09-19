@@ -23,8 +23,8 @@ export function areKeyValueEntriesEqual(
 }
 
 export function areModelEntriesEqual(
-  a: readonly { name: string; alias: string }[],
-  b: readonly { name: string; alias: string }[]
+  a: readonly { name: string; alias: string; thinking?: Record<string, unknown> }[],
+  b: readonly { name: string; alias: string; thinking?: Record<string, unknown> }[]
 ): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
@@ -32,7 +32,13 @@ export function areModelEntriesEqual(
     const left = a[i];
     const right = b[i];
     if (!left || !right) return false;
-    if (left.name !== right.name || left.alias !== right.alias) return false;
+    if (
+      left.name !== right.name ||
+      left.alias !== right.alias ||
+      JSON.stringify(left.thinking ?? {}) !== JSON.stringify(right.thinking ?? {})
+    ) {
+      return false;
+    }
   }
   return true;
 }

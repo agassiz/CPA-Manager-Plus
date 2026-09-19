@@ -1067,9 +1067,7 @@ export function VisualConfigEditor({
                   }
                 />
                 <ToggleRow
-                  title={t(
-                    'config_management.visual.sections.network.force_summary_compaction'
-                  )}
+                  title={t('config_management.visual.sections.network.force_summary_compaction')}
                   description={t(
                     'config_management.visual.sections.network.force_summary_compaction_desc'
                   )}

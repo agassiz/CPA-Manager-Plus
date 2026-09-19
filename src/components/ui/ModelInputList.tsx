@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { Button } from './Button';
 import { IconX } from './icons';
 import type { ModelEntry } from './modelInputListUtils';
@@ -18,6 +18,8 @@ interface ModelInputListProps {
   removeButtonClassName?: string;
   removeButtonTitle?: string;
   removeButtonAriaLabel?: string;
+  renderEntryDetails?: (entry: ModelEntry, index: number) => ReactNode;
+  entryDetailsClassName?: string;
 }
 
 export function ModelInputList({
@@ -35,6 +37,8 @@ export function ModelInputList({
   removeButtonClassName = '',
   removeButtonTitle = 'Remove',
   removeButtonAriaLabel = 'Remove',
+  renderEntryDetails,
+  entryDetailsClassName = '',
 }: ModelInputListProps) {
   const currentEntries = entries.length ? entries : [{ name: '', alias: '' }];
   const containerClassName = ['header-input-list', className].filter(Boolean).join(' ');
@@ -61,39 +65,43 @@ export function ModelInputList({
 
   return (
     <div className={containerClassName}>
-      {currentEntries.map((entry, index) => (
-        <Fragment key={index}>
-          <div className={rowClassNames}>
-            <input
-              className={inputClassNames}
-              placeholder={namePlaceholder}
-              value={entry.name}
-              onChange={(e) => updateEntry(index, 'name', e.target.value)}
-              disabled={disabled}
-            />
-            <span className="header-separator">→</span>
-            <input
-              className={inputClassNames}
-              placeholder={aliasPlaceholder}
-              value={entry.alias}
-              onChange={(e) => updateEntry(index, 'alias', e.target.value)}
-              disabled={disabled}
-            />
-            <Button
-              variant="ghost"
-              size="xs"
-              iconOnly
-              onClick={() => removeEntry(index)}
-              disabled={disabled || currentEntries.length <= 1}
-              className={removeButtonClassName}
-              title={removeButtonTitle}
-              aria-label={removeButtonAriaLabel}
-            >
-              <IconX size={14} />
-            </Button>
-          </div>
-        </Fragment>
-      ))}
+      {currentEntries.map((entry, index) => {
+        const details = renderEntryDetails?.(entry, index);
+        return (
+          <Fragment key={index}>
+            <div className={rowClassNames}>
+              <input
+                className={inputClassNames}
+                placeholder={namePlaceholder}
+                value={entry.name}
+                onChange={(e) => updateEntry(index, 'name', e.target.value)}
+                disabled={disabled}
+              />
+              <span className="header-separator">→</span>
+              <input
+                className={inputClassNames}
+                placeholder={aliasPlaceholder}
+                value={entry.alias}
+                onChange={(e) => updateEntry(index, 'alias', e.target.value)}
+                disabled={disabled}
+              />
+              <Button
+                variant="ghost"
+                size="xs"
+                iconOnly
+                onClick={() => removeEntry(index)}
+                disabled={disabled || currentEntries.length <= 1}
+                className={removeButtonClassName}
+                title={removeButtonTitle}
+                aria-label={removeButtonAriaLabel}
+              >
+                <IconX size={14} />
+              </Button>
+            </div>
+            {details ? <div className={entryDetailsClassName}>{details}</div> : null}
+          </Fragment>
+        );
+      })}
       {!hideAddButton && addLabel && (
         <Button variant="secondary" size="xs" onClick={addEntry} disabled={disabled} className="align-start">
           {addLabel}

@@ -1326,7 +1326,7 @@ export function useVisualConfig() {
           values.codexBugMode ||
           values.codexRewriteTurnState ||
           values.codexTurnStateProxyProviderUrls.some((value) => value.trim() !== '') ||
-		  values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
+          values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
           values.responsesCompactModel.trim() ||
           values.forceSummaryCompaction ||
           values.codexModelContextWindowOverrides.length > 0 ||
@@ -1334,7 +1334,7 @@ export function useVisualConfig() {
           dirtyFields.has('codexBugMode') ||
           dirtyFields.has('codexRewriteTurnState') ||
           dirtyFields.has('codexTurnStateProxyProviderUrls') ||
-		  dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
+          dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
           dirtyFields.has('responsesCompactModel') ||
           dirtyFields.has('forceSummaryCompaction') ||
           dirtyFields.has('codexModelContextWindowOverrides') ||

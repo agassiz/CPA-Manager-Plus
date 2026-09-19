@@ -15,6 +15,8 @@ import { useNotificationStore } from '@/stores';
 import { buildHeaderObject } from '@/utils/headers';
 import { buildClaudeMessagesEndpoint, parseTextList } from '@/components/providers/utils';
 import type { ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
+import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
+import { parseThinkingConfig } from './components/thinkingLevelMapping';
 import styles from './AiProvidersPage.module.scss';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 
@@ -426,6 +428,28 @@ export function AiProvidersClaudeEditPage() {
                 removeButtonClassName={styles.modelRowRemoveButton}
                 removeButtonTitle={t('common.delete')}
                 removeButtonAriaLabel={t('common.delete')}
+                entryDetailsClassName={styles.modelThinkingMapping}
+                renderEntryDetails={(entry, index) => {
+                  if (!entry.name.trim()) return null;
+                  return (
+                    <ThinkingLevelMappingEditor
+                      value={entry.thinking ? JSON.stringify(entry.thinking, null, 2) : ''}
+                      disabled={saving || disableControls || isTesting}
+                      onChange={(thinkingJson) => {
+                        const parsed = parseThinkingConfig(thinkingJson);
+                        if (parsed.error) return;
+                        const thinking =
+                          Object.keys(parsed.config).length > 0 ? parsed.config : undefined;
+                        setForm((prev) => ({
+                          ...prev,
+                          modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
+                            candidateIndex === index ? { ...candidate, thinking } : candidate
+                          ),
+                        }));
+                      }}
+                    />
+                  );
+                }}
               />
 
               <div className={styles.modelTestPanel}>

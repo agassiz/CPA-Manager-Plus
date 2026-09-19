@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
+import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
+import { parseThinkingConfig } from './components/thinkingLevelMapping';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useNotificationStore } from '@/stores';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
@@ -743,6 +745,28 @@ export function AiProvidersOpenAIEditPage() {
                 removeButtonClassName={styles.modelRowRemoveButton}
                 removeButtonTitle={t('common.delete')}
                 removeButtonAriaLabel={t('common.delete')}
+                entryDetailsClassName={styles.modelThinkingMapping}
+                renderEntryDetails={(entry, index) => {
+                  if (!entry.name.trim()) return null;
+                  return (
+                    <ThinkingLevelMappingEditor
+                      value={entry.thinking ? JSON.stringify(entry.thinking, null, 2) : ''}
+                      disabled={saving || disableControls || isTestingKeys}
+                      onChange={(thinkingJson) => {
+                        const parsed = parseThinkingConfig(thinkingJson);
+                        if (parsed.error) return;
+                        const thinking =
+                          Object.keys(parsed.config).length > 0 ? parsed.config : undefined;
+                        setForm((prev) => ({
+                          ...prev,
+                          modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
+                            candidateIndex === index ? { ...candidate, thinking } : candidate
+                          ),
+                        }));
+                      }}
+                    />
+                  );
+                }}
               />
 
               {/* 测试区域 */}

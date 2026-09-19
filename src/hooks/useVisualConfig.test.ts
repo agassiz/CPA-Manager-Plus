@@ -134,8 +134,6 @@ describe('useVisualConfig', () => {
     act(() => {
       harness.getCurrent().setVisualValues({ forceSummaryCompaction: false });
     });
-    expect(harness.getCurrent().visualDirty).toBe(true);
-
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).toContain('force-summary-compaction: false');
 

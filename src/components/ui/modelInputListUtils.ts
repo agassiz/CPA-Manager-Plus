@@ -3,6 +3,7 @@ import type { ModelAlias } from '@/types';
 export interface ModelEntry {
   name: string;
   alias: string;
+  thinking?: Record<string, unknown>;
 }
 
 export const modelsToEntries = (models?: ModelAlias[]): ModelEntry[] => {
@@ -11,7 +12,8 @@ export const modelsToEntries = (models?: ModelAlias[]): ModelEntry[] => {
   }
   return models.map((model) => ({
     name: model.name || '',
-    alias: model.alias || ''
+    alias: model.alias || '',
+    thinking: model.thinking,
   }));
 };
 
@@ -23,6 +25,9 @@ export const entriesToModels = (entries: ModelEntry[]): ModelAlias[] => {
       const alias = entry.alias.trim();
       if (alias && alias !== model.name) {
         model.alias = alias;
+      }
+      if (entry.thinking && Object.keys(entry.thinking).length > 0) {
+        model.thinking = entry.thinking;
       }
       return model;
     });

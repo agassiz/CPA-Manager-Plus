@@ -10,7 +10,7 @@ import {
   useConfigStore,
   useNotificationStore,
 } from '@/stores';
-import type { ProviderKeyConfig } from '@/types';
+import type { ModelAlias, ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import type { ModelEntry, ProviderFormState } from '@/components/providers/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
@@ -80,16 +80,32 @@ const getErrorMessage = (err: unknown) => {
   return '';
 };
 
-const normalizeClaudeModelEntries = (entries: Array<{ name: string; alias: string }>) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string }>>((acc, entry) => {
-    const name = String(entry?.name ?? '').trim();
-    let alias = String(entry?.alias ?? '').trim();
-    if (name) {
-      alias = alias || name;
-    }
-    if (!name && !alias) return acc;
-    acc.push({ name, alias });
-    return acc;
+const normalizeClaudeModelEntries = (entries: ModelEntry[]) =>
+  (entries ?? []).reduce<Array<{ name: string; alias: string; thinking?: Record<string, unknown>}>>(
+    (acc, entry) => {
+      const name = String(entry?.name ?? '').trim();
+      let alias = String(entry?.alias ?? '').trim();
+      if (name) {
+        alias = alias || name;
+      }
+      if (!name && !alias) return acc;
+      const thinking =
+        entry.thinking && Object.keys(entry.thinking).length > 0 ? entry.thinking : undefined;
+      acc.push({ name, alias, thinking });
+      return acc;
+    },
+    []
+  );
+
+export const buildClaudeModelsPayload = (entries: ModelEntry[]): ModelAlias[] =>
+  entries.reduce<ModelAlias[]>((models, entry) => {
+    const name = entry.name.trim();
+    if (!name) return models;
+    const alias = entry.alias.trim();
+    const thinking =
+      entry.thinking && Object.keys(entry.thinking).length > 0 ? entry.thinking : undefined;
+    models.push({ name, alias: alias || name, thinking });
+    return models;
   }, []);
 
 const normalizeCloakConfig = (cloak: ProviderFormState['cloak']) => {
@@ -407,7 +423,11 @@ export function AiProvidersClaudeEditLayout() {
         prev.modelEntries.forEach((entry) => {
           const name = entry.name.trim();
           if (!name) return;
-          mergedMap.set(name, { name, alias: entry.alias?.trim() || '' });
+          mergedMap.set(name, {
+            name,
+            alias: entry.alias?.trim() || '',
+            thinking: entry.thinking,
+          });
         });
 
         selectedModels.forEach((model) => {
@@ -449,14 +469,7 @@ export function AiProvidersClaudeEditLayout() {
         baseUrl: (form.baseUrl ?? '').trim() || undefined,
         proxyUrl: form.proxyUrl?.trim() || undefined,
         headers: buildHeaderObject(form.headers),
-        models: form.modelEntries
-          .map((entry) => {
-            const name = entry.name.trim();
-            if (!name) return null;
-            const alias = entry.alias.trim();
-            return { name, alias: alias || name };
-          })
-          .filter(Boolean) as ProviderKeyConfig['models'],
+        models: buildClaudeModelsPayload(form.modelEntries),
         excludedModels: parseExcludedModels(form.excludedText),
         cloak: form.cloak,
         experimentalCCHSigning: form.experimentalCCHSigning ?? false,

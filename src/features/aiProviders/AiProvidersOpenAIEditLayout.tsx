@@ -71,16 +71,21 @@ const getErrorMessage = (err: unknown) => {
 };
 
 const normalizeModelEntries = (entries: ModelEntry[]) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string }>>((acc, entry) => {
-    const name = String(entry?.name ?? '').trim();
-    let alias = String(entry?.alias ?? '').trim();
-    if (name && (alias === '' || alias === name)) {
-      alias = '';
-    }
-    if (!name && !alias) return acc;
-    acc.push({ name, alias });
-    return acc;
-  }, []);
+  (entries ?? []).reduce<Array<{ name: string; alias: string; thinking?: Record<string, unknown>}>>(
+    (acc, entry) => {
+      const name = String(entry?.name ?? '').trim();
+      let alias = String(entry?.alias ?? '').trim();
+      if (name && (alias === '' || alias === name)) {
+        alias = '';
+      }
+      if (!name && !alias) return acc;
+      const thinking =
+        entry.thinking && Object.keys(entry.thinking).length > 0 ? entry.thinking : undefined;
+      acc.push({ name, alias, thinking });
+      return acc;
+    },
+    []
+  );
 
 const normalizeKeyHeaders = (headers: ApiKeyEntry['headers']) => {
   if (!headers || typeof headers !== 'object') return [];
@@ -377,7 +382,11 @@ export function AiProvidersOpenAIEditLayout() {
         prev.modelEntries.forEach((entry) => {
           const name = entry.name.trim();
           if (!name) return;
-          mergedMap.set(name, { name, alias: entry.alias?.trim() || '' });
+          mergedMap.set(name, {
+            name,
+            alias: entry.alias?.trim() || '',
+            thinking: entry.thinking,
+          });
         });
 
         selectedModels.forEach((model) => {
