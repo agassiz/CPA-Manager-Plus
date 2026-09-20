@@ -44,6 +44,8 @@ import { useNotificationStore } from '@/stores';
 import { copyToClipboard } from '@/utils/clipboard';
 import { formatNumber, maskSensitiveText, truncateText } from '@/utils/format';
 import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
+import { shouldPreferApiKeyAlias } from '../model/apiKeys';
+import { areMonitoringModelsEquivalent } from '../model/eventRows';
 import { getMonitoringSuccessRateTone } from '../model/successRateTone';
 import styles from '../MonitoringCenterPage.module.scss';
 
@@ -111,8 +113,10 @@ const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   source: 240,
   model: 160,
   endpoint: 220,
+  transport: 170,
   clientIp: 140,
   codexTurnStateLength: 120,
+  codexTurnStateProxy: 150,
   authIndex: 150,
   provider: 150,
   reasoning: 120,
@@ -135,6 +139,18 @@ const formatOptionalText = (value: string | null | undefined) => {
 const formatReadableText = (value: string | null | undefined) => {
   const trimmed = String(value || '').trim();
   return trimmed && trimmed !== '-' ? trimmed : '';
+};
+
+type MonitoringModelRelation = 'variant' | 'mismatch' | null;
+
+const resolveMonitoringModelRelation = (row: MonitoringEventRow): MonitoringModelRelation => {
+  const upstreamModel = formatReadableText(row.upstreamModel || row.resolvedModel);
+  const responseModel = formatReadableText(row.upstreamResponseModel || row.responseModel);
+  if (!upstreamModel || !responseModel || upstreamModel === responseModel) return null;
+  if (row.upstreamModelMismatch === true || row.responseModelMismatch === true) {
+    return 'mismatch';
+  }
+  return areMonitoringModelsEquivalent(upstreamModel, responseModel) ? 'variant' : 'mismatch';
 };
 
 const shortLabel = (
@@ -210,8 +226,10 @@ const buildRealtimeApiKeyDisplay = (
   const full = formatReadableText(row.apiKeyFull);
   const hash = formatReadableText(row.apiKeyHash);
   const shortHash = formatShortHash(hash);
-  const display =
-    accountDisplayMode === 'full'
+  const prefersAlias = shouldPreferApiKeyAlias(label, masked);
+  const display = prefersAlias
+    ? label
+    : accountDisplayMode === 'full'
       ? full || label || masked || shortHash
       : masked || label || shortHash;
 
@@ -432,7 +450,9 @@ function RealtimeTokenUsageCell({ locale, row, t }: RealtimeTokenUsageCellProps)
               {tokenDetails.cacheWriteTokens > 0 ? (
                 <div className={styles.realtimeTokenTooltipRow}>
                   <span>{t('monitoring.cache_creation_tokens')}</span>
-                  <strong>{formatRealtimeTokenNumber(tokenDetails.cacheWriteTokens, locale)}</strong>
+                  <strong>
+                    {formatRealtimeTokenNumber(tokenDetails.cacheWriteTokens, locale)}
+                  </strong>
                 </div>
               ) : null}
               {row.reasoningTokens > 0 ? (
@@ -518,10 +538,14 @@ const getRealtimeColumnLabel = (key: RealtimeColumnKey, t: TFunction) => {
       return t('monitoring.column_model');
     case 'endpoint':
       return t('monitoring.column_endpoint');
+    case 'transport':
+      return t('monitoring.column_transport');
     case 'clientIp':
       return t('monitoring.column_client_ip');
     case 'codexTurnStateLength':
       return t('monitoring.column_codex_turn_state_length');
+    case 'codexTurnStateProxy':
+      return t('monitoring.column_codex_turn_state_proxy');
     case 'authIndex':
       return shortLabel(t, 'monitoring.auth_index_short', 'monitoring.auth_index');
     case 'provider':
@@ -832,11 +856,19 @@ export function RealtimeEventsPanel({
   const renderColumnCell = (key: RealtimeColumnKey, row: RealtimeLogRow) => {
     const sourceDisplay = buildRealtimeSourceDisplay(row, t, accountDisplayMode);
     const apiKeyDisplay = buildRealtimeApiKeyDisplay(row, t, accountDisplayMode);
-    const showResolvedModel =
-      row.resolvedModel && row.resolvedModel.trim() && row.resolvedModel.trim() !== row.model;
-		const responseModel = formatReadableText(row.responseModel);
-		const billingModel = formatReadableText(row.billingModel);
-		const showResponseModel = responseModel && responseModel !== row.model;
+    const requestedModel = formatReadableText(row.requestedModel || row.model) || '-';
+    const upstreamModel = formatReadableText(row.upstreamModel || row.resolvedModel);
+    const responseModel = formatReadableText(row.upstreamResponseModel || row.responseModel);
+    const showUpstreamModel = Boolean(upstreamModel && upstreamModel !== requestedModel);
+    const showResponseModel = Boolean(
+      responseModel && upstreamModel && responseModel !== upstreamModel
+    );
+    const modelRelation = resolveMonitoringModelRelation(row);
+    const modelTooltip = t('monitoring.model_chain_tooltip', {
+      requested: requestedModel,
+      upstream: upstreamModel || requestedModel,
+      response: responseModel || '-',
+    });
     const reasoningEffort = formatOptionalText(row.reasoningEffort);
     const serviceSpeedLabel = isCodexRealtimeRow(row)
       ? resolveServiceSpeedTransitionLabel(row, t)
@@ -872,16 +904,19 @@ export function RealtimeEventsPanel({
         );
       case 'model':
         return (
-          <div className={styles.primaryCell}>
-            <span className={styles.monoCell}>{row.model}</span>
-            {showResolvedModel ? (
-              <small className={styles.monoCell}>{row.resolvedModel}</small>
+          <div className={styles.primaryCell} title={modelTooltip}>
+            <span className={styles.monoCell}>{requestedModel}</span>
+            {showUpstreamModel ? (
+              <small className={styles.monoCell}>
+                {`↳ ${t('monitoring.upstream_model')}: ${upstreamModel}`}
+              </small>
             ) : null}
-			{showResponseModel ? (
-				<small className={styles.monoCell}>
-					{`${row.model} -> ${responseModel}${billingModel ? ` (${billingModel})` : ''}`}
-				</small>
-			) : null}
+            {showResponseModel ? (
+              <small className={styles.monoCell}>
+                {`↳ ${t('monitoring.upstream_response_model')}: ${responseModel}`}
+                {modelRelation ? ` [${t(`monitoring.model_${modelRelation}`)}]` : ''}
+              </small>
+            ) : null}
           </div>
         );
       case 'endpoint':
@@ -890,6 +925,24 @@ export function RealtimeEventsPanel({
             <span className={styles.monoCell}>{endpointDisplay || '-'}</span>
           </div>
         );
+      case 'transport': {
+        const formatTransport = (value?: string) => {
+          const normalized = value?.trim().toLowerCase();
+          if (normalized === 'websocket' || normalized === 'ws') {
+            return t('monitoring.transport_websocket');
+          }
+          if (normalized === 'http' || normalized === 'https') {
+            return t('monitoring.transport_http');
+          }
+          return '-';
+        };
+        return (
+          <div className={styles.primaryCell}>
+            <span>{`${t('monitoring.transport_downstream')}: ${formatTransport(row.downstreamTransport)}`}</span>
+            <small>{`${t('monitoring.transport_upstream')}: ${formatTransport(row.upstreamTransport)}`}</small>
+          </div>
+        );
+      }
       case 'clientIp':
         return <span className={styles.monoCell}>{formatOptionalText(row.clientIp)}</span>;
       case 'codexTurnStateLength':
@@ -898,6 +951,30 @@ export function RealtimeEventsPanel({
             {row.codexTurnStateLength == null ? '-' : row.codexTurnStateLength}
           </span>
         );
+      case 'codexTurnStateProxy': {
+        const hasProxyMetadata =
+          row.codexTurnStateProxyForced ||
+          row.codexTurnStateProxyReused ||
+          Boolean(row.codexTurnStateProxy);
+        if (!hasProxyMetadata) {
+          return <span className={styles.mutedCell}>-</span>;
+        }
+        const proxyLabel = row.codexTurnStateProxyReused
+          ? row.codexTurnStateProxyForced
+            ? t('monitoring.codex_turn_state_proxy_forced_reused')
+            : t('monitoring.codex_turn_state_proxy_reused')
+          : row.codexTurnStateProxyForced
+            ? t('monitoring.codex_turn_state_proxy_forced_unavailable')
+            : t('monitoring.codex_turn_state_proxy_recorded_only');
+        return (
+          <div className={styles.primaryCell} title={row.codexTurnStateProxy || undefined}>
+            <span>{proxyLabel}</span>
+            {row.codexTurnStateProxy ? (
+              <small className={styles.monoCell}>{row.codexTurnStateProxy}</small>
+            ) : null}
+          </div>
+        );
+      }
       case 'authIndex':
         return (
           <span className={styles.monoCell}>{row.authIndexMasked || row.authIndex || '-'}</span>

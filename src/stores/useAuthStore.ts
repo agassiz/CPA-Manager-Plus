@@ -16,6 +16,7 @@ import type {
 import { STORAGE_KEY_AUTH } from '@/utils/constants';
 import { obfuscatedStorage } from '@/services/storage/secureStorage';
 import { apiClient } from '@/services/api/client';
+import type { ManagementSession } from '@/services/api/client';
 import { useConfigStore } from './useConfigStore';
 import { useModelsStore } from './useModelsStore';
 import { detectApiBaseFromLocation, normalizeApiBase, resolveRuntimeApiBase } from '@/utils/connection';
@@ -42,6 +43,97 @@ interface RestoreSessionOptions {
 }
 
 let restoreSessionPromise: Promise<RestoreSessionResult> | null = null;
+let sessionRenewalTimer: ReturnType<typeof setTimeout> | null = null;
+
+const SESSION_STORAGE_KEY = 'cli-proxy-management-session';
+const SESSION_TOKEN_PREFIX = 'cpa_session_';
+const SESSION_RENEW_LEAD_MS = 5 * 60 * 1000;
+
+interface StoredManagementSession {
+  apiBase: string;
+  token: string;
+  expiresAt: number;
+}
+
+const isSessionToken = (value: string): boolean => {
+  if (!value.startsWith(SESSION_TOKEN_PREFIX)) return false;
+  const encoded = value.slice(SESSION_TOKEN_PREFIX.length);
+  const [payload, signature, ...extra] = encoded.split('.');
+  return extra.length === 0 && payload?.length === 54 && signature?.length === 43;
+};
+
+const readStoredManagementSession = (): StoredManagementSession | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<StoredManagementSession>;
+    if (
+      typeof value.apiBase !== 'string' ||
+      typeof value.token !== 'string' ||
+      !isSessionToken(value.token) ||
+      typeof value.expiresAt !== 'number' ||
+      !Number.isFinite(value.expiresAt) ||
+      value.expiresAt <= Date.now()
+    ) {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    return { apiBase: value.apiBase, token: value.token, expiresAt: value.expiresAt };
+  } catch {
+    return null;
+  }
+};
+
+const storeManagementSession = (apiBase: string, session: ManagementSession): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ apiBase, token: session.token, expiresAt: session.expiresAt })
+    );
+  } catch {
+    // Session storage is optional; the in-memory token remains usable.
+  }
+};
+
+const clearStoredManagementSession = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures during logout.
+  }
+};
+
+const clearSessionRenewalTimer = (): void => {
+  if (sessionRenewalTimer !== null) {
+    clearTimeout(sessionRenewalTimer);
+    sessionRenewalTimer = null;
+  }
+};
+
+const scheduleSessionRenewal = (
+  expiresAt: number | null | undefined,
+  renew: () => Promise<void>,
+  onFailure: () => void
+): void => {
+  clearSessionRenewalTimer();
+  if (!expiresAt || !Number.isFinite(expiresAt)) return;
+  const delay = Math.max(1000, expiresAt - Date.now() - SESSION_RENEW_LEAD_MS);
+  sessionRenewalTimer = setTimeout(() => {
+    sessionRenewalTimer = null;
+    void renew().catch(onFailure);
+  }, delay);
+};
+
+const requestManagementSession = async (managementSecret: string): Promise<ManagementSession | null> => {
+  const createSession = (apiClient as typeof apiClient & {
+    createManagementSession?: (secret: string) => Promise<ManagementSession>;
+  }).createManagementSession;
+  if (typeof createSession !== 'function') return null;
+  return createSession.call(apiClient, managementSecret);
+};
 
 const sessionMatchesExpectedRuntime = ({
   expectedMode,
@@ -70,6 +162,8 @@ export const useAuthStore = create<AuthStoreState>()(
       isAuthenticated: false,
       apiBase: '',
       managementKey: '',
+      managementSecret: '',
+      sessionTokenExpiresAt: null,
       rememberPassword: false,
       serverVersion: null,
       serverBuildDate: null,
@@ -92,12 +186,29 @@ export const useAuthStore = create<AuthStoreState>()(
             obfuscatedStorage.getItem<string>('apiUrl', { encrypt: true });
           const legacyKey = obfuscatedStorage.getItem<string>('managementKey');
 
-          const { apiBase, managementKey, rememberPassword, sessionMode } = get();
+          const {
+            apiBase,
+            managementKey,
+            managementSecret,
+            sessionTokenExpiresAt,
+            rememberPassword,
+            sessionMode,
+          } = get();
           const resolvedBase = resolveRuntimeApiBase(
             apiBase || legacyBase || detectApiBaseFromLocation()
           );
-          const resolvedKey = managementKey || legacyKey || '';
-          const resolvedRememberPassword = rememberPassword || Boolean(managementKey) || Boolean(legacyKey);
+          const storedSession = readStoredManagementSession();
+          const storedToken = isSessionToken(managementKey)
+            ? managementKey
+            : storedSession?.apiBase === resolvedBase
+              ? storedSession.token
+              : '';
+          const resolvedSecret =
+            managementSecret ||
+            (managementKey && !isSessionToken(managementKey) ? managementKey : '') ||
+            legacyKey ||
+            '';
+          const resolvedRememberPassword = rememberPassword || Boolean(resolvedSecret);
 
           if (
             !sessionMatchesExpectedRuntime({
@@ -111,6 +222,8 @@ export const useAuthStore = create<AuthStoreState>()(
             set({
               apiBase: fallbackBase,
               managementKey: '',
+              managementSecret: '',
+              sessionTokenExpiresAt: null,
               rememberPassword: false,
               supportsPlugin: false,
               sessionMode: options?.expectedMode ?? '',
@@ -123,19 +236,59 @@ export const useAuthStore = create<AuthStoreState>()(
 
           set({
             apiBase: resolvedBase,
-            managementKey: resolvedKey,
+            managementKey: storedToken || resolvedSecret,
+            managementSecret: resolvedSecret,
+            sessionTokenExpiresAt: storedSession?.expiresAt ?? sessionTokenExpiresAt ?? null,
             rememberPassword: resolvedRememberPassword,
             sessionMode: options?.expectedMode ?? sessionMode,
             sessionPanelBase: normalizeApiBase(options?.expectedPanelBase || get().sessionPanelBase)
           });
-          apiClient.setConfig({ apiBase: resolvedBase, managementKey: resolvedKey });
 
-          if (wasLoggedIn && resolvedBase && resolvedKey) {
+          if (storedToken && resolvedBase && storedSession) {
+            try {
+              apiClient.setConfig({ apiBase: resolvedBase, managementKey: storedToken });
+              await useConfigStore.getState().fetchConfig(undefined, true);
+              set({
+                isAuthenticated: true,
+                connectionStatus: 'connected',
+                connectionError: null,
+                managementKey: storedToken,
+                sessionTokenExpiresAt: storedSession.expiresAt,
+              });
+              const scheduleRenewal = (session: ManagementSession) => {
+                scheduleSessionRenewal(
+                  session.expiresAt,
+                  async () => {
+                    const current = get();
+                    if (!current.isAuthenticated) return;
+                    if (!current.managementSecret) {
+                      current.logout();
+                      return;
+                    }
+                    const renewed = await requestManagementSession(current.managementSecret);
+                    if (!renewed) return;
+                    apiClient.setConfig({ apiBase: current.apiBase, managementKey: renewed.token });
+                    set({ managementKey: renewed.token, sessionTokenExpiresAt: renewed.expiresAt });
+                    storeManagementSession(current.apiBase, renewed);
+                    scheduleRenewal(renewed);
+                  },
+                  () => get().logout()
+                );
+              };
+              scheduleRenewal(storedSession);
+              return {};
+            } catch (error) {
+              console.warn('Stored management session restore failed:', error);
+              clearStoredManagementSession();
+            }
+          }
+
+          if (wasLoggedIn && resolvedBase && resolvedSecret) {
             try {
               const restoredSessionMode = options?.expectedMode ?? (sessionMode || undefined);
               const result = await get().login({
                 apiBase: resolvedBase,
-                managementKey: resolvedKey,
+                managementKey: resolvedSecret,
                 rememberPassword: resolvedRememberPassword,
                 sessionMode: restoredSessionMode,
                 sessionPanelBase: options?.expectedPanelBase || get().sessionPanelBase,
@@ -156,17 +309,43 @@ export const useAuthStore = create<AuthStoreState>()(
       // 登录
       login: async (credentials) => {
         const apiBase = resolveRuntimeApiBase(credentials.apiBase);
-        const managementKey = credentials.managementKey.trim();
+        const managementSecret = credentials.managementKey.trim();
         const rememberPassword = credentials.rememberPassword ?? get().rememberPassword ?? false;
         const sessionMode = credentials.sessionMode ?? get().sessionMode;
         const sessionPanelBase = normalizeApiBase(credentials.sessionPanelBase || get().sessionPanelBase);
 
+        let effectiveManagementKey = managementSecret;
+        let managementSession: ManagementSession | null = null;
+
+        const scheduleRenewal = (session: ManagementSession) => {
+          scheduleSessionRenewal(
+            session.expiresAt,
+            async () => {
+              const current = get();
+              if (!current.isAuthenticated || current.apiBase !== apiBase) return;
+              if (!current.managementSecret) {
+                current.logout();
+                return;
+              }
+              const renewed = await requestManagementSession(current.managementSecret);
+              if (!renewed) return;
+              apiClient.setConfig({ apiBase, managementKey: renewed.token });
+              set({ managementKey: renewed.token, sessionTokenExpiresAt: renewed.expiresAt });
+              storeManagementSession(apiBase, renewed);
+              scheduleRenewal(renewed);
+            },
+            () => get().logout()
+          );
+        };
+
         const markAuthenticated = (result: LoginResult = {}) => {
-          apiClient.setConfig({ apiBase, managementKey });
+          apiClient.setConfig({ apiBase, managementKey: effectiveManagementKey });
           set({
             isAuthenticated: true,
             apiBase,
-            managementKey,
+            managementKey: effectiveManagementKey,
+            managementSecret,
+            sessionTokenExpiresAt: managementSession?.expiresAt ?? null,
             rememberPassword,
             sessionMode,
             sessionPanelBase,
@@ -178,6 +357,13 @@ export const useAuthStore = create<AuthStoreState>()(
           } else {
             localStorage.removeItem('isLoggedIn');
           }
+          if (managementSession) {
+            storeManagementSession(apiBase, managementSession);
+            scheduleRenewal(managementSession);
+          } else {
+            clearStoredManagementSession();
+            clearSessionRenewalTimer();
+          }
           return result;
         };
 
@@ -187,10 +373,21 @@ export const useAuthStore = create<AuthStoreState>()(
           useModelsStore.getState().clearCache();
 
           // 配置 API 客户端
-          apiClient.setConfig({
-            apiBase,
-            managementKey
-          });
+          apiClient.setConfig({ apiBase, managementKey: managementSecret });
+
+          try {
+            managementSession = await requestManagementSession(managementSecret);
+            if (managementSession) {
+              effectiveManagementKey = managementSession.token;
+            }
+          } catch (error: unknown) {
+            const status = (error as { status?: unknown })?.status;
+            if (status !== 404 && status !== 405) {
+              throw error;
+            }
+          }
+
+          apiClient.setConfig({ apiBase, managementKey: effectiveManagementKey });
 
           // 测试连接 - 获取配置
           await useConfigStore.getState().fetchConfig(undefined, true);
@@ -215,6 +412,8 @@ export const useAuthStore = create<AuthStoreState>()(
       // 登出
       logout: () => {
         restoreSessionPromise = null;
+        clearSessionRenewalTimer();
+        clearStoredManagementSession();
         useConfigStore.getState().clearCache();
         useModelsStore.getState().clearCache();
         apiClient.setConfig({ apiBase: '', managementKey: '' });
@@ -222,6 +421,8 @@ export const useAuthStore = create<AuthStoreState>()(
           isAuthenticated: false,
           apiBase: '',
           managementKey: '',
+          managementSecret: '',
+          sessionTokenExpiresAt: null,
           serverVersion: null,
           serverBuildDate: null,
           supportsPlugin: false,
@@ -298,7 +499,7 @@ export const useAuthStore = create<AuthStoreState>()(
       })),
       partialize: (state) => ({
         apiBase: state.apiBase,
-        ...(state.rememberPassword ? { managementKey: state.managementKey } : {}),
+        ...(state.rememberPassword ? { managementSecret: state.managementSecret || state.managementKey } : {}),
         rememberPassword: state.rememberPassword,
         serverVersion: state.serverVersion,
         serverBuildDate: state.serverBuildDate,

@@ -78,14 +78,26 @@ export interface UsageDetail {
   serviceTier?: string;
   response_service_tier?: string;
   responseServiceTier?: string;
-	response_model?: string;
-	responseModel?: string;
-	response_model_mismatch?: boolean;
-	responseModelMismatch?: boolean;
-	billing_model?: string;
-	billingModel?: string;
+  requested_model?: string;
+  requestedModel?: string;
+  upstream_model?: string;
+  upstreamModel?: string;
+  upstream_response_model?: string;
+  upstreamResponseModel?: string;
+  upstream_model_mismatch?: boolean | null;
+  upstreamModelMismatch?: boolean | null;
+  response_model?: string;
+  responseModel?: string;
+  response_model_mismatch?: boolean;
+  responseModelMismatch?: boolean;
+  billing_model?: string;
+  billingModel?: string;
   effective_service_tier?: string;
   effectiveServiceTier?: string;
+  downstream_transport?: string;
+  downstreamTransport?: string;
+  upstream_transport?: string;
+  upstreamTransport?: string;
   executor_type?: string;
   executorType?: string;
   latency_ms?: number;
@@ -100,6 +112,12 @@ export interface UsageDetail {
   failBody?: string;
   codex_turn_state_length?: number | null;
   codexTurnStateLength?: number | null;
+  codex_turn_state_proxy_forced?: boolean;
+  codexTurnStateProxyForced?: boolean;
+  codex_turn_state_proxy_reused?: boolean;
+  codexTurnStateProxyReused?: boolean;
+  codex_turn_state_proxy?: string;
+  codexTurnStateProxy?: string;
   __modelName?: string;
   __resolvedModel?: string;
   __timestampMs?: number;
@@ -599,6 +617,21 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
           ),
           reasoning_effort: readReasoningEffort(detailRaw),
           service_tier: readDetailString(detailRaw.service_tier ?? detailRaw.serviceTier),
+          requested_model: readDetailString(detailRaw.requested_model ?? detailRaw.requestedModel),
+          upstream_model: readDetailString(detailRaw.upstream_model ?? detailRaw.upstreamModel),
+          upstream_response_model: readDetailString(
+            detailRaw.upstream_response_model ?? detailRaw.upstreamResponseModel
+          ),
+          upstream_model_mismatch:
+            typeof detailRaw.upstream_model_mismatch === 'boolean'
+              ? detailRaw.upstream_model_mismatch
+              : typeof detailRaw.upstreamModelMismatch === 'boolean'
+                ? detailRaw.upstreamModelMismatch
+                : null,
+          response_model: readDetailString(detailRaw.response_model ?? detailRaw.responseModel),
+          response_model_mismatch:
+            detailRaw.response_model_mismatch === true || detailRaw.responseModelMismatch === true,
+          billing_model: readDetailString(detailRaw.billing_model ?? detailRaw.billingModel),
           executor_type: readDetailString(detailRaw.executor_type ?? detailRaw.executorType),
           latency_ms: latencyMs ?? undefined,
           ttft_ms: ttftMs ?? undefined,
@@ -699,6 +732,21 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
           ),
           reasoning_effort: readReasoningEffort(detailRaw),
           service_tier: readDetailString(detailRaw.service_tier ?? detailRaw.serviceTier),
+          requested_model: readDetailString(detailRaw.requested_model ?? detailRaw.requestedModel),
+          upstream_model: readDetailString(detailRaw.upstream_model ?? detailRaw.upstreamModel),
+          upstream_response_model: readDetailString(
+            detailRaw.upstream_response_model ?? detailRaw.upstreamResponseModel
+          ),
+          upstream_model_mismatch:
+            typeof detailRaw.upstream_model_mismatch === 'boolean'
+              ? detailRaw.upstream_model_mismatch
+              : typeof detailRaw.upstreamModelMismatch === 'boolean'
+                ? detailRaw.upstreamModelMismatch
+                : null,
+          response_model: readDetailString(detailRaw.response_model ?? detailRaw.responseModel),
+          response_model_mismatch:
+            detailRaw.response_model_mismatch === true || detailRaw.responseModelMismatch === true,
+          billing_model: readDetailString(detailRaw.billing_model ?? detailRaw.billingModel),
           executor_type: readDetailString(detailRaw.executor_type ?? detailRaw.executorType),
           latency_ms: latencyMs ?? undefined,
           ttft_ms: ttftMs ?? undefined,
@@ -789,23 +837,41 @@ export function calculateCost(
     | 'tokens'
     | '__modelName'
     | '__resolvedModel'
+    | 'requested_model'
+    | 'requestedModel'
+    | 'upstream_model'
+    | 'upstreamModel'
+    | 'upstream_response_model'
+    | 'upstreamResponseModel'
     | 'service_tier'
     | 'serviceTier'
-  | 'response_service_tier'
-  | 'responseServiceTier'
-	| 'response_model'
-	| 'responseModel'
-	| 'billing_model'
-	| 'billingModel'
+    | 'response_service_tier'
+    | 'responseServiceTier'
+    | 'response_model'
+    | 'responseModel'
+    | 'billing_model'
+    | 'billingModel'
     | 'effective_service_tier'
     | 'effectiveServiceTier'
   >,
   modelPrices: Record<string, ModelPrice>
 ): number {
-  const responseModel = detail.response_model ?? detail.responseModel ?? '';
+  const responseModel =
+    detail.upstream_response_model ??
+    detail.upstreamResponseModel ??
+    detail.response_model ??
+    detail.responseModel ??
+    '';
   const billingModel = detail.billing_model ?? detail.billingModel ?? '';
-  const resolvedModel = billingModel || responseModel || detail.__resolvedModel || '';
-  const requestedModel = detail.__modelName || '';
+  const resolvedModel =
+    billingModel ||
+    responseModel ||
+    detail.upstream_model ||
+    detail.upstreamModel ||
+    detail.__resolvedModel ||
+    '';
+  const requestedModel =
+    (detail.requested_model ?? detail.requestedModel ?? detail.__modelName) || '';
   const resolvedPrice = resolveModelPrice(modelPrices, resolvedModel);
   const requestedPrice = resolveModelPrice(modelPrices, requestedModel);
   const resolved = resolvedPrice || requestedPrice;
@@ -862,20 +928,21 @@ export function calculateCost(
     tierMultiplier = 1;
   }
 
-	const hasFlexPrice = [
-		price.promptFlex,
-		price.completionFlex,
-		price.cacheReadFlex,
-		price.cacheCreationFlex,
-	].some((value) => Number(value) > 0);
-	if ((normalizedTier === 'flex' || normalizedTier === 'batch') && hasFlexPrice) {
-		promptPrice = Number(price.promptFlex) > 0 ? Number(price.promptFlex) : promptPrice;
-		completionPrice = Number(price.completionFlex) > 0 ? Number(price.completionFlex) : completionPrice;
-		cacheReadPrice = Number(price.cacheReadFlex) > 0 ? Number(price.cacheReadFlex) : cacheReadPrice;
-		cacheCreationPrice =
-			Number(price.cacheCreationFlex) > 0 ? Number(price.cacheCreationFlex) : cacheCreationPrice;
-		tierMultiplier = 1;
-	}
+  const hasFlexPrice = [
+    price.promptFlex,
+    price.completionFlex,
+    price.cacheReadFlex,
+    price.cacheCreationFlex,
+  ].some((value) => Number(value) > 0);
+  if ((normalizedTier === 'flex' || normalizedTier === 'batch') && hasFlexPrice) {
+    promptPrice = Number(price.promptFlex) > 0 ? Number(price.promptFlex) : promptPrice;
+    completionPrice =
+      Number(price.completionFlex) > 0 ? Number(price.completionFlex) : completionPrice;
+    cacheReadPrice = Number(price.cacheReadFlex) > 0 ? Number(price.cacheReadFlex) : cacheReadPrice;
+    cacheCreationPrice =
+      Number(price.cacheCreationFlex) > 0 ? Number(price.cacheCreationFlex) : cacheCreationPrice;
+    tierMultiplier = 1;
+  }
 
   const contextInputTokens = totalInputTokens;
   if (

@@ -1007,6 +1007,15 @@ export function VisualConfigEditor({
 					  disabled={disabled}
 					  onChange={(codexRewriteTurnState) => onChange({ codexRewriteTurnState })}
 					/>
+					<ToggleRow
+					  title={t('config_management.visual.sections.network.codex_force_turn_state_proxy')}
+					  description={t(
+						'config_management.visual.sections.network.codex_force_turn_state_proxy_desc'
+					  )}
+					  checked={values.codexForceTurnStateProxy}
+					  disabled={disabled}
+					  onChange={(codexForceTurnStateProxy) => onChange({ codexForceTurnStateProxy })}
+					/>
 					<div className={styles.turnStateProxyProviderField}>
 					  <div className="form-group">
 						<label htmlFor="codex-turn-state-proxy-provider-urls">
@@ -1035,6 +1044,20 @@ export function VisualConfigEditor({
 					</div>
 					<Input
 					  label={t(
+						'config_management.visual.sections.network.codex_turn_state_proxy_provider_proxy_url'
+					  )}
+					  value={values.codexTurnStateProxyProviderProxyUrl}
+					  placeholder="socks5://127.0.0.1:1080"
+					  onChange={(event) =>
+						onChange({ codexTurnStateProxyProviderProxyUrl: event.target.value })
+					  }
+					  disabled={disabled}
+					  hint={t(
+						'config_management.visual.sections.network.codex_turn_state_proxy_provider_proxy_url_hint'
+					  )}
+					/>
+					<Input
+					  label={t(
 						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds'
 					  )}
 					  type="number"
@@ -1048,6 +1071,21 @@ export function VisualConfigEditor({
 					  disabled={disabled}
 					  hint={t(
 						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds_hint'
+					  )}
+					/>
+					<Input
+					  label={t('config_management.visual.sections.network.codex_turn_state_proxy_concurrency')}
+					  type="number"
+					  min="1"
+					  max="5"
+					  placeholder="1"
+					  value={values.codexTurnStateProxyConcurrency}
+					  onChange={(event) =>
+						onChange({ codexTurnStateProxyConcurrency: event.target.value })
+					  }
+					  disabled={disabled}
+					  hint={t(
+						'config_management.visual.sections.network.codex_turn_state_proxy_concurrency_hint'
 					  )}
 					/>
                   </>

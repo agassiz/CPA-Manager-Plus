@@ -75,6 +75,37 @@ describe('providersApi provider config serialization', () => {
     ]);
   });
 
+  it('serializes native compaction per Codex provider', async () => {
+    mocks.get.mockResolvedValue({ 'codex-api-key': [] });
+    mocks.put.mockResolvedValue({});
+
+    await providersApi.saveCodexConfigs([
+      {
+        apiKey: 'sk-codex-native',
+        baseUrl: 'https://codex.example.com/v1',
+        enableNativeCompaction: true,
+      },
+      {
+        apiKey: 'sk-codex-summary',
+        baseUrl: 'https://summary.example.com/v1',
+        enableNativeCompaction: false,
+      },
+    ]);
+
+    expect(mocks.put).toHaveBeenCalledWith('/codex-api-key', [
+      {
+        'api-key': 'sk-codex-native',
+        'base-url': 'https://codex.example.com/v1',
+        'enable-native-compaction': true,
+      },
+      {
+        'api-key': 'sk-codex-summary',
+        'base-url': 'https://summary.example.com/v1',
+        'enable-native-compaction': false,
+      },
+    ]);
+  });
+
   it('removes legacy OpenAI auth-index entries and preserves raw provider fields', async () => {
     mocks.get.mockResolvedValue({
       'openai-compatibility': [

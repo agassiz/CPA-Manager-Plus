@@ -38,6 +38,10 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     'monitoring.column_success_rate': 'Success',
     'monitoring.column_time': 'Time',
     'monitoring.column_type': 'Type',
+    'monitoring.codex_turn_state_proxy_forced_reused': 'Forced reuse',
+    'monitoring.codex_turn_state_proxy_reused': 'Reused',
+    'monitoring.codex_turn_state_proxy_forced_unavailable': 'Enabled, not reused',
+    'monitoring.codex_turn_state_proxy_recorded_only': 'Recorded only',
     'monitoring.elapsed_short': 'Elapsed',
     'monitoring.executor_type_short': 'Executor',
     'monitoring.fail_status_code_short': 'HTTP',
@@ -347,13 +351,16 @@ describe('RealtimeEventsPanel', () => {
         apiKeyHash: '1234567890abcdef',
         apiKeyLabel: 'Team A',
         apiKeyMasked: 'sk-...cdef',
+        apiKeyFull: 'sk-very-secret-key',
         executorType: 'codex',
       }),
       { accountDisplayMode: 'full' }
     );
 
     expect(markup).toContain('Source / API Key');
-    expect(markup).toContain('API Key: Team A');
+    expect(markup).toContain('>API Key: Team A</small>');
+    expect(markup).not.toContain('>API Key: sk-very-secret-key</small>');
+    expect(markup).toContain('API Key: sk-very-secret-key');
     expect(markup).not.toContain('#12345678');
     expect(markup).toContain('API Key hash: 1234567890abcdef');
     expect(markup).toContain('Masked key: sk-...cdef');
@@ -366,6 +373,28 @@ describe('RealtimeEventsPanel', () => {
 
     expect(markup).toContain('>Client IP</span>');
     expect(markup).toContain('>203.0.113.12</span>');
+  });
+
+  it('shows state proxy reuse from proxy metadata instead of response state length', () => {
+    const markup = renderPanel(
+      baseRow({
+        codexTurnStateLength: null,
+        codexTurnStateProxyForced: true,
+        codexTurnStateProxyReused: true,
+        codexTurnStateProxy: 'http://proxy.example:12321',
+      })
+    );
+
+    expect(markup).toContain('Forced reuse');
+    expect(markup).toContain('http://proxy.example:12321');
+  });
+
+  it('does not infer state proxy reuse from a response state length', () => {
+    const markup = renderPanel(baseRow({ codexTurnStateLength: 312 }));
+
+    expect(markup).not.toContain('Forced reuse');
+    expect(markup).not.toContain('Reused');
+    expect(markup).not.toContain('Recorded only');
   });
 
   it('switches API keys between masked and full display with the account privacy control', () => {

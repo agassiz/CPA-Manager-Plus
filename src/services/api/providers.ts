@@ -36,6 +36,7 @@ const PROVIDER_KEY_FIELDS = [
   'baseUrl',
   'base_url',
   'websockets',
+  'enable-native-compaction',
   'proxy-url',
   'proxyUrl',
   'proxy_url',
@@ -409,6 +410,9 @@ const serializeProviderKey = (config: ProviderKeyConfig) => {
   if (config.prefix?.trim()) payload.prefix = config.prefix.trim();
   if (config.baseUrl) payload['base-url'] = config.baseUrl;
   if (config.websockets !== undefined) payload.websockets = config.websockets;
+  if (config.enableNativeCompaction !== undefined) {
+    payload['enable-native-compaction'] = config.enableNativeCompaction;
+  }
   const experimentalCchSigning =
     config.experimentalCchSigning ?? config.experimentalCCHSigning;
   if (experimentalCchSigning !== undefined) {

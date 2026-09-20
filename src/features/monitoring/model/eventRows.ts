@@ -29,6 +29,37 @@ const calculateOutputTokensPerSecond = (
   return outputTokens / (latencyMs / 1000);
 };
 
+const normalizeModelForComparison = (value: string) => {
+  const model = readString(value).toLowerCase();
+  if (!model) return '';
+  const base = model.includes('/') ? model.slice(model.lastIndexOf('/') + 1) : model;
+  return base.replace(/-latest$/, '');
+};
+
+export const areMonitoringModelsEquivalent = (left: string, right: string) => {
+  const normalizedLeft = normalizeModelForComparison(left);
+  const normalizedRight = normalizeModelForComparison(right);
+  if (!normalizedLeft || !normalizedRight || normalizedLeft === normalizedRight) return true;
+  const stripVersion = (value: string) =>
+    value
+      .replace(/-\d{3}$/, '')
+      .replace(/-\d{8}$/, '')
+      .replace(/-\d{4}-\d{2}-\d{2}$/, '');
+  return stripVersion(normalizedLeft) === stripVersion(normalizedRight);
+};
+
+const resolveUpstreamModelMismatch = (
+  value: unknown,
+  legacyValue: unknown,
+  upstreamModel: string,
+  responseModel: string
+): boolean | null => {
+  if (typeof value === 'boolean') return value;
+  if (typeof legacyValue === 'boolean') return legacyValue;
+  if (!responseModel) return null;
+  return !areMonitoringModelsEquivalent(upstreamModel, responseModel);
+};
+
 export const buildEventRows = (
   details: UsageDetailWithEndpoint[],
   authMetaMap: Map<string, MonitoringAuthMeta>,
@@ -100,17 +131,41 @@ export const buildEventRows = (
       const endpoint = readString(detail.__endpoint) || '-';
       const endpointMethod = readString(detail.__endpointMethod) || '-';
       const endpointPath = readString(detail.__endpointPath) || endpoint;
+      const downstreamTransport = readString(
+        detail.downstream_transport ?? detail.downstreamTransport
+      );
+      const upstreamTransport = readString(detail.upstream_transport ?? detail.upstreamTransport);
+      const requestedModel =
+        readString(detail.requested_model ?? detail.requestedModel) ||
+        readString(detail.__modelName);
       const resolvedModel = readString(detail.__resolvedModel);
-		const responseModel = readString(detail.response_model ?? detail.responseModel);
-		const billingModel = readString(detail.billing_model ?? detail.billingModel);
-		const responseModelMismatch =
-			detail.response_model_mismatch === true || detail.responseModelMismatch === true;
+      const upstreamModel =
+        readString(detail.upstream_model ?? detail.upstreamModel) ||
+        resolvedModel ||
+        requestedModel;
+      const responseModel =
+        readString(detail.upstream_response_model ?? detail.upstreamResponseModel) ||
+        readString(detail.response_model ?? detail.responseModel);
+      const billingModel = readString(detail.billing_model ?? detail.billingModel);
+      const upstreamModelMismatch = resolveUpstreamModelMismatch(
+        detail.upstream_model_mismatch ?? detail.upstreamModelMismatch,
+        detail.response_model_mismatch ?? detail.responseModelMismatch,
+        upstreamModel,
+        responseModel
+      );
+      const responseModelMismatch = upstreamModelMismatch === true;
       const projectId = readString(detail.auth_project_id_snapshot ?? detail.authProjectIdSnapshot);
       const inputTokens = Math.max(Number(detail.tokens?.input_tokens) || 0, 0);
       const outputTokens = Math.max(Number(detail.tokens?.output_tokens) || 0, 0);
       const reasoningTokens = Math.max(Number(detail.tokens?.reasoning_tokens) || 0, 0);
-      const cacheCreationTokens5m = Math.max(Number(detail.tokens?.cache_creation_tokens_5m) || 0, 0);
-      const cacheCreationTokens1h = Math.max(Number(detail.tokens?.cache_creation_tokens_1h) || 0, 0);
+      const cacheCreationTokens5m = Math.max(
+        Number(detail.tokens?.cache_creation_tokens_5m) || 0,
+        0
+      );
+      const cacheCreationTokens1h = Math.max(
+        Number(detail.tokens?.cache_creation_tokens_1h) || 0,
+        0
+      );
       const splitCacheCreationTokens = cacheCreationTokens5m + cacheCreationTokens1h;
       const cacheCreationTokens = Math.max(
         splitCacheCreationTokens > 0
@@ -146,9 +201,10 @@ export const buildEventRows = (
       const responseServiceTier = readString(
         detail.response_service_tier ?? detail.responseServiceTier
       );
-      const effectiveServiceTier = readString(
-        detail.effective_service_tier ?? detail.effectiveServiceTier
-      ) || responseServiceTier || serviceTier;
+      const effectiveServiceTier =
+        readString(detail.effective_service_tier ?? detail.effectiveServiceTier) ||
+        responseServiceTier ||
+        serviceTier;
       const executorType = readString(detail.executor_type ?? detail.executorType);
       const failStatusCodeRaw = detail.fail_status_code ?? detail.failStatusCode;
       const failStatusCode =
@@ -157,30 +213,42 @@ export const buildEventRows = (
           : Number(failStatusCodeRaw);
       const normalizedFailStatusCode =
         Number.isFinite(failStatusCode) && failStatusCode > 0 ? failStatusCode : null;
-      const codexTurnStateLengthRaw =
-        detail.codex_turn_state_length ?? detail.codexTurnStateLength;
+      const codexTurnStateLengthRaw = detail.codex_turn_state_length ?? detail.codexTurnStateLength;
       const codexTurnStateLength = Number(codexTurnStateLengthRaw);
       const normalizedCodexTurnStateLength =
         Number.isFinite(codexTurnStateLength) && codexTurnStateLength > 0
           ? codexTurnStateLength
           : null;
+      const codexTurnStateProxyForced =
+        detail.codex_turn_state_proxy_forced ?? detail.codexTurnStateProxyForced;
+      const codexTurnStateProxyReused =
+        detail.codex_turn_state_proxy_reused ?? detail.codexTurnStateProxyReused;
+      const codexTurnStateProxy = readString(
+        detail.codex_turn_state_proxy ?? detail.codexTurnStateProxy
+      );
       const failSummary = readString(detail.fail_summary ?? detail.failSummary);
       const failBody = readString(detail.fail_body ?? detail.failBody);
 
       return {
-        id: `${detail.timestamp}-${detail.__modelName || '-'}-${sourceKey}-${authIndex}-${index}`,
+        id: `${detail.timestamp}-${requestedModel || '-'}-${sourceKey}-${authIndex}-${index}`,
         timestamp: detail.timestamp,
         timestampMs,
         dayKey,
         hourLabel,
-        model: readString(detail.__modelName) || '-',
+        model: requestedModel || '-',
+        requestedModel: requestedModel || '-',
+        upstreamModel: upstreamModel || undefined,
+        upstreamResponseModel: responseModel || undefined,
+        upstreamModelMismatch,
         resolvedModel: resolvedModel || undefined,
-		responseModel: responseModel || undefined,
-		billingModel: billingModel || undefined,
-		responseModelMismatch,
+        responseModel: responseModel || undefined,
+        billingModel: billingModel || undefined,
+        responseModelMismatch,
         endpoint,
         endpointMethod,
         endpointPath,
+        downstreamTransport: downstreamTransport || undefined,
+        upstreamTransport: upstreamTransport || undefined,
         clientIp: readString(detail.client_ip),
         sourceKey,
         source: sourceLabel,
@@ -202,6 +270,9 @@ export const buildEventRows = (
         channelDisabled: channelMeta?.disabled || false,
         failed: detail.failed === true,
         codexTurnStateLength: normalizedCodexTurnStateLength,
+        codexTurnStateProxyForced: codexTurnStateProxyForced === true,
+        codexTurnStateProxyReused: codexTurnStateProxyReused === true,
+        codexTurnStateProxy: codexTurnStateProxy || undefined,
         statsIncluded,
         latencyMs,
         ttftMs,
@@ -224,7 +295,9 @@ export const buildEventRows = (
         failBody,
         taskKey,
         searchText: buildSearchText(
-          detail.__modelName,
+          requestedModel,
+          upstreamModel,
+          responseModel,
           sourceLabel,
           authMeta?.account,
           authMeta?.label,

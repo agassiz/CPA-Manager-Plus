@@ -36,6 +36,7 @@ export type CodexTurnStateAcquireStats = {
   usable_proxies: number;
   state_attempts: number;
   state_valid: number;
+  state_empty: number;
   state_invalid: number;
   state_failed: number;
   state_canceled: number;

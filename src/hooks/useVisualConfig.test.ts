@@ -140,6 +140,26 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
+  it('loads and saves the Codex force turn state proxy key', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['codex:', '  force-turn-state-proxy: true', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexForceTurnStateProxy).toBe(true);
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexForceTurnStateProxy: false });
+    });
+    expect(harness.getCurrent().applyVisualChangesToYaml(yaml)).toContain(
+      'force-turn-state-proxy: false'
+    );
+
+    harness.unmount();
+  });
+
   it('migrates the legacy turn state provider into an ordered provider list', () => {
     const harness = mountUseVisualConfig();
     const yaml = ['codex:', '  turn-state-proxy-provider-url: https://legacy.example/get', ''].join(
@@ -189,6 +209,59 @@ describe('useVisualConfig', () => {
     expect(harness.getCurrent().applyVisualChangesToYaml(yaml)).toContain(
       'turn-state-proxy-attempt-timeout-seconds: 60'
     );
+    harness.unmount();
+  });
+
+  it('loads and saves the Codex turn state proxy concurrency', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = ['codex:', '  turn-state-proxy-concurrency: 3', ''].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexTurnStateProxyConcurrency).toBe('3');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexTurnStateProxyConcurrency: '5' });
+    });
+
+    expect(harness.getCurrent().applyVisualChangesToYaml(yaml)).toContain(
+      'turn-state-proxy-concurrency: 5'
+    );
+    harness.unmount();
+  });
+
+  it('loads, saves, and clears the Codex turn state provider forward proxy', () => {
+    const harness = mountUseVisualConfig();
+    const yaml = [
+      'codex:',
+      '  turn-state-proxy-provider-proxy-url: socks5://127.0.0.1:1080',
+      '',
+    ].join('\n');
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml(yaml);
+      expect(result.ok).toBe(true);
+    });
+    expect(harness.getCurrent().visualValues.codexTurnStateProxyProviderProxyUrl).toBe(
+      'socks5://127.0.0.1:1080'
+    );
+
+    act(() => {
+      harness.getCurrent().setVisualValues({
+        codexTurnStateProxyProviderProxyUrl: 'http://127.0.0.1:8080',
+      });
+    });
+    const updatedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(updatedYaml).toContain('turn-state-proxy-provider-proxy-url: http://127.0.0.1:8080');
+
+    act(() => {
+      harness.getCurrent().setVisualValues({ codexTurnStateProxyProviderProxyUrl: '' });
+    });
+    const clearedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
+    expect(clearedYaml).not.toContain('turn-state-proxy-provider-proxy-url');
+
     harness.unmount();
   });
 

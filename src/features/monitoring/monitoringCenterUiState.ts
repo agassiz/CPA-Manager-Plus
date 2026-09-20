@@ -1,12 +1,14 @@
-export type MonitoringDataTab = 'accounts' | 'apiKeys' | 'realtime';
+export type MonitoringDataTab = 'accounts' | 'apiKeys' | 'realtime' | 'codexTurnState';
 export type MonitoringCenterTimeRange = 'today' | '7d' | '14d' | '30d' | 'all' | 'custom';
 export type MonitoringCenterStatusFilter = 'all' | 'success' | 'failed';
 export type RealtimeColumnKey =
   | 'source'
   | 'model'
   | 'endpoint'
+  | 'transport'
   | 'clientIp'
   | 'codexTurnStateLength'
+  | 'codexTurnStateProxy'
   | 'authIndex'
   | 'provider'
   | 'reasoning'
@@ -26,14 +28,17 @@ export const MONITORING_DATA_TABS: readonly MonitoringDataTab[] = [
   'accounts',
   'apiKeys',
   'realtime',
+  'codexTurnState',
 ] as const;
 
 export const REALTIME_COLUMN_KEYS: readonly RealtimeColumnKey[] = [
   'source',
   'model',
   'endpoint',
+  'transport',
   'clientIp',
   'codexTurnStateLength',
+  'codexTurnStateProxy',
   'authIndex',
   'provider',
   'reasoning',
@@ -52,8 +57,10 @@ export const DEFAULT_REALTIME_COLUMNS: readonly RealtimeColumnKey[] = [
   'source',
   'model',
   'endpoint',
+  'transport',
   'clientIp',
   'codexTurnStateLength',
+  'codexTurnStateProxy',
   'reasoning',
   'recent',
   'status',

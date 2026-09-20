@@ -7,11 +7,11 @@ import {
   buildOpenAIChatCompletionsEndpoint,
 } from '@/components/providers/utils';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
+import { buildClaudeRequestHeaders } from '@/utils/claudeHeaders';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ApiKeyEntryInput, ModelEntryInput, ProviderBrand } from '../../types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
 
 export type ConnectivityState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -42,13 +42,6 @@ const pickModel = (testModel: string | undefined, models: ModelEntryInput[]): st
     if (name) return name;
   }
   return '';
-};
-
-const resolveBearerToken = (headers: Record<string, string>): string => {
-  const auth = Object.entries(headers).find(([k]) => k.toLowerCase() === 'authorization')?.[1];
-  if (!auth) return '';
-  const match = String(auth).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
 };
 
 export interface UseConnectivityTestArgs {
@@ -426,25 +419,19 @@ export function useConnectivityTest(
     const customHeaders = buildHeaderObject(formHeaders);
     const explicitKey = (apiKey ?? '').trim();
     const persistedKey = (fallbackApiKey ?? '').trim();
-    const headerKey = resolveBearerToken(customHeaders);
     const hasApiKeyHeader = hasHeader(customHeaders, 'x-api-key');
-    const resolvedKey = explicitKey || persistedKey || headerKey;
+    const hasAuthorization = hasHeader(customHeaders, 'authorization');
+    const resolvedKey = explicitKey || persistedKey;
 
-    if (!resolvedKey && !hasApiKeyHeader) {
+    if (!resolvedKey && !hasApiKeyHeader && !hasAuthorization) {
       setClaudeStatus({ state: 'error', message: messages.apiKeyRequired });
       return;
     }
 
-    const headerObj: Record<string, string> = {
+    const headerObj = buildClaudeRequestHeaders(endpoint, {
       'Content-Type': 'application/json',
       ...customHeaders,
-    };
-    if (!hasHeader(headerObj, 'anthropic-version')) {
-      headerObj['anthropic-version'] = DEFAULT_ANTHROPIC_VERSION;
-    }
-    if (!hasApiKeyHeader && resolvedKey) {
-      headerObj['x-api-key'] = resolvedKey;
-    }
+    }, resolvedKey);
 
     setClaudeStatus({ state: 'loading', message: '' });
     setInFlight((n) => n + 1);

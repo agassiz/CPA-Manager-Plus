@@ -49,6 +49,8 @@ export interface ProviderKeyConfig {
   prefix?: string;
   baseUrl?: string;
   websockets?: boolean;
+  /** Codex only: allow native remote_compaction_v2 for this provider entry. */
+  enableNativeCompaction?: boolean;
   proxyUrl?: string;
   headers?: Record<string, string>;
   models?: ModelAlias[];
