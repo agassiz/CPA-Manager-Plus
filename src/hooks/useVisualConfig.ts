@@ -602,7 +602,10 @@ function getNextDirtyFields(
       'codexForceSuperCategory',
       'codexBugMode',
       'codexRewriteTurnState',
+	  'codexForceTurnStateProxy',
+	  'codexTurnStateProxyProviderProxyUrl',
 	  'codexTurnStateProxyAttemptTimeoutSeconds',
+	  'codexTurnStateProxyConcurrency',
       'passthroughHeaders',
       'hideUpstreamErrorDetails',
       'disableClaudeCloakMode',
@@ -976,13 +979,21 @@ export function useVisualConfig() {
         codexForceSuperCategory: Boolean(codex?.['force-super-category']),
         codexBugMode: Boolean(codex?.['bug-mode'] ?? codex?.bugMode),
         codexRewriteTurnState: Boolean(codex?.['rewrite-turn-state'] ?? codex?.rewriteTurnState),
+        codexForceTurnStateProxy: Boolean(
+          codex?.['force-turn-state-proxy'] ?? codex?.forceTurnStateProxy
+        ),
         codexTurnStateProxyProviderUrls: parseCodexTurnStateProxyProviderURLs(
           codex?.['turn-state-proxy-provider-urls'],
           codex?.['turn-state-proxy-provider-url']
         ),
+        codexTurnStateProxyProviderProxyUrl:
+          typeof codex?.['turn-state-proxy-provider-proxy-url'] === 'string'
+            ? codex['turn-state-proxy-provider-proxy-url']
+            : '',
         codexTurnStateProxyAttemptTimeoutSeconds: String(
           codex?.['turn-state-proxy-attempt-timeout-seconds'] ?? ''
         ),
+        codexTurnStateProxyConcurrency: String(codex?.['turn-state-proxy-concurrency'] ?? ''),
         passthroughHeaders: Boolean(parsed['passthrough-headers']),
         hideUpstreamErrorDetails: Boolean(
           parsed['hide-upstream-error-details'] ?? DEFAULT_VISUAL_VALUES.hideUpstreamErrorDetails
@@ -1325,16 +1336,22 @@ export function useVisualConfig() {
           values.codexForceSuperCategory ||
           values.codexBugMode ||
           values.codexRewriteTurnState ||
+          values.codexForceTurnStateProxy ||
           values.codexTurnStateProxyProviderUrls.some((value) => value.trim() !== '') ||
+          values.codexTurnStateProxyProviderProxyUrl.trim() ||
           values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
+	          values.codexTurnStateProxyConcurrency.trim() ||
           values.responsesCompactModel.trim() ||
           values.forceSummaryCompaction ||
           values.codexModelContextWindowOverrides.length > 0 ||
           dirtyFields.has('codexForceSuperCategory') ||
           dirtyFields.has('codexBugMode') ||
           dirtyFields.has('codexRewriteTurnState') ||
+          dirtyFields.has('codexForceTurnStateProxy') ||
           dirtyFields.has('codexTurnStateProxyProviderUrls') ||
+          dirtyFields.has('codexTurnStateProxyProviderProxyUrl') ||
           dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
+	          dirtyFields.has('codexTurnStateProxyConcurrency') ||
           dirtyFields.has('responsesCompactModel') ||
           dirtyFields.has('forceSummaryCompaction') ||
           dirtyFields.has('codexModelContextWindowOverrides') ||
@@ -1379,6 +1396,17 @@ export function useVisualConfig() {
 			setBooleanInDoc(doc, ['codex', 'rewrite-turn-state'], values.codexRewriteTurnState);
 		  }
 		  if (
+			values.codexForceTurnStateProxy ||
+			dirtyFields.has('codexForceTurnStateProxy') ||
+			docHas(doc, ['codex', 'force-turn-state-proxy'])
+		  ) {
+			setBooleanInDoc(
+			  doc,
+			  ['codex', 'force-turn-state-proxy'],
+			  values.codexForceTurnStateProxy
+			);
+		  }
+		  if (
 			values.codexTurnStateProxyProviderUrls.some((value) => value.trim() !== '') ||
 			dirtyFields.has('codexTurnStateProxyProviderUrls') ||
 			docHas(doc, ['codex', 'turn-state-proxy-provider-urls']) ||
@@ -1397,6 +1425,21 @@ export function useVisualConfig() {
 			}
 		  }
 		  if (
+			shouldWriteManagedField(
+			  doc,
+			  ['codex', 'turn-state-proxy-provider-proxy-url'],
+			  dirtyFields,
+			  'codexTurnStateProxyProviderProxyUrl'
+			)
+		  ) {
+			const providerProxyUrl = values.codexTurnStateProxyProviderProxyUrl.trim();
+			if (providerProxyUrl) {
+			  doc.setIn(['codex', 'turn-state-proxy-provider-proxy-url'], providerProxyUrl);
+			} else if (docHas(doc, ['codex', 'turn-state-proxy-provider-proxy-url'])) {
+			  doc.deleteIn(['codex', 'turn-state-proxy-provider-proxy-url']);
+			}
+		  }
+		  if (
 			values.codexTurnStateProxyAttemptTimeoutSeconds.trim() ||
 			dirtyFields.has('codexTurnStateProxyAttemptTimeoutSeconds') ||
 			docHas(doc, ['codex', 'turn-state-proxy-attempt-timeout-seconds'])
@@ -1405,6 +1448,17 @@ export function useVisualConfig() {
 			  doc,
 			  ['codex', 'turn-state-proxy-attempt-timeout-seconds'],
 			  values.codexTurnStateProxyAttemptTimeoutSeconds
+			);
+		  }
+		  if (
+			values.codexTurnStateProxyConcurrency.trim() ||
+			dirtyFields.has('codexTurnStateProxyConcurrency') ||
+			docHas(doc, ['codex', 'turn-state-proxy-concurrency'])
+		  ) {
+			setIntFromStringInDoc(
+			  doc,
+			  ['codex', 'turn-state-proxy-concurrency'],
+			  values.codexTurnStateProxyConcurrency
 			);
 		  }
           if (

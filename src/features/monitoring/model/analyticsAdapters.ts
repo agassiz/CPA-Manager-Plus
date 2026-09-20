@@ -21,7 +21,13 @@ import {
   normalizeUsageSourceId,
   type UsageDetailWithEndpoint,
 } from '@/utils/usage';
-import { formatApiKeyHashLabel, joinUnique, maskAuthIndex, maskEmailLike, readString } from './base';
+import {
+  formatApiKeyHashLabel,
+  joinUnique,
+  maskAuthIndex,
+  maskEmailLike,
+  readString,
+} from './base';
 import { sanitizeApiKeyDisplayText, type ApiKeyDisplayInfo } from './apiKeys';
 import { buildDayLabel, buildHourLabel, buildLocalDayKey, padNumber } from './range';
 import { buildMonitoringSourceDisplay } from './sourceDisplay';
@@ -65,10 +71,12 @@ const resolveAggregateAccountDisplayName = (
   hasConfiguredSource: boolean
 ): string => {
   const labels = Array.from(
-    new Set(Array.from(providerLabels).filter((value) => {
-      const trimmed = readString(value);
-      return Boolean(trimmed) && trimmed !== '-';
-    }))
+    new Set(
+      Array.from(providerLabels).filter((value) => {
+        const trimmed = readString(value);
+        return Boolean(trimmed) && trimmed !== '-';
+      })
+    )
   );
   const isMaskedApiKey = /^(?:[mk]:)?(?:sk|pk|ak|rk)\S*\.\.\./i.test(account.trim());
 
@@ -572,11 +580,12 @@ export const buildAccountRowsFromAnalytics = (
         { authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex }
       );
       const account = firstReadableValue(display.account, row.account_snapshot, row.id);
-      const displayAccount = resolveAggregateAccountDisplayName(account, display.primary, [
-        ...channelNames,
-        row.auth_provider_snapshot,
-        display.provider,
-      ], display.configuredSource);
+      const displayAccount = resolveAggregateAccountDisplayName(
+        account,
+        display.primary,
+        [...channelNames, row.auth_provider_snapshot, display.provider],
+        display.configuredSource
+      );
       const authLabels = uniqueReadableValues([
         ...authMetas.map((meta) => meta.label),
         row.auth_label_snapshot,
@@ -878,10 +887,17 @@ export const buildUsageDetailsFromAnalyticsEvents = (
     reasoning_effort: readString(item.reasoning_effort),
     service_tier: readString(item.service_tier),
     response_service_tier: readString(item.response_service_tier),
-	response_model: readString(item.response_model),
-	response_model_mismatch: item.response_model_mismatch === true,
-	billing_model: readString(item.billing_model),
+    requested_model: readString(item.requested_model),
+    upstream_model: readString(item.upstream_model),
+    upstream_response_model: readString(item.upstream_response_model),
+    upstream_model_mismatch:
+      typeof item.upstream_model_mismatch === 'boolean' ? item.upstream_model_mismatch : null,
+    response_model: readString(item.response_model),
+    response_model_mismatch: item.response_model_mismatch === true,
+    billing_model: readString(item.billing_model),
     effective_service_tier: readString(item.effective_service_tier),
+    downstream_transport: readString(item.downstream_transport),
+    upstream_transport: readString(item.upstream_transport),
     executor_type: readString(item.executor_type),
     latency_ms: item.latency_ms ?? undefined,
     ttft_ms: item.ttft_ms ?? undefined,
@@ -899,6 +915,9 @@ export const buildUsageDetailsFromAnalyticsEvents = (
     fail_summary: readString(item.fail_summary),
     fail_body: readString(item.fail_body),
     codex_turn_state_length: item.codex_turn_state_length ?? null,
+    codex_turn_state_proxy_forced: item.codex_turn_state_proxy_forced === true,
+    codex_turn_state_proxy_reused: item.codex_turn_state_proxy_reused === true,
+    codex_turn_state_proxy: readString(item.codex_turn_state_proxy),
     __modelName: item.model,
     __resolvedModel: readString(item.resolved_model),
     __endpoint: item.endpoint || `${item.method} ${item.path}`.trim(),

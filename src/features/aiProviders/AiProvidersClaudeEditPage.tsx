@@ -10,19 +10,18 @@ import { ModelInputList } from '@/components/ui/ModelInputList';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
-import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
+import { getApiCallErrorMessage, providersApi } from '@/services/api';
 import { useNotificationStore } from '@/stores';
 import { buildHeaderObject } from '@/utils/headers';
 import { buildClaudeMessagesEndpoint, parseTextList } from '@/components/providers/utils';
-import type { ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
+import { buildClaudeModelsPayload, type ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
 import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
 import { parseThinkingConfig } from './components/thinkingLevelMapping';
 import styles from './AiProvidersPage.module.scss';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 
-const CLAUDE_TEST_TIMEOUT_MS = 30_000;
-const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
-
+// Slightly above the backend executor test timeout (60s) so its error surfaces first.
+const CLAUDE_TEST_TIMEOUT_MS = 65_000;
 const getErrorMessage = (err: unknown) => {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -32,15 +31,6 @@ const getErrorMessage = (err: unknown) => {
 const hasHeader = (headers: Record<string, string>, name: string) => {
   const target = name.toLowerCase();
   return Object.keys(headers).some((key) => key.toLowerCase() === target);
-};
-
-const resolveBearerTokenFromAuthorization = (headers: Record<string, string>): string => {
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === 'authorization');
-  if (!entry) return '';
-  const value = String(entry[1] ?? '').trim();
-  if (!value) return '';
-  const match = value.match(/^Bearer\s+(.+)$/i);
-  return match?.[1]?.trim() || '';
 };
 
 export function AiProvidersClaudeEditPage() {
@@ -135,11 +125,23 @@ export function AiProvidersClaudeEditPage() {
     return [
       form.apiKey.trim(),
       form.baseUrl?.trim() ?? '',
+      form.proxyUrl?.trim() ?? '',
       testModel.trim(),
       headersSignature,
       modelsSignature,
+      JSON.stringify(form.cloak ?? null),
+      String(form.experimentalCCHSigning ?? false),
     ].join('||');
-  }, [form.apiKey, form.baseUrl, form.headers, form.modelEntries, testModel]);
+  }, [
+    form.apiKey,
+    form.baseUrl,
+    form.cloak,
+    form.experimentalCCHSigning,
+    form.headers,
+    form.modelEntries,
+    form.proxyUrl,
+    testModel,
+  ]);
 
   const previousConnectivityConfigRef = useRef(connectivityConfigSignature);
 
@@ -171,10 +173,10 @@ export function AiProvidersClaudeEditPage() {
     const customHeaders = buildHeaderObject(form.headers);
     const apiKey = form.apiKey.trim();
     const hasApiKeyHeader = hasHeader(customHeaders, 'x-api-key');
-    const apiKeyFromAuthorization = resolveBearerTokenFromAuthorization(customHeaders);
-    const resolvedApiKey = apiKey || apiKeyFromAuthorization;
+    const hasAuthorization = hasHeader(customHeaders, 'authorization');
+    const resolvedApiKey = apiKey;
 
-    if (!resolvedApiKey && !hasApiKeyHeader) {
+    if (!resolvedApiKey && !hasApiKeyHeader && !hasAuthorization) {
       const message = t('ai_providers.claude_test_key_required');
       setTestStatus('error');
       setTestMessage(message);
@@ -191,43 +193,26 @@ export function AiProvidersClaudeEditPage() {
       return;
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    };
-
-    if (!hasHeader(headers, 'anthropic-version')) {
-      headers['anthropic-version'] = DEFAULT_ANTHROPIC_VERSION;
-    }
-    if (!Object.prototype.hasOwnProperty.call(headers, 'Anthropic-Version')) {
-      headers['Anthropic-Version'] = headers['anthropic-version'] ?? DEFAULT_ANTHROPIC_VERSION;
-    }
-
-    const tokenValue = resolvedApiKey;
-
-    if (!hasApiKeyHeader && tokenValue) {
-      headers['x-api-key'] = tokenValue;
-    }
-    if (!Object.prototype.hasOwnProperty.call(headers, 'X-Api-Key') && tokenValue) {
-      headers['X-Api-Key'] = tokenValue;
-    }
-
     setIsTesting(true);
     setTestStatus('loading');
     setTestMessage(t('ai_providers.claude_test_running'));
 
     try {
-      const result = await apiCallApi.request(
+      // Test through the backend Claude executor with the edited entry, so
+      // cloaking and fingerprint settings match live traffic.
+      const result = await providersApi.testClaudeConfig(
         {
-          method: 'POST',
-          url: endpoint,
-          header: headers,
-          data: JSON.stringify({
-            model: modelName,
-            max_tokens: 8,
-            messages: [{ role: 'user', content: 'Hi' }],
-          }),
+          name: form.name?.trim() || undefined,
+          apiKey: resolvedApiKey,
+          prefix: form.prefix?.trim() || undefined,
+          baseUrl: (form.baseUrl ?? '').trim() || undefined,
+          proxyUrl: form.proxyUrl?.trim() || undefined,
+          headers: customHeaders,
+          models: buildClaudeModelsPayload(form.modelEntries),
+          cloak: form.cloak,
+          experimentalCCHSigning: form.experimentalCCHSigning ?? false,
         },
+        modelName,
         { timeout: CLAUDE_TEST_TIMEOUT_MS }
       );
 
@@ -259,7 +244,13 @@ export function AiProvidersClaudeEditPage() {
     availableModels,
     form.apiKey,
     form.baseUrl,
+    form.cloak,
+    form.experimentalCCHSigning,
     form.headers,
+    form.modelEntries,
+    form.name,
+    form.prefix,
+    form.proxyUrl,
     isTesting,
     setTestMessage,
     setTestStatus,

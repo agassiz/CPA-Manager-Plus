@@ -3,6 +3,8 @@ import type { AiProviderListRow } from './AiProvidersUnifiedTable';
 
 export interface AiProviderListControls {
   filter: string;
+  /** Provider type label to keep; empty string keeps every provider type. */
+  provider: string;
   sortBy: ProviderSortBy;
   sortDir: SortDir;
   selectedModels: ReadonlySet<string>;
@@ -32,6 +34,14 @@ const matchesSelectedModels = (
   selectedModels.size === 0 ||
   (row.filterModels ?? []).some((model) => selectedModels.has(model));
 
+const matchesProvider = (row: AiProviderListRow, provider: string): boolean =>
+  provider === '' || row.provider === provider;
+
+export const getAvailableAiProviderTypes = (rows: AiProviderListRow[]): string[] =>
+  Array.from(new Set(rows.map((row) => row.provider))).sort((left, right) =>
+    left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' })
+  );
+
 export const getAvailableAiProviderModels = (rows: AiProviderListRow[]): string[] =>
   Array.from(new Set(rows.flatMap((row) => row.filterModels ?? []))).sort((left, right) =>
     left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' })
@@ -47,6 +57,7 @@ export const filterAndSortAiProviderRows = (
     .filter(
       (row) =>
         matchesSearch(row, controls.filter) &&
+        matchesProvider(row, controls.provider) &&
         matchesSelectedModels(row, controls.selectedModels)
     )
     .sort((left, right) => {

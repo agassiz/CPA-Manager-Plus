@@ -622,6 +622,24 @@
   }
 }
 
+.nav-config-item-compact {
+  min-height: 40px;
+  align-items: center;
+  padding: 8px 12px;
+
+  .nav-icon {
+    margin-top: 0;
+  }
+}
+
+.nav-config-group {
+  margin: 14px 26px 6px;
+
+  &:first-child {
+    margin-top: 4px;
+  }
+}
+
 .nav-config-copy {
   display: flex;
   flex: 1;

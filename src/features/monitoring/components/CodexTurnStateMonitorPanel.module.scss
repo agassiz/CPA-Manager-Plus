@@ -1,0 +1,110 @@
+.panel {
+  margin: 0 0 14px;
+  border: 1px solid var(--border-color, #dfe5ec);
+  border-radius: 8px;
+  background: var(--surface-color, #fff);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color, #dfe5ec);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary, #687587);
+  font-size: 12px;
+}
+
+.count {
+  min-width: 24px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-muted, #eef3f8);
+  color: var(--text-secondary, #687587);
+  font-size: 12px;
+  text-align: center;
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #edf0f4);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.table th {
+  color: var(--text-secondary, #687587);
+  font-weight: 600;
+  background: var(--surface-muted, #f7f9fb);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.muted,
+.proxy {
+  color: var(--text-secondary, #687587);
+}
+
+.proxy {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.success {
+  color: #39a852;
+  font-weight: 600;
+}
+
+.failure {
+  color: #d14343;
+  font-weight: 600;
+}
+
+.error {
+  max-width: 260px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--text-secondary, #687587);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 20px 16px;
+  color: var(--text-secondary, #687587);
+  font-size: 13px;
+}

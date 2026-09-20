@@ -5,11 +5,11 @@
 import axios from 'axios';
 import { normalizeModelList } from '@/utils/models';
 import { normalizeApiBase } from '@/utils/connection';
+import { buildClaudeRequestHeaders } from '@/utils/claudeHeaders';
 import { apiCallApi, getApiCallErrorMessage } from './apiCall';
 
 const DEFAULT_CLAUDE_BASE_URL = 'https://api.anthropic.com';
 const DEFAULT_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com';
-const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
 const CLAUDE_MODELS_IN_FLIGHT = new Map<string, Promise<ReturnType<typeof normalizeModelList>>>();
 const GEMINI_MODELS_IN_FLIGHT = new Map<string, Promise<ReturnType<typeof normalizeModelList>>>();
 
@@ -72,15 +72,6 @@ const stripGeminiModelResourceName = (value: string): string => {
 const hasHeader = (headers: Record<string, string>, name: string) => {
   const target = name.toLowerCase();
   return Object.keys(headers).some((key) => key.toLowerCase() === target);
-};
-
-const resolveBearerTokenFromAuthorization = (headers: Record<string, string>): string => {
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === 'authorization');
-  if (!entry) return '';
-  const value = String(entry[1] ?? '').trim();
-  if (!value) return '';
-  const match = value.match(/^Bearer\s+(.+)$/i);
-  return match?.[1]?.trim() || '';
 };
 
 export const modelsApi = {
@@ -194,7 +185,7 @@ export const modelsApi = {
 
   /**
    * Fetch Claude models from /v1/models via api-call.
-   * Anthropic requires `x-api-key` and `anthropic-version` headers.
+   * Anthropic uses `x-api-key`; compatible gateways may require Bearer auth.
    */
   async fetchClaudeModelsViaApiCall(
     baseUrl: string,
@@ -208,20 +199,12 @@ export const modelsApi = {
     }
 
     const trimmedAuthIndex = authIndex?.trim() || undefined;
-    const resolvedHeaders = { ...headers };
-    let resolvedApiKey = String(apiKey ?? '').trim();
-    if (!resolvedApiKey && !hasHeader(resolvedHeaders, 'x-api-key')) {
-      resolvedApiKey = resolveBearerTokenFromAuthorization(resolvedHeaders);
-    }
-
-    if (resolvedApiKey && !hasHeader(resolvedHeaders, 'x-api-key')) {
-      resolvedHeaders['x-api-key'] = resolvedApiKey;
-    } else if (trimmedAuthIndex && !hasHeader(resolvedHeaders, 'x-api-key')) {
-      resolvedHeaders['x-api-key'] = '$TOKEN$';
-    }
-    if (!hasHeader(resolvedHeaders, 'anthropic-version')) {
-      resolvedHeaders['anthropic-version'] = DEFAULT_ANTHROPIC_VERSION;
-    }
+    const resolvedHeaders = buildClaudeRequestHeaders(
+      endpoint,
+      headers,
+      apiKey,
+      trimmedAuthIndex
+    );
 
     const signature = buildRequestSignature(endpoint, resolvedHeaders, trimmedAuthIndex);
     const existing = CLAUDE_MODELS_IN_FLIGHT.get(signature);

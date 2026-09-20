@@ -1,4 +1,5 @@
 import {
+  Fragment,
   ReactNode,
   SVGProps,
   useCallback,
@@ -939,31 +940,34 @@ export function MainLayout() {
               {showConfigSidebarMenu ? (
                 <div className="nav-menu-section">
                   {configSidebarNavigation?.items.length ? (
-                    configSidebarNavigation.items.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`nav-item nav-config-item ${
-                          configSidebarNavigation.activeId === item.id ? 'active' : ''
-                        }`}
-                        onClick={() => {
-                          item.onSelect();
-                          setSidebarOpen(false);
-                        }}
-                        title={item.title}
-                        data-tooltip={item.title}
-                      >
-                        <span className="nav-icon">{item.icon}</span>
-                        <span className="nav-config-copy">
-                          <span className="nav-label">{item.title}</span>
-                          <span className="nav-config-description">{item.description}</span>
-                        </span>
-                        {item.errorCount ? (
-                          <span className="nav-config-badge" aria-hidden="true">
-                            {item.errorCount}
-                          </span>
+                    configSidebarNavigation.items.map((item, index, items) => (
+                      <Fragment key={item.id}>
+                        {item.group && item.group !== items[index - 1]?.group ? (
+                          <div className="nav-menu-heading nav-config-group">{item.group}</div>
                         ) : null}
-                      </button>
+                        <button
+                          type="button"
+                          className={`nav-item nav-config-item nav-config-item-compact ${
+                            configSidebarNavigation.activeId === item.id ? 'active' : ''
+                          }`}
+                          onClick={() => {
+                            item.onSelect();
+                            setSidebarOpen(false);
+                          }}
+                          title={item.description}
+                          data-tooltip={item.title}
+                        >
+                          <span className="nav-icon">{item.icon}</span>
+                          <span className="nav-config-copy">
+                            <span className="nav-label">{item.title}</span>
+                          </span>
+                          {item.errorCount ? (
+                            <span className="nav-config-badge" aria-hidden="true">
+                              {item.errorCount}
+                            </span>
+                          ) : null}
+                        </button>
+                      </Fragment>
                     ))
                   ) : (
                     <NavLink

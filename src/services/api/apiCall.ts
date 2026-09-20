@@ -78,24 +78,29 @@ export const getApiCallErrorMessage = (result: ApiCallResult): string => {
   return message || 'Request failed';
 };
 
+/** Parses the status_code/header/body envelope shared by api-call style endpoints. */
+export const parseApiCallResponse = (response: Record<string, unknown> | undefined): ApiCallResult => {
+  const rawStatusCode = response?.status_code ?? response?.statusCode;
+  const hasStatusCode = rawStatusCode !== undefined && rawStatusCode !== null && String(rawStatusCode).trim() !== '';
+  const statusCode = Number(rawStatusCode ?? 0);
+  const header = (response?.header ?? response?.headers ?? {}) as Record<string, string[]>;
+  const { bodyText, body } = normalizeBody(response?.body);
+
+  return {
+    statusCode,
+    hasStatusCode,
+    header,
+    bodyText,
+    body
+  };
+};
+
 export const apiCallApi = {
   request: async (
     payload: ApiCallRequest,
     config?: AxiosRequestConfig
   ): Promise<ApiCallResult> => {
     const response = await apiClient.post<Record<string, unknown>>('/api-call', payload, config);
-    const rawStatusCode = response?.status_code ?? response?.statusCode;
-    const hasStatusCode = rawStatusCode !== undefined && rawStatusCode !== null && String(rawStatusCode).trim() !== '';
-    const statusCode = Number(rawStatusCode ?? 0);
-    const header = (response?.header ?? response?.headers ?? {}) as Record<string, string[]>;
-    const { bodyText, body } = normalizeBody(response?.body);
-
-    return {
-      statusCode,
-      hasStatusCode,
-      header,
-      bodyText,
-      body
-    };
+    return parseApiCallResponse(response);
   }
 };

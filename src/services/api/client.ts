@@ -13,6 +13,11 @@ import {
 } from '@/utils/constants';
 import { computeApiUrl, detectApiBaseFromLocation, resolveRuntimeApiBase } from '@/utils/connection';
 
+export interface ManagementSession {
+  token: string;
+  expiresAt: number;
+}
+
 class ApiClient {
   private instance: AxiosInstance;
   private apiBase: string = '';
@@ -117,7 +122,7 @@ class ApiClient {
         }
 
         // 添加认证头
-        if (this.managementKey) {
+        if (this.managementKey && !config.headers?.Authorization && !config.headers?.authorization) {
           config.headers.Authorization = `Bearer ${this.managementKey}`;
         }
 
@@ -281,6 +286,27 @@ class ApiClient {
       ...init,
       headers,
     });
+  }
+
+  async createManagementSession(managementKey: string): Promise<ManagementSession> {
+    const response = await this.instance.post<{
+      token?: unknown;
+      expires_at?: unknown;
+    }>('/session', undefined, {
+      headers: { Authorization: `Bearer ${managementKey}` },
+    });
+    const token = typeof response.data?.token === 'string' ? response.data.token.trim() : '';
+    const expiresAtValue = response.data?.expires_at;
+    const expiresAt =
+      typeof expiresAtValue === 'string'
+        ? Date.parse(expiresAtValue)
+        : typeof expiresAtValue === 'number'
+          ? expiresAtValue
+          : Number.NaN;
+    if (!token || !Number.isFinite(expiresAt)) {
+      throw new Error('Management session response is invalid');
+    }
+    return { token, expiresAt };
   }
 }
 

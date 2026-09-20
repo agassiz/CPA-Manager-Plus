@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -51,20 +52,23 @@ import styles from './VisualConfigEditor.module.scss';
 
 type VisualSectionId =
   | 'server'
-  | 'tls'
-  | 'remote'
   | 'auth'
   | 'system'
   | 'network'
-  | 'quota'
-  | 'augment'
-  | 'kiro'
-  | 'models'
   | 'streaming'
-  | 'payload';
+  | 'quota'
+  | 'payload'
+  | 'claude'
+  | 'codex'
+  | 'gemini'
+  | 'augment'
+  | 'kiro';
+
+type VisualSectionGroup = 'general' | 'request' | 'provider';
 
 type VisualSection = {
   id: VisualSectionId;
+  group: VisualSectionGroup;
   title: string;
   description: string;
   icon: ComponentType<IconProps>;
@@ -117,8 +121,8 @@ function SectionStack({ children }: { children: ReactNode }) {
   return <div className={styles.sectionStack}>{children}</div>;
 }
 
-function Divider() {
-  return <div className={styles.divider} />;
+function ToggleList({ children }: { children: ReactNode }) {
+  return <div className={styles.toggleList}>{children}</div>;
 }
 
 function SectionSubsection({
@@ -315,41 +319,31 @@ export function VisualConfigEditor({
     () => [
       {
         id: 'server',
+        group: 'general',
         title: t('config_management.visual.sections.server.title'),
         description: t('config_management.visual.sections.server.description'),
         icon: IconSettings,
         errorCount: countErrors(['port']),
       },
       {
-        id: 'tls',
-        title: t('config_management.visual.sections.tls.title'),
-        description: t('config_management.visual.sections.tls.description'),
-        icon: IconShield,
-        errorCount: 0,
-      },
-      {
-        id: 'remote',
-        title: t('config_management.visual.sections.remote.title'),
-        description: t('config_management.visual.sections.remote.description'),
-        icon: IconSatellite,
-        errorCount: 0,
-      },
-      {
         id: 'auth',
+        group: 'general',
         title: t('config_management.visual.sections.auth.title'),
         description: t('config_management.visual.sections.auth.description'),
         icon: IconKey,
-        errorCount: 0,
+        errorCount: countErrors(['authAutoRefreshWorkers']),
       },
       {
         id: 'system',
+        group: 'general',
         title: t('config_management.visual.sections.system.title'),
         description: t('config_management.visual.sections.system.description'),
         icon: IconDiamond,
-        errorCount: countErrors(['maxRequestBodyMb', 'logsMaxTotalSizeMb', 'errorLogsMaxFiles']),
+        errorCount: countErrors(['logsMaxTotalSizeMb', 'errorLogsMaxFiles']),
       },
       {
         id: 'network',
+        group: 'request',
         title: t('config_management.visual.sections.network.title'),
         description: t('config_management.visual.sections.network.description'),
         icon: IconTrendingUp,
@@ -357,26 +351,72 @@ export function VisualConfigEditor({
           'requestRetry',
           'maxRetryCredentials',
           'maxRetryInterval',
-          'authAutoRefreshWorkers',
-          'codexModelContextWindowOverrides',
+          'maxRequestBodyMb',
+        ]),
+      },
+      {
+        id: 'streaming',
+        group: 'request',
+        title: t('config_management.visual.sections.streaming.title'),
+        description: t('config_management.visual.sections.streaming.description'),
+        icon: IconSatellite,
+        errorCount: countErrors([
+          'streaming.keepaliveSeconds',
+          'streaming.bootstrapRetries',
+          'streaming.nonstreamKeepaliveInterval',
         ]),
       },
       {
         id: 'quota',
+        group: 'request',
         title: t('config_management.visual.sections.quota.title'),
         description: t('config_management.visual.sections.quota.description'),
         icon: IconTimer,
         errorCount: 0,
       },
       {
+        id: 'payload',
+        group: 'request',
+        title: t('config_management.visual.sections.payload.title'),
+        description: t('config_management.visual.sections.payload.description'),
+        icon: IconCode,
+        errorCount: hasPayloadValidationErrors ? 1 : 0,
+      },
+      {
+        id: 'claude',
+        group: 'provider',
+        title: t('config_management.visual.sections.claude.title'),
+        description: t('config_management.visual.sections.claude.description'),
+        icon: IconShield,
+        errorCount: 0,
+      },
+      {
+        id: 'codex',
+        group: 'provider',
+        title: t('config_management.visual.sections.codex.title'),
+        description: t('config_management.visual.sections.codex.description'),
+        icon: IconCode,
+        errorCount: countErrors(['codexModelContextWindowOverrides']),
+      },
+      {
+        id: 'gemini',
+        group: 'provider',
+        title: t('config_management.visual.sections.gemini.title'),
+        description: t('config_management.visual.sections.gemini.description'),
+        icon: IconSatellite,
+        errorCount: 0,
+      },
+      {
         id: 'augment',
+        group: 'provider',
         title: t('config_management.visual.sections.augment.title'),
         description: t('config_management.visual.sections.augment.description'),
-        icon: IconCode,
+        icon: IconModelCluster,
         errorCount: 0,
       },
       {
         id: 'kiro',
+        group: 'provider',
         title: t('config_management.visual.sections.kiro.title'),
         description: t('config_management.visual.sections.kiro.description'),
         icon: IconTimer,
@@ -389,31 +429,6 @@ export function VisualConfigEditor({
           'kiroConsecutiveErrorCooldownThreshold',
           'kiroConsecutiveErrorDisableThreshold',
         ]),
-      },
-      {
-        id: 'models',
-        title: t('config_management.visual.sections.models.title'),
-        description: t('config_management.visual.sections.models.description'),
-        icon: IconModelCluster,
-        errorCount: 0,
-      },
-      {
-        id: 'streaming',
-        title: t('config_management.visual.sections.streaming.title'),
-        description: t('config_management.visual.sections.streaming.description'),
-        icon: IconSatellite,
-        errorCount: countErrors([
-          'streaming.keepaliveSeconds',
-          'streaming.bootstrapRetries',
-          'streaming.nonstreamKeepaliveInterval',
-        ]),
-      },
-      {
-        id: 'payload',
-        title: t('config_management.visual.sections.payload.title'),
-        description: t('config_management.visual.sections.payload.description'),
-        icon: IconCode,
-        errorCount: hasPayloadValidationErrors ? 1 : 0,
       },
     ],
     [countErrors, hasPayloadValidationErrors, t]
@@ -481,48 +496,55 @@ export function VisualConfigEditor({
           id: section.id,
           title: section.title,
           description: section.description,
+          group: t(`config_management.visual.groups.${section.group}`),
           icon: <Icon size={14} />,
           errorCount: section.errorCount,
           onSelect: () => handleSectionJump(section.id),
         };
       }),
     }),
-    [activeSectionId, handleSectionJump, sections]
+    [activeSectionId, handleSectionJump, sections, t]
   );
   const hasSidebarNavigationHost = useRegisterConfigSidebarNavigation(configSidebarNavigation);
   const shouldRenderSideSectionNav = !isMobile && !hasSidebarNavigationHost;
 
   const navContent = (
     <div className={styles.navList}>
-      {sections.map((section) => {
+      {sections.map((section, index) => {
         const Icon = section.icon;
+        const showGroupHeading = section.group !== sections[index - 1]?.group;
 
         return (
-          <button
-            key={section.id}
-            type="button"
-            className={`${styles.navButton} ${
-              activeSectionId === section.id ? styles.navButtonActive : ''
-            }`}
-            onClick={() => handleSectionJump(section.id)}
-          >
-            <span className={styles.navIcon}>
-              <Icon size={14} />
-            </span>
-            <span className={styles.navMain}>
-              <span className={styles.navHeadingRow}>
-                <span className={styles.navLabelWrap}>
-                  <span className={styles.navLabel}>{section.title}</span>
-                </span>
-                {section.errorCount > 0 ? (
-                  <span className={styles.navBadge} aria-hidden="true">
-                    {section.errorCount}
-                  </span>
-                ) : null}
+          <Fragment key={section.id}>
+            {showGroupHeading ? (
+              <div className={styles.navGroupHeading}>
+                {t(`config_management.visual.groups.${section.group}`)}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className={`${styles.navButton} ${
+                activeSectionId === section.id ? styles.navButtonActive : ''
+              }`}
+              onClick={() => handleSectionJump(section.id)}
+            >
+              <span className={styles.navIcon}>
+                <Icon size={14} />
               </span>
-              <span className={styles.navDescription}>{section.description}</span>
-            </span>
-          </button>
+              <span className={styles.navMain}>
+                <span className={styles.navHeadingRow}>
+                  <span className={styles.navLabelWrap}>
+                    <span className={styles.navLabel}>{section.title}</span>
+                  </span>
+                  {section.errorCount > 0 ? (
+                    <span className={styles.navBadge} aria-hidden="true">
+                      {section.errorCount}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            </button>
+          </Fragment>
         );
       })}
     </div>
@@ -592,118 +614,114 @@ export function VisualConfigEditor({
             title={t('config_management.visual.sections.server.title')}
             description={t('config_management.visual.sections.server.description')}
           >
-            <SectionGrid>
-              <Input
-                label={t('config_management.visual.sections.server.host')}
-                placeholder="0.0.0.0"
-                value={values.host}
-                onChange={(e) => onChange({ host: e.target.value })}
-                disabled={disabled}
-              />
-              <Input
-                label={t('config_management.visual.sections.server.port')}
-                type="number"
-                placeholder="8317"
-                value={values.port}
-                onChange={(e) => onChange({ port: e.target.value })}
-                disabled={disabled}
-                error={portError}
-              />
-            </SectionGrid>
-          </ConfigSection>
-
-          <ConfigSection
-            id="tls"
-            ref={(node) => {
-              sectionRefs.current.tls = node;
-            }}
-            icon={<IconShield size={16} />}
-            title={t('config_management.visual.sections.tls.title')}
-            description={t('config_management.visual.sections.tls.description')}
-          >
             <SectionStack>
-              <ToggleRow
-                title={t('config_management.visual.sections.tls.enable')}
-                description={t('config_management.visual.sections.tls.enable_desc')}
-                checked={values.tlsEnable}
-                disabled={disabled}
-                onChange={(tlsEnable) => onChange({ tlsEnable })}
-              />
-
-              {values.tlsEnable ? (
-                <>
-                  <Divider />
+              <SectionGrid>
+                <Input
+                  label={t('config_management.visual.sections.server.host')}
+                  placeholder="0.0.0.0"
+                  value={values.host}
+                  onChange={(e) => onChange({ host: e.target.value })}
+                  disabled={disabled}
+                />
+                <Input
+                  label={t('config_management.visual.sections.server.port')}
+                  type="number"
+                  placeholder="8317"
+                  value={values.port}
+                  onChange={(e) => onChange({ port: e.target.value })}
+                  disabled={disabled}
+                  error={portError}
+                />
+              </SectionGrid>
+              <SectionSubsection
+                title={t('config_management.visual.sections.tls.title')}
+                description={t('config_management.visual.sections.tls.description')}
+              >
+                <SectionStack>
+                  <ToggleList>
+                    <ToggleRow
+                      title={t('config_management.visual.sections.tls.enable')}
+                      description={t('config_management.visual.sections.tls.enable_desc')}
+                      checked={values.tlsEnable}
+                      disabled={disabled}
+                      onChange={(tlsEnable) => onChange({ tlsEnable })}
+                    />
+                  </ToggleList>
+                  {values.tlsEnable ? (
+                    <SectionGrid>
+                      <Input
+                        label={t('config_management.visual.sections.tls.cert')}
+                        placeholder="/path/to/cert.pem"
+                        value={values.tlsCert}
+                        onChange={(e) => onChange({ tlsCert: e.target.value })}
+                        disabled={disabled}
+                      />
+                      <Input
+                        label={t('config_management.visual.sections.tls.key')}
+                        placeholder="/path/to/key.pem"
+                        value={values.tlsKey}
+                        onChange={(e) => onChange({ tlsKey: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </SectionGrid>
+                  ) : null}
+                </SectionStack>
+              </SectionSubsection>
+              <SectionSubsection
+                title={t('config_management.visual.sections.remote.title')}
+                description={t('config_management.visual.sections.remote.description')}
+              >
+                <SectionStack>
+                  <ToggleList>
+                    <ToggleRow
+                      title={t('config_management.visual.sections.remote.allow_remote')}
+                      description={t('config_management.visual.sections.remote.allow_remote_desc')}
+                      checked={values.rmAllowRemote}
+                      disabled={disabled}
+                      onChange={(rmAllowRemote) => onChange({ rmAllowRemote })}
+                    />
+                    <ToggleRow
+                      title={t('config_management.visual.sections.remote.disable_panel')}
+                      description={t('config_management.visual.sections.remote.disable_panel_desc')}
+                      checked={values.rmDisableControlPanel}
+                      disabled={disabled}
+                      onChange={(rmDisableControlPanel) => onChange({ rmDisableControlPanel })}
+                    />
+                    <ToggleRow
+                      title={t(
+                        'config_management.visual.sections.remote.disable_auto_update_panel'
+                      )}
+                      description={t(
+                        'config_management.visual.sections.remote.disable_auto_update_panel_desc'
+                      )}
+                      checked={values.rmDisableAutoUpdatePanel}
+                      disabled={disabled}
+                      onChange={(rmDisableAutoUpdatePanel) =>
+                        onChange({ rmDisableAutoUpdatePanel })
+                      }
+                    />
+                  </ToggleList>
                   <SectionGrid>
                     <Input
-                      label={t('config_management.visual.sections.tls.cert')}
-                      placeholder="/path/to/cert.pem"
-                      value={values.tlsCert}
-                      onChange={(e) => onChange({ tlsCert: e.target.value })}
+                      label={t('config_management.visual.sections.remote.secret_key')}
+                      type="password"
+                      placeholder={t(
+                        'config_management.visual.sections.remote.secret_key_placeholder'
+                      )}
+                      value={values.rmSecretKey}
+                      onChange={(e) => onChange({ rmSecretKey: e.target.value })}
                       disabled={disabled}
                     />
                     <Input
-                      label={t('config_management.visual.sections.tls.key')}
-                      placeholder="/path/to/key.pem"
-                      value={values.tlsKey}
-                      onChange={(e) => onChange({ tlsKey: e.target.value })}
+                      label={t('config_management.visual.sections.remote.panel_repo')}
+                      placeholder="https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+                      value={values.rmPanelRepo}
+                      onChange={(e) => onChange({ rmPanelRepo: e.target.value })}
                       disabled={disabled}
                     />
                   </SectionGrid>
-                </>
-              ) : null}
-            </SectionStack>
-          </ConfigSection>
-
-          <ConfigSection
-            id="remote"
-            ref={(node) => {
-              sectionRefs.current.remote = node;
-            }}
-            icon={<IconSatellite size={16} />}
-            title={t('config_management.visual.sections.remote.title')}
-            description={t('config_management.visual.sections.remote.description')}
-          >
-            <SectionStack>
-              <ToggleRow
-                title={t('config_management.visual.sections.remote.allow_remote')}
-                description={t('config_management.visual.sections.remote.allow_remote_desc')}
-                checked={values.rmAllowRemote}
-                disabled={disabled}
-                onChange={(rmAllowRemote) => onChange({ rmAllowRemote })}
-              />
-              <ToggleRow
-                title={t('config_management.visual.sections.remote.disable_panel')}
-                description={t('config_management.visual.sections.remote.disable_panel_desc')}
-                checked={values.rmDisableControlPanel}
-                disabled={disabled}
-                onChange={(rmDisableControlPanel) => onChange({ rmDisableControlPanel })}
-              />
-              <ToggleRow
-                title={t('config_management.visual.sections.remote.disable_auto_update_panel')}
-                description={t(
-                  'config_management.visual.sections.remote.disable_auto_update_panel_desc'
-                )}
-                checked={values.rmDisableAutoUpdatePanel}
-                disabled={disabled}
-                onChange={(rmDisableAutoUpdatePanel) => onChange({ rmDisableAutoUpdatePanel })}
-              />
-              <SectionGrid>
-                <Input
-                  label={t('config_management.visual.sections.remote.secret_key')}
-                  type="password"
-                  placeholder={t('config_management.visual.sections.remote.secret_key_placeholder')}
-                  value={values.rmSecretKey}
-                  onChange={(e) => onChange({ rmSecretKey: e.target.value })}
-                  disabled={disabled}
-                />
-                <Input
-                  label={t('config_management.visual.sections.remote.panel_repo')}
-                  placeholder="https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
-                  value={values.rmPanelRepo}
-                  onChange={(e) => onChange({ rmPanelRepo: e.target.value })}
-                  disabled={disabled}
-                />
-              </SectionGrid>
+                </SectionStack>
+              </SectionSubsection>
             </SectionStack>
           </ConfigSection>
 
@@ -717,14 +735,28 @@ export function VisualConfigEditor({
             description={t('config_management.visual.sections.auth.description')}
           >
             <SectionStack>
-              <Input
-                label={t('config_management.visual.sections.auth.auth_dir')}
-                placeholder="~/.cli-proxy-api"
-                value={values.authDir}
-                onChange={(e) => onChange({ authDir: e.target.value })}
-                disabled={disabled}
-                hint={t('config_management.visual.sections.auth.auth_dir_hint')}
-              />
+              <SectionGrid>
+                <Input
+                  label={t('config_management.visual.sections.auth.auth_dir')}
+                  placeholder="~/.cli-proxy-api"
+                  value={values.authDir}
+                  onChange={(e) => onChange({ authDir: e.target.value })}
+                  disabled={disabled}
+                  hint={t('config_management.visual.sections.auth.auth_dir_hint')}
+                />
+                <Input
+                  label={t('config_management.visual.sections.network.auth_auto_refresh_workers')}
+                  type="number"
+                  placeholder="16"
+                  value={values.authAutoRefreshWorkers}
+                  onChange={(e) => onChange({ authAutoRefreshWorkers: e.target.value })}
+                  disabled={disabled}
+                  hint={t(
+                    'config_management.visual.sections.network.auth_auto_refresh_workers_hint'
+                  )}
+                  error={authAutoRefreshWorkersError}
+                />
+              </SectionGrid>
               <div className={styles.subsection}>
                 <ApiKeysCardEditor
                   value={values.apiKeysText}
@@ -747,7 +779,7 @@ export function VisualConfigEditor({
             description={t('config_management.visual.sections.system.description')}
           >
             <SectionStack>
-              <SectionGrid>
+              <ToggleList>
                 <ToggleRow
                   title={t('config_management.visual.sections.system.debug')}
                   description={t('config_management.visual.sections.system.debug_desc')}
@@ -776,30 +808,7 @@ export function VisualConfigEditor({
                   disabled={disabled}
                   onChange={(loggingToFile) => onChange({ loggingToFile })}
                 />
-                <ToggleRow
-                  title={t('config_management.visual.sections.system.antigravity_signature_cache')}
-                  description={t(
-                    'config_management.visual.sections.system.antigravity_signature_cache_desc'
-                  )}
-                  checked={values.antigravitySignatureCacheEnabled}
-                  disabled={disabled}
-                  onChange={(antigravitySignatureCacheEnabled) =>
-                    onChange({ antigravitySignatureCacheEnabled })
-                  }
-                />
-                <ToggleRow
-                  title={t('config_management.visual.sections.system.antigravity_signature_strict')}
-                  description={t(
-                    'config_management.visual.sections.system.antigravity_signature_strict_desc'
-                  )}
-                  checked={values.antigravitySignatureBypassStrict}
-                  disabled={disabled}
-                  onChange={(antigravitySignatureBypassStrict) =>
-                    onChange({ antigravitySignatureBypassStrict })
-                  }
-                />
-              </SectionGrid>
-
+              </ToggleList>
               <SectionGrid>
                 <Input
                   label={t('config_management.visual.sections.system.logs_max_size')}
@@ -818,16 +827,6 @@ export function VisualConfigEditor({
                   onChange={(e) => onChange({ errorLogsMaxFiles: e.target.value })}
                   disabled={disabled}
                   error={errorLogsMaxFilesError}
-                />
-                <Input
-                  label={t('config_management.visual.sections.system.max_request_body_mb')}
-                  type="number"
-                  placeholder="16"
-                  value={values.maxRequestBodyMb}
-                  onChange={(e) => onChange({ maxRequestBodyMb: e.target.value })}
-                  disabled={disabled}
-                  hint={t('config_management.visual.sections.system.max_request_body_mb_hint')}
-                  error={maxRequestBodyMbError}
                 />
               </SectionGrid>
             </SectionStack>
@@ -850,6 +849,16 @@ export function VisualConfigEditor({
                   value={values.proxyUrl}
                   onChange={(e) => onChange({ proxyUrl: e.target.value })}
                   disabled={disabled}
+                />
+                <Input
+                  label={t('config_management.visual.sections.system.max_request_body_mb')}
+                  type="number"
+                  placeholder="16"
+                  value={values.maxRequestBodyMb}
+                  onChange={(e) => onChange({ maxRequestBodyMb: e.target.value })}
+                  disabled={disabled}
+                  hint={t('config_management.visual.sections.system.max_request_body_mb_hint')}
+                  error={maxRequestBodyMbError}
                 />
                 <Input
                   label={t('config_management.visual.sections.network.request_retry')}
@@ -878,18 +887,6 @@ export function VisualConfigEditor({
                   onChange={(e) => onChange({ maxRetryInterval: e.target.value })}
                   disabled={disabled}
                   error={maxRetryIntervalError}
-                />
-                <Input
-                  label={t('config_management.visual.sections.network.auth_auto_refresh_workers')}
-                  type="number"
-                  placeholder="16"
-                  value={values.authAutoRefreshWorkers}
-                  onChange={(e) => onChange({ authAutoRefreshWorkers: e.target.value })}
-                  disabled={disabled}
-                  hint={t(
-                    'config_management.visual.sections.network.auth_auto_refresh_workers_hint'
-                  )}
-                  error={authAutoRefreshWorkersError}
                 />
                 <FieldShell
                   label={t('config_management.visual.sections.network.disable_image_generation')}
@@ -969,9 +966,16 @@ export function VisualConfigEditor({
                   onChange={(e) => onChange({ routingSessionAffinityTTL: e.target.value })}
                   disabled={disabled}
                 />
+                <Input
+                  label={t('config_management.visual.sections.network.image_fallback_model')}
+                  value={values.imageFallbackModel}
+                  placeholder="gpt-5.6-luna"
+                  disabled={disabled}
+                  hint={t('config_management.visual.sections.network.image_fallback_model_hint')}
+                  onChange={(event) => onChange({ imageFallbackModel: event.target.value })}
+                />
               </SectionGrid>
-
-              <SectionGrid>
+              <ToggleList>
                 <ToggleRow
                   title={t('config_management.visual.sections.network.force_model_prefix')}
                   description={t(
@@ -981,113 +985,11 @@ export function VisualConfigEditor({
                   disabled={disabled}
                   onChange={(forceModelPrefix) => onChange({ forceModelPrefix })}
                 />
-                {codexLicensedFeaturesAllowed && (
-                  <>
-                    <ToggleRow
-                      title={t(
-                        'config_management.visual.sections.network.codex_force_super_category'
-                      )}
-                      description={t(
-                        'config_management.visual.sections.network.codex_force_super_category_desc'
-                      )}
-                      checked={values.codexForceSuperCategory}
-                      disabled={disabled}
-                      onChange={(codexForceSuperCategory) => onChange({ codexForceSuperCategory })}
-                    />
-                    <ToggleRow
-                      title={t('config_management.visual.sections.network.codex_bug_mode')}
-                      checked={values.codexBugMode}
-                      disabled={disabled}
-                      onChange={(codexBugMode) => onChange({ codexBugMode })}
-                    />
-					<ToggleRow
-					  title={t('config_management.visual.sections.network.codex_rewrite_turn_state')}
-					  description={t('config_management.visual.sections.network.codex_rewrite_turn_state_desc')}
-					  checked={values.codexRewriteTurnState}
-					  disabled={disabled}
-					  onChange={(codexRewriteTurnState) => onChange({ codexRewriteTurnState })}
-					/>
-					<div className={styles.turnStateProxyProviderField}>
-					  <div className="form-group">
-						<label htmlFor="codex-turn-state-proxy-provider-urls">
-						  {t(
-							'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls'
-						  )}
-						</label>
-						<textarea
-						  id="codex-turn-state-proxy-provider-urls"
-						  className={`input ${styles.turnStateProxyProviderTextarea}`}
-						  value={values.codexTurnStateProxyProviderUrls.join('\n')}
-						  disabled={disabled}
-						  rows={5}
-						  onChange={(event) =>
-							onChange({
-							  codexTurnStateProxyProviderUrls: event.target.value.split(/\r?\n/),
-							})
-						  }
-						/>
-						<div className="hint">
-						  {t(
-							'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls_hint'
-						  )}
-						</div>
-					  </div>
-					</div>
-					<Input
-					  label={t(
-						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds'
-					  )}
-					  type="number"
-					  min="1"
-					  max="120"
-					  placeholder="15"
-					  value={values.codexTurnStateProxyAttemptTimeoutSeconds}
-					  onChange={(event) =>
-						onChange({ codexTurnStateProxyAttemptTimeoutSeconds: event.target.value })
-					  }
-					  disabled={disabled}
-					  hint={t(
-						'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds_hint'
-					  )}
-					/>
-                  </>
-                )}
-                <Input
-                  label={t(
-                    'config_management.visual.sections.network.codex_compact_model'
-                  )}
-                  value={values.responsesCompactModel}
-                  placeholder="claude-sonnet-4-6"
-                  disabled={disabled}
-                  hint={t(
-                    'config_management.visual.sections.network.codex_compact_model_hint'
-                  )}
-                  onChange={(event) =>
-                    onChange({ responsesCompactModel: event.target.value })
-                  }
-                />
                 <ToggleRow
-                  title={t('config_management.visual.sections.network.force_summary_compaction')}
-                  description={t(
-                    'config_management.visual.sections.network.force_summary_compaction_desc'
-                  )}
-                  checked={values.forceSummaryCompaction}
+                  title={t('config_management.visual.sections.network.session_affinity')}
+                  checked={values.routingSessionAffinity}
                   disabled={disabled}
-                  onChange={(forceSummaryCompaction) => onChange({ forceSummaryCompaction })}
-                />
-                <CodexContextWindowOverridesEditor
-                  value={values.codexModelContextWindowOverrides}
-                  disabled={disabled}
-                  error={codexContextWindowOverridesError}
-                  onChange={handleCodexContextWindowOverridesChange}
-                />
-                <Input
-                  label={t('config_management.visual.sections.network.image_fallback_model')}
-                  value={values.imageFallbackModel}
-                  placeholder="gpt-5.6-luna"
-                  disabled={disabled}
-                  hint={t('config_management.visual.sections.network.image_fallback_model_hint')}
-                  onChange={(event) => onChange({ imageFallbackModel: event.target.value })}
+                  onChange={(routingSessionAffinity) => onChange({ routingSessionAffinity })}
                 />
                 <ToggleRow
                   title={t('config_management.visual.sections.network.passthrough_headers')}
@@ -1108,24 +1010,6 @@ export function VisualConfigEditor({
                   onChange={(hideUpstreamErrorDetails) => onChange({ hideUpstreamErrorDetails })}
                 />
                 <ToggleRow
-                  title={t('config_management.visual.sections.network.disable_claude_cloak_mode')}
-                  description={t(
-                    'config_management.visual.sections.network.disable_claude_cloak_mode_desc'
-                  )}
-                  checked={values.disableClaudeCloakMode}
-                  disabled={disabled}
-                  onChange={(disableClaudeCloakMode) => onChange({ disableClaudeCloakMode })}
-                />
-                <ToggleRow
-                  title={t('config_management.visual.sections.network.experimental_cch_signing')}
-                  description={t(
-                    'config_management.visual.sections.network.experimental_cch_signing_desc'
-                  )}
-                  checked={values.experimentalCCHSigning}
-                  disabled={disabled}
-                  onChange={(experimentalCCHSigning) => onChange({ experimentalCCHSigning })}
-                />
-                <ToggleRow
                   title={t('config_management.visual.sections.network.disable_cooling')}
                   description={t('config_management.visual.sections.network.disable_cooling_desc')}
                   checked={values.disableCooling}
@@ -1142,185 +1026,113 @@ export function VisualConfigEditor({
                   onChange={(disableAutoDisable) => onChange({ disableAutoDisable })}
                 />
                 <ToggleRow
-                  title={t('config_management.visual.sections.network.session_affinity')}
-                  checked={values.routingSessionAffinity}
-                  disabled={disabled}
-                  onChange={(routingSessionAffinity) => onChange({ routingSessionAffinity })}
-                />
-                <ToggleRow
                   title={t('config_management.visual.sections.network.ws_auth')}
                   description={t('config_management.visual.sections.network.ws_auth_desc')}
                   checked={values.wsAuth}
                   disabled={disabled}
                   onChange={(wsAuth) => onChange({ wsAuth })}
                 />
-                <ToggleRow
-                  title={t('config_management.visual.sections.network.enable_gemini_cli_endpoint')}
-                  description={t(
-                    'config_management.visual.sections.network.enable_gemini_cli_endpoint_desc'
-                  )}
-                  checked={values.enableGeminiCliEndpoint}
+              </ToggleList>
+            </SectionStack>
+          </ConfigSection>
+
+          <ConfigSection
+            id="streaming"
+            ref={(node) => {
+              sectionRefs.current.streaming = node;
+            }}
+            icon={<IconSatellite size={16} />}
+            title={t('config_management.visual.sections.streaming.title')}
+            description={t('config_management.visual.sections.streaming.description')}
+          >
+            <SectionStack>
+              <SectionGrid>
+                <FieldShell
+                  label={t('config_management.visual.sections.streaming.keepalive_seconds')}
+                  htmlFor={keepaliveInputId}
+                  hint={t('config_management.visual.sections.streaming.keepalive_hint')}
+                  hintId={keepaliveHintId}
+                  error={keepaliveError}
+                  errorId={keepaliveErrorId}
+                >
+                  <div className={styles.fieldControl}>
+                    <input
+                      id={keepaliveInputId}
+                      className="input"
+                      type="number"
+                      placeholder="0"
+                      value={values.streaming.keepaliveSeconds}
+                      onChange={(e) =>
+                        onChange({
+                          streaming: {
+                            ...values.streaming,
+                            keepaliveSeconds: e.target.value,
+                          },
+                        })
+                      }
+                      disabled={disabled}
+                    />
+                    {isKeepaliveDisabled ? (
+                      <span className={styles.inlinePill}>
+                        {t('config_management.visual.sections.streaming.disabled')}
+                      </span>
+                    ) : null}
+                  </div>
+                </FieldShell>
+
+                <Input
+                  label={t('config_management.visual.sections.streaming.bootstrap_retries')}
+                  type="number"
+                  placeholder="1"
+                  value={values.streaming.bootstrapRetries}
+                  onChange={(e) =>
+                    onChange({
+                      streaming: {
+                        ...values.streaming,
+                        bootstrapRetries: e.target.value,
+                      },
+                    })
+                  }
                   disabled={disabled}
-                  onChange={(enableGeminiCliEndpoint) => onChange({ enableGeminiCliEndpoint })}
+                  hint={t('config_management.visual.sections.streaming.bootstrap_hint')}
+                  error={bootstrapRetriesError}
                 />
               </SectionGrid>
 
-              <SectionSubsection
-                title={t('config_management.visual.sections.headers.title')}
-                description={t('config_management.visual.sections.headers.description')}
-              >
-                <SectionStack>
-                  <SectionSubsection
-                    title={t('config_management.visual.sections.headers.claude_title')}
-                  >
-                    <SectionGrid>
-                      <Input
-                        label={t('config_management.visual.sections.headers.user_agent')}
-                        value={values.claudeHeaderUserAgent}
-                        onChange={(e) => onChange({ claudeHeaderUserAgent: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.package_version')}
-                        value={values.claudeHeaderPackageVersion}
-                        onChange={(e) => onChange({ claudeHeaderPackageVersion: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.runtime_version')}
-                        value={values.claudeHeaderRuntimeVersion}
-                        onChange={(e) => onChange({ claudeHeaderRuntimeVersion: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.os')}
-                        value={values.claudeHeaderOs}
-                        onChange={(e) => onChange({ claudeHeaderOs: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.arch')}
-                        value={values.claudeHeaderArch}
-                        onChange={(e) => onChange({ claudeHeaderArch: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.timeout')}
-                        value={values.claudeHeaderTimeout}
-                        onChange={(e) => onChange({ claudeHeaderTimeout: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <ToggleRow
-                        title={t('config_management.visual.sections.headers.stabilize_device')}
-                        description={t(
-                          'config_management.visual.sections.headers.stabilize_device_desc'
-                        )}
-                        checked={values.claudeHeaderStabilizeDeviceProfile}
-                        disabled={disabled}
-                        onChange={(claudeHeaderStabilizeDeviceProfile) =>
-                          onChange({ claudeHeaderStabilizeDeviceProfile })
-                        }
-                      />
-                    </SectionGrid>
-                  </SectionSubsection>
-
-                  <SectionSubsection
-                    title={t('config_management.visual.sections.headers.codex_title')}
-                  >
-                    <SectionGrid>
-                      <Input
-                        label={t('config_management.visual.sections.headers.user_agent')}
-                        value={values.codexHeaderUserAgent}
-                        onChange={(e) => onChange({ codexHeaderUserAgent: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <Input
-                        label={t('config_management.visual.sections.headers.beta_features')}
-                        value={values.codexHeaderBetaFeatures}
-                        onChange={(e) => onChange({ codexHeaderBetaFeatures: e.target.value })}
-                        disabled={disabled}
-                      />
-                      <FieldShell
-                        label={t('config_management.visual.sections.headers.identity_mode')}
-                        labelAdornment={
-                          <InfoTooltip
-                            ariaLabel={t(
-                              'config_management.visual.sections.headers.identity_mode_help_aria'
-                            )}
-                            title={t(
-                              'config_management.visual.sections.headers.identity_mode_help_title'
-                            )}
-                            content={
-                              <div className={styles.identityFlow}>
-                                <div className={styles.identityFlowLine}>
-                                  {t(
-                                    'config_management.visual.sections.headers.identity_flow_client'
-                                  )}
-                                  <span aria-hidden="true">→</span>
-                                  {t(
-                                    'config_management.visual.sections.headers.identity_flow_credential'
-                                  )}
-                                  <span aria-hidden="true">→</span>
-                                  {t(
-                                    'config_management.visual.sections.headers.identity_flow_upstream'
-                                  )}
-                                </div>
-                                <div className={styles.identityFlowExample}>
-                                  {t(
-                                    'config_management.visual.sections.headers.identity_flow_example'
-                                  )}
-                                </div>
-                                <ul className={styles.identityFlowList}>
-                                  {CODEX_IDENTITY_MODES.map((mode) => (
-                                    <li key={mode}>
-                                      <span className={styles.term}>
-                                        {t(
-                                          `config_management.visual.sections.headers.identity_mode_${mode}`
-                                        )}
-                                      </span>
-                                      <span className={styles.description}>
-                                        {' '}
-                                        {t(
-                                          `config_management.visual.sections.headers.identity_mode_help_${mode}`
-                                        )}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            }
-                            footnote={t(
-                              'config_management.visual.sections.headers.identity_mode_help_footnote'
-                            )}
-                          />
-                        }
-                        labelId={codexIdentityModeLabelId}
-                        hint={t('config_management.visual.sections.headers.identity_mode_hint')}
-                        hintId={codexIdentityModeHintId}
-                      >
-                        <Select
-                          value={values.codexIdentityMode}
-                          options={CODEX_IDENTITY_MODES.map((mode) => ({
-                            value: mode,
-                            label: t(
-                              `config_management.visual.sections.headers.identity_mode_${mode}`
-                            ),
-                          }))}
-                          id={`${codexIdentityModeLabelId}-select`}
-                          disabled={disabled}
-                          ariaLabelledBy={codexIdentityModeLabelId}
-                          ariaDescribedBy={codexIdentityModeHintId}
-                          onChange={(nextValue) =>
-                            onChange({
-                              codexIdentityMode: nextValue as CodexIdentityMode,
-                            })
-                          }
-                        />
-                      </FieldShell>
-                    </SectionGrid>
-                  </SectionSubsection>
-                </SectionStack>
-              </SectionSubsection>
+              <SectionGrid>
+                <FieldShell
+                  label={t('config_management.visual.sections.streaming.nonstream_keepalive')}
+                  htmlFor={nonstreamKeepaliveInputId}
+                  hint={t('config_management.visual.sections.streaming.nonstream_keepalive_hint')}
+                  hintId={nonstreamKeepaliveHintId}
+                  error={nonstreamKeepaliveError}
+                  errorId={nonstreamKeepaliveErrorId}
+                >
+                  <div className={styles.fieldControl}>
+                    <input
+                      id={nonstreamKeepaliveInputId}
+                      className="input"
+                      type="number"
+                      placeholder="0"
+                      value={values.streaming.nonstreamKeepaliveInterval}
+                      onChange={(e) =>
+                        onChange({
+                          streaming: {
+                            ...values.streaming,
+                            nonstreamKeepaliveInterval: e.target.value,
+                          },
+                        })
+                      }
+                      disabled={disabled}
+                    />
+                    {isNonstreamKeepaliveDisabled ? (
+                      <span className={styles.inlinePill}>
+                        {t('config_management.visual.sections.streaming.disabled')}
+                      </span>
+                    ) : null}
+                  </div>
+                </FieldShell>
+              </SectionGrid>
             </SectionStack>
           </ConfigSection>
 
@@ -1333,7 +1145,7 @@ export function VisualConfigEditor({
             title={t('config_management.visual.sections.quota.title')}
             description={t('config_management.visual.sections.quota.description')}
           >
-            <SectionGrid>
+            <ToggleList>
               <ToggleRow
                 title={t('config_management.visual.sections.quota.switch_project')}
                 description={t('config_management.visual.sections.quota.switch_project_desc')}
@@ -1355,7 +1167,484 @@ export function VisualConfigEditor({
                 disabled={disabled}
                 onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}
               />
-            </SectionGrid>
+            </ToggleList>
+          </ConfigSection>
+
+          <ConfigSection
+            id="payload"
+            ref={(node) => {
+              sectionRefs.current.payload = node;
+            }}
+            icon={<IconCode size={16} />}
+            title={t('config_management.visual.sections.payload.title')}
+            description={t('config_management.visual.sections.payload.description')}
+          >
+            <SectionStack>
+              <SectionSubsection
+                title={t('config_management.visual.sections.payload.default_rules')}
+                description={t('config_management.visual.sections.payload.default_rules_desc')}
+              >
+                <PayloadRulesEditor
+                  value={values.payloadDefaultRules}
+                  disabled={disabled}
+                  onChange={handlePayloadDefaultRulesChange}
+                />
+              </SectionSubsection>
+
+              <SectionSubsection
+                title={t('config_management.visual.sections.payload.default_raw_rules')}
+                description={t('config_management.visual.sections.payload.default_raw_rules_desc')}
+              >
+                <PayloadRulesEditor
+                  value={values.payloadDefaultRawRules}
+                  disabled={disabled}
+                  rawJsonValues
+                  onChange={handlePayloadDefaultRawRulesChange}
+                />
+              </SectionSubsection>
+
+              <SectionSubsection
+                title={t('config_management.visual.sections.payload.override_rules')}
+                description={t('config_management.visual.sections.payload.override_rules_desc')}
+              >
+                <PayloadRulesEditor
+                  value={values.payloadOverrideRules}
+                  disabled={disabled}
+                  protocolFirst
+                  onChange={handlePayloadOverrideRulesChange}
+                />
+              </SectionSubsection>
+
+              <SectionSubsection
+                title={t('config_management.visual.sections.payload.override_raw_rules')}
+                description={t('config_management.visual.sections.payload.override_raw_rules_desc')}
+              >
+                <PayloadRulesEditor
+                  value={values.payloadOverrideRawRules}
+                  disabled={disabled}
+                  protocolFirst
+                  rawJsonValues
+                  onChange={handlePayloadOverrideRawRulesChange}
+                />
+              </SectionSubsection>
+
+              <SectionSubsection
+                title={t('config_management.visual.sections.payload.filter_rules')}
+                description={t('config_management.visual.sections.payload.filter_rules_desc')}
+              >
+                <PayloadFilterRulesEditor
+                  value={values.payloadFilterRules}
+                  disabled={disabled}
+                  onChange={handlePayloadFilterRulesChange}
+                />
+              </SectionSubsection>
+            </SectionStack>
+          </ConfigSection>
+
+          <ConfigSection
+            id="claude"
+            ref={(node) => {
+              sectionRefs.current.claude = node;
+            }}
+            icon={<IconShield size={16} />}
+            title={t('config_management.visual.sections.claude.title')}
+            description={t('config_management.visual.sections.claude.description')}
+          >
+            <SectionStack>
+              <ToggleList>
+                <ToggleRow
+                  title={t('config_management.visual.sections.network.disable_claude_cloak_mode')}
+                  description={t(
+                    'config_management.visual.sections.network.disable_claude_cloak_mode_desc'
+                  )}
+                  checked={values.disableClaudeCloakMode}
+                  disabled={disabled}
+                  onChange={(disableClaudeCloakMode) => onChange({ disableClaudeCloakMode })}
+                />
+                <ToggleRow
+                  title={t('config_management.visual.sections.network.experimental_cch_signing')}
+                  description={t(
+                    'config_management.visual.sections.network.experimental_cch_signing_desc'
+                  )}
+                  checked={values.experimentalCCHSigning}
+                  disabled={disabled}
+                  onChange={(experimentalCCHSigning) => onChange({ experimentalCCHSigning })}
+                />
+              </ToggleList>
+              <SectionSubsection
+                title={t('config_management.visual.sections.headers.claude_title')}
+                description={t('config_management.visual.sections.headers.description')}
+              >
+                <SectionStack>
+                  <SectionGrid>
+                    <Input
+                      label={t('config_management.visual.sections.headers.user_agent')}
+                      value={values.claudeHeaderUserAgent}
+                      onChange={(e) => onChange({ claudeHeaderUserAgent: e.target.value })}
+                      disabled={disabled}
+                    />
+                    <Input
+                      label={t('config_management.visual.sections.headers.package_version')}
+                      value={values.claudeHeaderPackageVersion}
+                      onChange={(e) => onChange({ claudeHeaderPackageVersion: e.target.value })}
+                      disabled={disabled}
+                    />
+                    <Input
+                      label={t('config_management.visual.sections.headers.runtime_version')}
+                      value={values.claudeHeaderRuntimeVersion}
+                      onChange={(e) => onChange({ claudeHeaderRuntimeVersion: e.target.value })}
+                      disabled={disabled}
+                    />
+                    <Input
+                      label={t('config_management.visual.sections.headers.os')}
+                      value={values.claudeHeaderOs}
+                      onChange={(e) => onChange({ claudeHeaderOs: e.target.value })}
+                      disabled={disabled}
+                    />
+                    <Input
+                      label={t('config_management.visual.sections.headers.arch')}
+                      value={values.claudeHeaderArch}
+                      onChange={(e) => onChange({ claudeHeaderArch: e.target.value })}
+                      disabled={disabled}
+                    />
+                    <Input
+                      label={t('config_management.visual.sections.headers.timeout')}
+                      value={values.claudeHeaderTimeout}
+                      onChange={(e) => onChange({ claudeHeaderTimeout: e.target.value })}
+                      disabled={disabled}
+                    />
+                  </SectionGrid>
+                  <ToggleList>
+                    <ToggleRow
+                      title={t('config_management.visual.sections.headers.stabilize_device')}
+                      description={t(
+                        'config_management.visual.sections.headers.stabilize_device_desc'
+                      )}
+                      checked={values.claudeHeaderStabilizeDeviceProfile}
+                      disabled={disabled}
+                      onChange={(claudeHeaderStabilizeDeviceProfile) =>
+                        onChange({ claudeHeaderStabilizeDeviceProfile })
+                      }
+                    />
+                  </ToggleList>
+                </SectionStack>
+              </SectionSubsection>
+            </SectionStack>
+          </ConfigSection>
+
+          <ConfigSection
+            id="codex"
+            ref={(node) => {
+              sectionRefs.current.codex = node;
+            }}
+            icon={<IconCode size={16} />}
+            title={t('config_management.visual.sections.codex.title')}
+            description={t('config_management.visual.sections.codex.description')}
+          >
+            <SectionStack>
+              {codexLicensedFeaturesAllowed && (
+                <ToggleList>
+                  <ToggleRow
+                    title={t(
+                      'config_management.visual.sections.network.codex_force_super_category'
+                    )}
+                    description={t(
+                      'config_management.visual.sections.network.codex_force_super_category_desc'
+                    )}
+                    checked={values.codexForceSuperCategory}
+                    disabled={disabled}
+                    onChange={(codexForceSuperCategory) => onChange({ codexForceSuperCategory })}
+                  />
+                  <ToggleRow
+                    title={t('config_management.visual.sections.network.codex_bug_mode')}
+                    checked={values.codexBugMode}
+                    disabled={disabled}
+                    onChange={(codexBugMode) => onChange({ codexBugMode })}
+                  />
+                </ToggleList>
+              )}
+              <SectionSubsection
+                title={t('config_management.visual.sections.codex.compaction_title')}
+                description={t('config_management.visual.sections.codex.compaction_description')}
+              >
+                <SectionStack>
+                  <ToggleList>
+                    <ToggleRow
+                      title={t(
+                        'config_management.visual.sections.network.force_summary_compaction'
+                      )}
+                      description={t(
+                        'config_management.visual.sections.network.force_summary_compaction_desc'
+                      )}
+                      checked={values.forceSummaryCompaction}
+                      disabled={disabled}
+                      onChange={(forceSummaryCompaction) => onChange({ forceSummaryCompaction })}
+                    />
+                  </ToggleList>
+                  <SectionGrid>
+                    <Input
+                      label={t('config_management.visual.sections.network.codex_compact_model')}
+                      value={values.responsesCompactModel}
+                      placeholder="claude-sonnet-4-6"
+                      disabled={disabled}
+                      hint={t('config_management.visual.sections.network.codex_compact_model_hint')}
+                      onChange={(event) => onChange({ responsesCompactModel: event.target.value })}
+                    />
+                  </SectionGrid>
+                </SectionStack>
+              </SectionSubsection>
+              {codexLicensedFeaturesAllowed && (
+                <SectionSubsection
+                  title={t('config_management.visual.sections.codex.turn_state_title')}
+                  description={t('config_management.visual.sections.codex.turn_state_description')}
+                >
+                  <SectionStack>
+                    <ToggleList>
+                      <ToggleRow
+                        title={t(
+                          'config_management.visual.sections.network.codex_rewrite_turn_state'
+                        )}
+                        description={t(
+                          'config_management.visual.sections.network.codex_rewrite_turn_state_desc'
+                        )}
+                        checked={values.codexRewriteTurnState}
+                        disabled={disabled}
+                        onChange={(codexRewriteTurnState) => onChange({ codexRewriteTurnState })}
+                      />
+                      <ToggleRow
+                        title={t(
+                          'config_management.visual.sections.network.codex_force_turn_state_proxy'
+                        )}
+                        description={t(
+                          'config_management.visual.sections.network.codex_force_turn_state_proxy_desc'
+                        )}
+                        checked={values.codexForceTurnStateProxy}
+                        disabled={disabled}
+                        onChange={(codexForceTurnStateProxy) =>
+                          onChange({ codexForceTurnStateProxy })
+                        }
+                      />
+                    </ToggleList>
+                    <div className={styles.turnStateProxyProviderField}>
+                      <div className="form-group">
+                        <label htmlFor="codex-turn-state-proxy-provider-urls">
+                          {t(
+                            'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls'
+                          )}
+                        </label>
+                        <textarea
+                          id="codex-turn-state-proxy-provider-urls"
+                          className={`input ${styles.turnStateProxyProviderTextarea}`}
+                          value={values.codexTurnStateProxyProviderUrls.join('\n')}
+                          disabled={disabled}
+                          rows={5}
+                          onChange={(event) =>
+                            onChange({
+                              codexTurnStateProxyProviderUrls: event.target.value.split(/\r?\n/),
+                            })
+                          }
+                        />
+                        <div className="hint">
+                          {t(
+                            'config_management.visual.sections.network.codex_turn_state_proxy_provider_urls_hint'
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <SectionGrid>
+                      <Input
+                        label={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_provider_proxy_url'
+                        )}
+                        value={values.codexTurnStateProxyProviderProxyUrl}
+                        placeholder="socks5://127.0.0.1:1080"
+                        onChange={(event) =>
+                          onChange({ codexTurnStateProxyProviderProxyUrl: event.target.value })
+                        }
+                        disabled={disabled}
+                        hint={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_provider_proxy_url_hint'
+                        )}
+                      />
+                      <Input
+                        label={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds'
+                        )}
+                        type="number"
+                        min="1"
+                        max="120"
+                        placeholder="15"
+                        value={values.codexTurnStateProxyAttemptTimeoutSeconds}
+                        onChange={(event) =>
+                          onChange({ codexTurnStateProxyAttemptTimeoutSeconds: event.target.value })
+                        }
+                        disabled={disabled}
+                        hint={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_attempt_timeout_seconds_hint'
+                        )}
+                      />
+                      <Input
+                        label={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_concurrency'
+                        )}
+                        type="number"
+                        min="1"
+                        max="5"
+                        placeholder="1"
+                        value={values.codexTurnStateProxyConcurrency}
+                        onChange={(event) =>
+                          onChange({ codexTurnStateProxyConcurrency: event.target.value })
+                        }
+                        disabled={disabled}
+                        hint={t(
+                          'config_management.visual.sections.network.codex_turn_state_proxy_concurrency_hint'
+                        )}
+                      />
+                    </SectionGrid>
+                  </SectionStack>
+                </SectionSubsection>
+              )}
+              <CodexContextWindowOverridesEditor
+                value={values.codexModelContextWindowOverrides}
+                disabled={disabled}
+                error={codexContextWindowOverridesError}
+                onChange={handleCodexContextWindowOverridesChange}
+              />
+              <SectionSubsection
+                title={t('config_management.visual.sections.headers.codex_title')}
+                description={t('config_management.visual.sections.headers.description')}
+              >
+                <SectionGrid>
+                  <Input
+                    label={t('config_management.visual.sections.headers.user_agent')}
+                    value={values.codexHeaderUserAgent}
+                    onChange={(e) => onChange({ codexHeaderUserAgent: e.target.value })}
+                    disabled={disabled}
+                  />
+                  <Input
+                    label={t('config_management.visual.sections.headers.beta_features')}
+                    value={values.codexHeaderBetaFeatures}
+                    onChange={(e) => onChange({ codexHeaderBetaFeatures: e.target.value })}
+                    disabled={disabled}
+                  />
+                  <FieldShell
+                    label={t('config_management.visual.sections.headers.identity_mode')}
+                    labelAdornment={
+                      <InfoTooltip
+                        ariaLabel={t(
+                          'config_management.visual.sections.headers.identity_mode_help_aria'
+                        )}
+                        title={t(
+                          'config_management.visual.sections.headers.identity_mode_help_title'
+                        )}
+                        content={
+                          <div className={styles.identityFlow}>
+                            <div className={styles.identityFlowLine}>
+                              {t('config_management.visual.sections.headers.identity_flow_client')}
+                              <span aria-hidden="true">→</span>
+                              {t(
+                                'config_management.visual.sections.headers.identity_flow_credential'
+                              )}
+                              <span aria-hidden="true">→</span>
+                              {t(
+                                'config_management.visual.sections.headers.identity_flow_upstream'
+                              )}
+                            </div>
+                            <div className={styles.identityFlowExample}>
+                              {t('config_management.visual.sections.headers.identity_flow_example')}
+                            </div>
+                            <ul className={styles.identityFlowList}>
+                              {CODEX_IDENTITY_MODES.map((mode) => (
+                                <li key={mode}>
+                                  <span className={styles.term}>
+                                    {t(
+                                      `config_management.visual.sections.headers.identity_mode_${mode}`
+                                    )}
+                                  </span>
+                                  <span className={styles.description}>
+                                    {' '}
+                                    {t(
+                                      `config_management.visual.sections.headers.identity_mode_help_${mode}`
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        }
+                        footnote={t(
+                          'config_management.visual.sections.headers.identity_mode_help_footnote'
+                        )}
+                      />
+                    }
+                    labelId={codexIdentityModeLabelId}
+                    hint={t('config_management.visual.sections.headers.identity_mode_hint')}
+                    hintId={codexIdentityModeHintId}
+                  >
+                    <Select
+                      value={values.codexIdentityMode}
+                      options={CODEX_IDENTITY_MODES.map((mode) => ({
+                        value: mode,
+                        label: t(`config_management.visual.sections.headers.identity_mode_${mode}`),
+                      }))}
+                      id={`${codexIdentityModeLabelId}-select`}
+                      disabled={disabled}
+                      ariaLabelledBy={codexIdentityModeLabelId}
+                      ariaDescribedBy={codexIdentityModeHintId}
+                      onChange={(nextValue) =>
+                        onChange({
+                          codexIdentityMode: nextValue as CodexIdentityMode,
+                        })
+                      }
+                    />
+                  </FieldShell>
+                </SectionGrid>
+              </SectionSubsection>
+            </SectionStack>
+          </ConfigSection>
+
+          <ConfigSection
+            id="gemini"
+            ref={(node) => {
+              sectionRefs.current.gemini = node;
+            }}
+            icon={<IconSatellite size={16} />}
+            title={t('config_management.visual.sections.gemini.title')}
+            description={t('config_management.visual.sections.gemini.description')}
+          >
+            <ToggleList>
+              <ToggleRow
+                title={t('config_management.visual.sections.network.enable_gemini_cli_endpoint')}
+                description={t(
+                  'config_management.visual.sections.network.enable_gemini_cli_endpoint_desc'
+                )}
+                checked={values.enableGeminiCliEndpoint}
+                disabled={disabled}
+                onChange={(enableGeminiCliEndpoint) => onChange({ enableGeminiCliEndpoint })}
+              />
+              <ToggleRow
+                title={t('config_management.visual.sections.system.antigravity_signature_cache')}
+                description={t(
+                  'config_management.visual.sections.system.antigravity_signature_cache_desc'
+                )}
+                checked={values.antigravitySignatureCacheEnabled}
+                disabled={disabled}
+                onChange={(antigravitySignatureCacheEnabled) =>
+                  onChange({ antigravitySignatureCacheEnabled })
+                }
+              />
+              <ToggleRow
+                title={t('config_management.visual.sections.system.antigravity_signature_strict')}
+                description={t(
+                  'config_management.visual.sections.system.antigravity_signature_strict_desc'
+                )}
+                checked={values.antigravitySignatureBypassStrict}
+                disabled={disabled}
+                onChange={(antigravitySignatureBypassStrict) =>
+                  onChange({ antigravitySignatureBypassStrict })
+                }
+              />
+            </ToggleList>
           </ConfigSection>
 
           <ConfigSection
@@ -1388,19 +1677,21 @@ export function VisualConfigEditor({
                   )}
                 />
               </SectionGrid>
-              <ToggleRow
-                title={t(
-                  'config_management.visual.sections.augment.use_configured_completion_models'
-                )}
-                description={t(
-                  'config_management.visual.sections.augment.use_configured_completion_models_desc'
-                )}
-                checked={values.augmentUseConfiguredCompletionModels}
-                disabled={disabled}
-                onChange={(augmentUseConfiguredCompletionModels) =>
-                  onChange({ augmentUseConfiguredCompletionModels })
-                }
-              />
+              <ToggleList>
+                <ToggleRow
+                  title={t(
+                    'config_management.visual.sections.augment.use_configured_completion_models'
+                  )}
+                  description={t(
+                    'config_management.visual.sections.augment.use_configured_completion_models_desc'
+                  )}
+                  checked={values.augmentUseConfiguredCompletionModels}
+                  disabled={disabled}
+                  onChange={(augmentUseConfiguredCompletionModels) =>
+                    onChange({ augmentUseConfiguredCompletionModels })
+                  }
+                />
+              </ToggleList>
               <SectionGrid>
                 <Input
                   label={t('config_management.visual.sections.augment.code_completion_model')}
@@ -1421,17 +1712,29 @@ export function VisualConfigEditor({
                   )}
                 />
               </SectionGrid>
-              <ToggleRow
-                title={t('config_management.visual.sections.augment.show_thinking_progress')}
-                description={t(
-                  'config_management.visual.sections.augment.show_thinking_progress_desc'
-                )}
-                checked={values.augmentShowThinkingProgress}
-                disabled={disabled}
-                onChange={(augmentShowThinkingProgress) =>
-                  onChange({ augmentShowThinkingProgress })
-                }
-              />
+              <ToggleList>
+                <ToggleRow
+                  title={t('config_management.visual.sections.augment.show_thinking_progress')}
+                  description={t(
+                    'config_management.visual.sections.augment.show_thinking_progress_desc'
+                  )}
+                  checked={values.augmentShowThinkingProgress}
+                  disabled={disabled}
+                  onChange={(augmentShowThinkingProgress) =>
+                    onChange({ augmentShowThinkingProgress })
+                  }
+                />
+              </ToggleList>
+              <SectionSubsection
+                title={t('config_management.visual.sections.models.title')}
+                description={t('config_management.visual.sections.models.description')}
+              >
+                <UsageModelsEditor
+                  value={values.usageModels}
+                  disabled={disabled}
+                  onChange={handleUsageModelsChange}
+                />
+              </SectionSubsection>
             </SectionStack>
           </ConfigSection>
 
@@ -1552,202 +1855,19 @@ export function VisualConfigEditor({
                   error={kiroConsecutiveErrorDisableThresholdError}
                 />
               </SectionGrid>
-              <ToggleRow
-                title={t('config_management.visual.sections.kiro.invalid_auth_auto_disable')}
-                description={t(
-                  'config_management.visual.sections.kiro.invalid_auth_auto_disable_desc'
-                )}
-                checked={values.kiroInvalidAuthAutoDisable}
-                disabled={disabled}
-                onChange={(kiroInvalidAuthAutoDisable) => onChange({ kiroInvalidAuthAutoDisable })}
-              />
-            </SectionStack>
-          </ConfigSection>
-
-          <ConfigSection
-            id="models"
-            ref={(node) => {
-              sectionRefs.current.models = node;
-            }}
-            icon={<IconModelCluster size={16} />}
-            title={t('config_management.visual.sections.models.title')}
-            description={t('config_management.visual.sections.models.description')}
-          >
-            <UsageModelsEditor
-              value={values.usageModels}
-              disabled={disabled}
-              onChange={handleUsageModelsChange}
-            />
-          </ConfigSection>
-
-          <ConfigSection
-            id="streaming"
-            ref={(node) => {
-              sectionRefs.current.streaming = node;
-            }}
-            icon={<IconSatellite size={16} />}
-            title={t('config_management.visual.sections.streaming.title')}
-            description={t('config_management.visual.sections.streaming.description')}
-          >
-            <SectionStack>
-              <SectionGrid>
-                <FieldShell
-                  label={t('config_management.visual.sections.streaming.keepalive_seconds')}
-                  htmlFor={keepaliveInputId}
-                  hint={t('config_management.visual.sections.streaming.keepalive_hint')}
-                  hintId={keepaliveHintId}
-                  error={keepaliveError}
-                  errorId={keepaliveErrorId}
-                >
-                  <div className={styles.fieldControl}>
-                    <input
-                      id={keepaliveInputId}
-                      className="input"
-                      type="number"
-                      placeholder="0"
-                      value={values.streaming.keepaliveSeconds}
-                      onChange={(e) =>
-                        onChange({
-                          streaming: {
-                            ...values.streaming,
-                            keepaliveSeconds: e.target.value,
-                          },
-                        })
-                      }
-                      disabled={disabled}
-                    />
-                    {isKeepaliveDisabled ? (
-                      <span className={styles.inlinePill}>
-                        {t('config_management.visual.sections.streaming.disabled')}
-                      </span>
-                    ) : null}
-                  </div>
-                </FieldShell>
-
-                <Input
-                  label={t('config_management.visual.sections.streaming.bootstrap_retries')}
-                  type="number"
-                  placeholder="1"
-                  value={values.streaming.bootstrapRetries}
-                  onChange={(e) =>
-                    onChange({
-                      streaming: {
-                        ...values.streaming,
-                        bootstrapRetries: e.target.value,
-                      },
-                    })
+              <ToggleList>
+                <ToggleRow
+                  title={t('config_management.visual.sections.kiro.invalid_auth_auto_disable')}
+                  description={t(
+                    'config_management.visual.sections.kiro.invalid_auth_auto_disable_desc'
+                  )}
+                  checked={values.kiroInvalidAuthAutoDisable}
+                  disabled={disabled}
+                  onChange={(kiroInvalidAuthAutoDisable) =>
+                    onChange({ kiroInvalidAuthAutoDisable })
                   }
-                  disabled={disabled}
-                  hint={t('config_management.visual.sections.streaming.bootstrap_hint')}
-                  error={bootstrapRetriesError}
                 />
-              </SectionGrid>
-
-              <SectionGrid>
-                <FieldShell
-                  label={t('config_management.visual.sections.streaming.nonstream_keepalive')}
-                  htmlFor={nonstreamKeepaliveInputId}
-                  hint={t('config_management.visual.sections.streaming.nonstream_keepalive_hint')}
-                  hintId={nonstreamKeepaliveHintId}
-                  error={nonstreamKeepaliveError}
-                  errorId={nonstreamKeepaliveErrorId}
-                >
-                  <div className={styles.fieldControl}>
-                    <input
-                      id={nonstreamKeepaliveInputId}
-                      className="input"
-                      type="number"
-                      placeholder="0"
-                      value={values.streaming.nonstreamKeepaliveInterval}
-                      onChange={(e) =>
-                        onChange({
-                          streaming: {
-                            ...values.streaming,
-                            nonstreamKeepaliveInterval: e.target.value,
-                          },
-                        })
-                      }
-                      disabled={disabled}
-                    />
-                    {isNonstreamKeepaliveDisabled ? (
-                      <span className={styles.inlinePill}>
-                        {t('config_management.visual.sections.streaming.disabled')}
-                      </span>
-                    ) : null}
-                  </div>
-                </FieldShell>
-              </SectionGrid>
-            </SectionStack>
-          </ConfigSection>
-
-          <ConfigSection
-            id="payload"
-            ref={(node) => {
-              sectionRefs.current.payload = node;
-            }}
-            icon={<IconCode size={16} />}
-            title={t('config_management.visual.sections.payload.title')}
-            description={t('config_management.visual.sections.payload.description')}
-          >
-            <SectionStack>
-              <SectionSubsection
-                title={t('config_management.visual.sections.payload.default_rules')}
-                description={t('config_management.visual.sections.payload.default_rules_desc')}
-              >
-                <PayloadRulesEditor
-                  value={values.payloadDefaultRules}
-                  disabled={disabled}
-                  onChange={handlePayloadDefaultRulesChange}
-                />
-              </SectionSubsection>
-
-              <SectionSubsection
-                title={t('config_management.visual.sections.payload.default_raw_rules')}
-                description={t('config_management.visual.sections.payload.default_raw_rules_desc')}
-              >
-                <PayloadRulesEditor
-                  value={values.payloadDefaultRawRules}
-                  disabled={disabled}
-                  rawJsonValues
-                  onChange={handlePayloadDefaultRawRulesChange}
-                />
-              </SectionSubsection>
-
-              <SectionSubsection
-                title={t('config_management.visual.sections.payload.override_rules')}
-                description={t('config_management.visual.sections.payload.override_rules_desc')}
-              >
-                <PayloadRulesEditor
-                  value={values.payloadOverrideRules}
-                  disabled={disabled}
-                  protocolFirst
-                  onChange={handlePayloadOverrideRulesChange}
-                />
-              </SectionSubsection>
-
-              <SectionSubsection
-                title={t('config_management.visual.sections.payload.override_raw_rules')}
-                description={t('config_management.visual.sections.payload.override_raw_rules_desc')}
-              >
-                <PayloadRulesEditor
-                  value={values.payloadOverrideRawRules}
-                  disabled={disabled}
-                  protocolFirst
-                  rawJsonValues
-                  onChange={handlePayloadOverrideRawRulesChange}
-                />
-              </SectionSubsection>
-
-              <SectionSubsection
-                title={t('config_management.visual.sections.payload.filter_rules')}
-                description={t('config_management.visual.sections.payload.filter_rules_desc')}
-              >
-                <PayloadFilterRulesEditor
-                  value={values.payloadFilterRules}
-                  disabled={disabled}
-                  onChange={handlePayloadFilterRulesChange}
-                />
-              </SectionSubsection>
+              </ToggleList>
             </SectionStack>
           </ConfigSection>
         </div>

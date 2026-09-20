@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, type ComponentType, type KeyboardEvent } from 'react';
 import {
   IconKey,
+  IconRefreshCw,
   IconSidebarMonitor,
   IconSidebarProviders,
   type IconProps,
@@ -11,7 +12,7 @@ export type MonitoringTabBadgeTone = 'default' | 'failure';
 
 export type MonitoringTabsVariant = 'standalone' | 'cards';
 
-export type MonitoringTabIcon = 'accounts' | 'apiKeys' | 'realtime';
+export type MonitoringTabIcon = 'accounts' | 'apiKeys' | 'realtime' | 'codexTurnState';
 
 export type MonitoringTab<Id extends string = string> = {
   id: Id;
@@ -36,6 +37,7 @@ const tabIconMap: Record<MonitoringTabIcon, ComponentType<IconProps>> = {
   accounts: IconSidebarProviders,
   apiKeys: IconKey,
   realtime: IconSidebarMonitor,
+  codexTurnState: IconRefreshCw,
 };
 
 export function MonitoringTabsBar<Id extends string>({

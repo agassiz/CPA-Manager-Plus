@@ -144,8 +144,11 @@ export type VisualConfigValues = {
   codexForceSuperCategory: boolean;
   codexBugMode: boolean;
   codexRewriteTurnState: boolean;
+  codexForceTurnStateProxy: boolean;
   codexTurnStateProxyProviderUrls: string[];
+  codexTurnStateProxyProviderProxyUrl: string;
   codexTurnStateProxyAttemptTimeoutSeconds: string;
+  codexTurnStateProxyConcurrency: string;
   passthroughHeaders: boolean;
   hideUpstreamErrorDetails: boolean;
   disableClaudeCloakMode: boolean;
@@ -236,8 +239,11 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexForceSuperCategory: false,
   codexBugMode: false,
   codexRewriteTurnState: false,
+  codexForceTurnStateProxy: false,
   codexTurnStateProxyProviderUrls: [],
+  codexTurnStateProxyProviderProxyUrl: '',
   codexTurnStateProxyAttemptTimeoutSeconds: '',
+  codexTurnStateProxyConcurrency: '',
   passthroughHeaders: false,
   hideUpstreamErrorDetails: false,
   disableClaudeCloakMode: false,

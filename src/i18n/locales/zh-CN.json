@@ -878,7 +878,7 @@
     "codex_turn_state_expires_at": "过期时间：{{time}}",
     "codex_turn_state_refresh_success": "已刷新 Codex turn state。",
     "codex_turn_state_refresh_failed": "刷新 Codex turn state 失败",
-    "codex_turn_state_refresh_attempts": "已尝试 {{providers}} 个获取地址；发现 {{candidates}} 个候选代理，{{usable}} 个可用。state 请求 {{requests}} 次：有效 {{valid}}，无效 {{invalid}}，超时 {{timeouts}}，代理或网络传输失败 {{transport}}，上游 HTTP 拒绝 {{rejected}}，其它失败 {{failed}}，成功后取消 {{canceled}}。",
+    "codex_turn_state_refresh_attempts": "已尝试 {{providers}} 个获取地址；发现 {{candidates}} 个候选代理，{{usable}} 个可用。state 请求 {{requests}} 次：有效 {{valid}}，非空无效 {{invalid}}（已知无效长度为 312 或 356），空值 {{empty}}，超时 {{timeouts}}，未获取到响应的代理或网络传输失败 {{transport}}，上游 HTTP 拒绝 {{rejected}}，其它失败 {{failed}}，获取有效值后主动取消的并发请求 {{canceled}}。",
     "codex_turn_state_copy_success": "已复制 Codex turn state。",
     "codex_turn_state_copy_failed": "复制 Codex turn state 失败。",
     "prefix_placeholder": "",
@@ -1733,6 +1733,8 @@
     "data_tab_accounts": "账号汇总",
     "data_tab_api_keys": "调用方密钥汇总",
     "data_tab_realtime": "实时监控",
+    "data_tab_codex_turn_state": "State 刷新",
+    "data_tab_codex_turn_state_short": "State 刷新",
     "data_tab_accounts_badge_title": "账号数：{{count}}",
     "data_tab_api_keys_badge_title": "调用方密钥数：{{count}}",
     "data_tab_realtime_badge_title": "{{failed}} 失败 / 共 {{total}} 次请求",
@@ -2079,11 +2081,38 @@
     "column_type": "类型",
     "column_source_api_key": "来源 / API Key",
     "column_model": "模型",
+    "requested_model": "请求模型",
+    "upstream_model": "上游发送模型",
+    "upstream_response_model": "上游响应模型",
+    "model_variant": "模型变体",
+    "model_mismatch": "模型不一致",
+    "model_chain_tooltip": "请求模型：{{requested}}\n上游发送模型：{{upstream}}\n上游响应模型：{{response}}",
     "column_status": "状态",
     "column_endpoint": "接口",
     "column_client_ip": "客户端 IP",
     "column_codex_turn_state_length": "响应 State 长度",
+    "column_codex_turn_state_proxy": "State 代理",
+    "codex_turn_state_proxy_forced_reused": "强制复用",
+    "codex_turn_state_proxy_reused": "已复用",
+    "codex_turn_state_proxy_forced_unavailable": "已开启，未复用",
+    "codex_turn_state_proxy_recorded_only": "仅记录",
+    "codex_turn_state_monitor_title": "State 刷新监控（独立）",
+    "codex_turn_state_monitor_hint": "不计入普通请求统计，但会按普通请求格式写入请求日志。",
+    "codex_turn_state_monitor_empty": "暂无 State 刷新探测",
+    "codex_turn_state_monitor_clear": "清空探测日志",
+    "codex_turn_state_monitor_clear_confirm": "确定要清空所有 State 刷新探测日志吗？",
+    "codex_turn_state_monitor_clear_success": "State 刷新探测日志已清空",
+    "codex_turn_state_monitor_clear_failed": "清空 State 刷新探测日志失败",
+    "codex_turn_state_monitor_proxy": "实际代理",
+    "codex_turn_state_monitor_result": "探测结果",
+    "codex_turn_state_monitor_success": "有效",
+    "codex_turn_state_monitor_failed": "失败",
     "column_provider_channel": "提供方 / 渠道",
+    "column_transport": "传输方式",
+    "transport_downstream": "客户端",
+    "transport_upstream": "上游",
+    "transport_http": "HTTP",
+    "transport_websocket": "WebSocket",
     "column_error": "错误",
     "request_type": "请求类型",
     "request_status": "请求状态",
@@ -2254,8 +2283,8 @@
       "quick_jump": "快速跳转",
       "sections": {
         "server": {
-          "title": "服务器配置",
-          "description": "基础服务器设置",
+          "title": "服务与访问",
+          "description": "监听地址、TLS 与远程管理",
           "host": "主机地址",
           "port": "端口"
         },
@@ -2281,14 +2310,14 @@
           "panel_repo": "面板仓库"
         },
         "auth": {
-          "title": "认证配置",
-          "description": "API 密钥与认证文件目录设置",
+          "title": "认证",
+          "description": "认证文件目录、API 密钥与凭据刷新",
           "auth_dir": "认证文件目录 (auth-dir)",
           "auth_dir_hint": "存放认证文件的目录路径（支持 ~）"
         },
         "system": {
-          "title": "系统配置",
-          "description": "调试、日志、统计与性能调试设置",
+          "title": "系统与日志",
+          "description": "调试、插件与日志设置",
           "debug": "调试模式",
           "debug_desc": "启用详细的调试日志",
           "commercial_mode": "商业模式",
@@ -2341,8 +2370,8 @@
           "identity_mode_help_footnote": "以上收敛档都不改变 prompt_cache_key：同一客户端原始会话的缓存键不随凭据切换；但上游设备/会话身份会按凭据区分。"
         },
         "network": {
-          "title": "网络配置",
-          "description": "代理、重试和路由设置",
+          "title": "网络与路由",
+          "description": "代理、重试、请求体限制与路由",
           "proxy_url": "代理 URL",
           "request_retry": "请求重试次数",
           "max_retry_credentials": "最大重试凭据数",
@@ -2367,10 +2396,16 @@
           "codex_bug_mode": "Codex Bug 模式",
           "codex_rewrite_turn_state": "复写 Codex turn state",
           "codex_rewrite_turn_state_desc": "通过配置的代理获取地址，为凭证获取并复用专属 turn state。",
+          "codex_force_turn_state_proxy": "强制使用 state 获取代理",
+          "codex_force_turn_state_proxy_desc": "后续使用已记录 turn state 的请求强制走获取该 state 时的代理；关闭时只记录代理信息。",
           "codex_turn_state_proxy_provider_urls": "Turn state 代理获取地址",
           "codex_turn_state_proxy_provider_urls_hint": "每行填写一个获取地址。按顺序尝试，直到其中一个返回有效 turn state。",
+          "codex_turn_state_proxy_provider_proxy_url": "Turn state 代理前置代理",
+          "codex_turn_state_proxy_provider_proxy_url_hint": "独立配置，不继承凭据或全局代理。用于拉取代理获取地址及访问返回的代理；留空为直连。",
           "codex_turn_state_proxy_attempt_timeout_seconds": "单次 state 请求超时（秒）",
           "codex_turn_state_proxy_attempt_timeout_seconds_hint": "留空使用 15 秒；可配置 1 到 120 秒。",
+          "codex_turn_state_proxy_concurrency": "State 获取并发",
+          "codex_turn_state_proxy_concurrency_hint": "同时限制代理探测和 state 获取请求。留空使用 1，最高为 5。",
           "passthrough_headers": "透传上游响应 Header",
           "passthrough_headers_desc": "将过滤后的上游响应 Header 转发给下游客户端",
           "hide_upstream_error_details": "隐藏上游错误详情",
@@ -2409,8 +2444,8 @@
           "antigravity_credits_desc": "Antigravity 返回 quota_exhausted 429 时，使用 enabledCreditTypes=[\"GOOGLE_ONE_AI\"] 重试一次"
         },
         "augment": {
-          "title": "Augment 自定义",
-          "description": "控制 Augment 请求的模型与思考进度显示；图片回退模型使用全局网络设置。",
+          "title": "Augment",
+          "description": "Augment 请求模型、思考进度与模型选择器",
           "silent_mode_model": "静默模式模型(提示词增强，上下文压缩)",
           "silent_mode_model_hint": "留空表示不覆盖 CPA 默认策略",
           "codebase_retrieval_model": "代码库检索模型",
@@ -2425,7 +2460,7 @@
           "show_thinking_progress_desc": "允许 Augment 请求展示 thinking progress"
         },
         "kiro": {
-          "title": "Kiro 请求策略",
+          "title": "Kiro",
           "description": "控制 Kiro 账号限速、冷却与无效认证处理",
           "per_account_rpm_limit": "单账号 RPM 限制",
           "free_rpm_limit": "Free RPM 限制",
@@ -2447,7 +2482,7 @@
           "description": "编辑 usage-models 分组、排序、默认模型与展示信息"
         },
         "streaming": {
-          "title": "流式传输配置",
+          "title": "流式传输",
           "description": "Keepalive 与 bootstrap 重试设置",
           "keepalive_seconds": "Keepalive 秒数",
           "keepalive_hint": "设置为 0 或留空表示禁用 keepalive",
@@ -2458,7 +2493,7 @@
           "disabled": "已禁用"
         },
         "payload": {
-          "title": "Payload 配置",
+          "title": "Payload 规则",
           "description": "默认值、原始 JSON 规则、覆盖规则与过滤规则",
           "default_rules": "默认规则",
           "default_rules_desc": "当请求中未指定参数时，使用这些默认值",
@@ -2470,6 +2505,22 @@
           "override_raw_rules_desc": "始终按原始 JSON 片段覆盖参数值，适合 response_format、schema 等复杂字段",
           "filter_rules": "过滤规则",
           "filter_rules_desc": "通过 JSON Path 预过滤上游请求体，自动剔除不合规/冗余参数（Request Sanitization）"
+        },
+        "claude": {
+          "title": "Claude",
+          "description": "Claude 伪装、签名与 Header 默认值"
+        },
+        "codex": {
+          "title": "Codex",
+          "description": "Codex 压缩、上下文窗口、turn-state 与 Header 默认值",
+          "compaction_title": "上下文压缩",
+          "compaction_description": "Codex 自动压缩使用的模型与压缩方式",
+          "turn_state_title": "Turn state 代理",
+          "turn_state_description": "复写 turn state 及通过代理获取 turn state 的设置"
+        },
+        "gemini": {
+          "title": "Gemini / Antigravity",
+          "description": "Gemini CLI 端点与 Antigravity 签名策略"
         }
       },
       "api_keys": {
@@ -2612,6 +2663,11 @@
         "cancel": "取消",
         "update": "更新",
         "add": "添加"
+      },
+      "groups": {
+        "general": "通用",
+        "request": "请求处理",
+        "provider": "渠道专属"
       }
     }
   },
@@ -3429,6 +3485,8 @@
       "disabled": "停用此条目",
       "disabledHint": "停用后不会被网关使用",
       "websockets": "启用 WebSockets",
+      "nativeCompaction": "启用官方原生压缩",
+      "nativeCompactionHint": "仅对当前 Codex provider 使用 remote_compaction_v2；关闭时使用摘要压缩。",
       "testModel": "测试模型",
       "testModelClaudeHint": "仅用于连通性测试,不会被保存",
       "testModelAutoWith": "自动 · {{name}}",
@@ -3531,6 +3589,7 @@
         "directionDesc": "降序"
       },
       "filter": {
+        "allProviders": "全部提供商",
         "allModels": "全部模型",
         "selectedModels": "{{selected}}/{{total}} 个模型",
         "selectAll": "全选",

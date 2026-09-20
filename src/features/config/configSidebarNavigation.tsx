@@ -5,6 +5,8 @@ export type ConfigSidebarNavigationItem = {
   id: string;
   title: string;
   description: string;
+  /** Group heading rendered before the first item of each consecutive group. */
+  group?: string;
   icon: ReactNode;
   errorCount?: number;
   onSelect: () => void;

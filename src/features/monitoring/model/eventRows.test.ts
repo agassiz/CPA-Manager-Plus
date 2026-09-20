@@ -83,17 +83,32 @@ describe('buildEventRows', () => {
     expect(row.searchText).toContain('medium');
   });
 
-	it('keeps response-model audit metadata for realtime display', () => {
-		const [row] = buildRows({
-			response_model: 'gpt-5.6-sol',
-			response_model_mismatch: true,
-			billing_model: 'gpt-5.6-sol',
-		});
+  it('keeps response-model audit metadata for realtime display', () => {
+    const [row] = buildRows({
+      response_model: 'gpt-5.6-sol',
+      response_model_mismatch: true,
+      billing_model: 'gpt-5.6-sol',
+    });
 
-		expect(row.responseModel).toBe('gpt-5.6-sol');
-		expect(row.responseModelMismatch).toBe(true);
-		expect(row.billingModel).toBe('gpt-5.6-sol');
-	});
+    expect(row.responseModel).toBe('gpt-5.6-sol');
+    expect(row.responseModelMismatch).toBe(true);
+    expect(row.billingModel).toBe('gpt-5.6-sol');
+  });
+
+  it('keeps the canonical requested, upstream, and response model chain', () => {
+    const [row] = buildRows({
+      __modelName: 'client-codex',
+      requested_model: 'client-codex',
+      upstream_model: 'gpt-5.6',
+      upstream_response_model: 'gpt-5.6-2026-09-24',
+      upstream_model_mismatch: false,
+    });
+
+    expect(row.requestedModel).toBe('client-codex');
+    expect(row.upstreamModel).toBe('gpt-5.6');
+    expect(row.upstreamResponseModel).toBe('gpt-5.6-2026-09-24');
+    expect(row.upstreamModelMismatch).toBe(false);
+  });
 
   it('prefers configured provider names over auth file labels', () => {
     const [row] = buildEventRows(

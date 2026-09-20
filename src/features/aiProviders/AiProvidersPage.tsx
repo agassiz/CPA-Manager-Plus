@@ -49,6 +49,7 @@ import { AiProvidersUnifiedTable, type AiProviderListRow } from './AiProvidersUn
 import {
   filterAndSortAiProviderRows,
   getAvailableAiProviderModels,
+  getAvailableAiProviderTypes,
 } from './aiProviderListControls';
 import { AdditionalProviderSection } from './AdditionalProviderSection';
 import {
@@ -165,6 +166,7 @@ export function AiProvidersPage() {
     () => config?.openaiCompatibility || []
   );
   const [providerListFilter, setProviderListFilter] = useState('');
+  const [providerListProvider, setProviderListProvider] = useState('');
   const [providerListSortBy, setProviderListSortBy] = useState<ProviderSortBy>('name');
   const [providerListSortDir, setProviderListSortDir] = useState<SortDir>('asc');
   const [providerListSelectedModels, setProviderListSelectedModels] = useState<Set<string>>(
@@ -855,8 +857,14 @@ export function AiProvidersPage() {
   const activeProviderModels = new Set(
     Array.from(providerListSelectedModels).filter((model) => availableProviderModelSet.has(model))
   );
+  const availableProviderTypes = getAvailableAiProviderTypes(allUnifiedRows);
+  // Drop a stale selection once its provider type no longer has any rows.
+  const activeProviderType = availableProviderTypes.includes(providerListProvider)
+    ? providerListProvider
+    : '';
   const unifiedRows = filterAndSortAiProviderRows(allUnifiedRows, {
     filter: providerListFilter,
+    provider: activeProviderType,
     sortBy: providerListSortBy,
     sortDir: providerListSortDir,
     selectedModels: activeProviderModels,
@@ -1020,6 +1028,9 @@ export function AiProvidersPage() {
                 />
               </div>
               <ProviderResourceToolbar
+                availableProviders={availableProviderTypes}
+                selectedProvider={activeProviderType}
+                onSelectedProviderChange={setProviderListProvider}
                 sortBy={providerListSortBy}
                 sortDir={providerListSortDir}
                 onSortBy={setProviderListSortBy}

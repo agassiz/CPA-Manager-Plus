@@ -883,7 +883,7 @@
     "codex_turn_state_expires_at": "Expires at: {{time}}",
     "codex_turn_state_refresh_success": "Codex turn state refreshed.",
     "codex_turn_state_refresh_failed": "Failed to refresh Codex turn state",
-    "codex_turn_state_refresh_attempts": "Tried {{providers}} provider endpoints; found {{candidates}} proxy candidates, {{usable}} reachable. State requests: {{requests}}; {{valid}} valid, {{invalid}} invalid, {{timeouts}} timed out, {{transport}} proxy or network transport failures, {{rejected}} upstream HTTP rejections, {{failed}} other failures, {{canceled}} canceled after success.",
+    "codex_turn_state_refresh_attempts": "Tried {{providers}} provider endpoints; found {{candidates}} proxy candidates, {{usable}} reachable. State requests: {{requests}}; {{valid}} valid, {{invalid}} non-empty invalid (known invalid lengths: 312 or 356), {{empty}} empty, {{timeouts}} timed out, {{transport}} proxy or network transport failures without a response, {{rejected}} upstream HTTP rejections, {{failed}} other failures, {{canceled}} concurrent requests proactively canceled after a valid state was acquired.",
     "codex_turn_state_copy_success": "Codex turn state copied.",
     "codex_turn_state_copy_failed": "Failed to copy Codex turn state.",
     "prefix_placeholder": "",
@@ -1765,6 +1765,8 @@
     "data_tab_api_keys_short": "Keys",
     "data_tab_realtime": "Realtime",
     "data_tab_realtime_short": "Realtime",
+    "data_tab_codex_turn_state": "State Refresh",
+    "data_tab_codex_turn_state_short": "State Refresh",
     "data_tab_accounts_badge_title": "{{count}} accounts",
     "data_tab_api_keys_badge_title": "{{count}} client keys",
     "data_tab_realtime_badge_title": "{{failed}} failed / {{total}} total requests",
@@ -2116,11 +2118,38 @@
     "column_source_api_key": "Source / API Key",
     "column_source_api_key_short": "Source",
     "column_model": "Model",
+    "requested_model": "Requested model",
+    "upstream_model": "Upstream model",
+    "upstream_response_model": "Upstream response model",
+    "model_variant": "Model variant",
+    "model_mismatch": "Model mismatch",
+    "model_chain_tooltip": "Requested: {{requested}}\nUpstream sent: {{upstream}}\nUpstream response: {{response}}",
     "column_status": "Status",
     "column_endpoint": "Endpoint",
     "column_client_ip": "Client IP",
     "column_codex_turn_state_length": "Response State Length",
+    "column_codex_turn_state_proxy": "State Proxy",
+    "codex_turn_state_proxy_forced_reused": "Forced reuse",
+    "codex_turn_state_proxy_reused": "Reused",
+    "codex_turn_state_proxy_forced_unavailable": "Enabled, not reused",
+    "codex_turn_state_proxy_recorded_only": "Recorded only",
+    "codex_turn_state_monitor_title": "State Refresh Monitor (Independent)",
+    "codex_turn_state_monitor_hint": "Excluded from normal request statistics, but written using the normal request-log format.",
+    "codex_turn_state_monitor_empty": "No state refresh probes yet",
+    "codex_turn_state_monitor_clear": "Clear probe logs",
+    "codex_turn_state_monitor_clear_confirm": "Clear all state refresh probe logs?",
+    "codex_turn_state_monitor_clear_success": "State refresh probe logs cleared",
+    "codex_turn_state_monitor_clear_failed": "Failed to clear state refresh probe logs",
+    "codex_turn_state_monitor_proxy": "Actual Proxy",
+    "codex_turn_state_monitor_result": "Probe Result",
+    "codex_turn_state_monitor_success": "Valid",
+    "codex_turn_state_monitor_failed": "Failed",
     "column_provider_channel": "Provider / Channel",
+    "column_transport": "Transport",
+    "transport_downstream": "Client",
+    "transport_upstream": "Upstream",
+    "transport_http": "HTTP",
+    "transport_websocket": "WebSocket",
     "column_error": "Error",
     "request_type": "Request Type",
     "request_status": "Request Status",
@@ -2300,8 +2329,8 @@
       "quick_jump": "Quick Jump",
       "sections": {
         "server": {
-          "title": "Server Configuration",
-          "description": "Basic server settings",
+          "title": "Server & Access",
+          "description": "Listen address, TLS and remote management",
           "host": "Host Address",
           "port": "Port"
         },
@@ -2327,14 +2356,14 @@
           "panel_repo": "Panel Repository"
         },
         "auth": {
-          "title": "Authentication Configuration",
-          "description": "API keys and authentication directory settings",
+          "title": "Authentication",
+          "description": "Auth directory, API keys and credential refresh",
           "auth_dir": "Auth Directory (auth-dir)",
           "auth_dir_hint": "Directory path for authentication files (supports ~)"
         },
         "system": {
-          "title": "System Configuration",
-          "description": "Debug, logging, statistics, and performance settings",
+          "title": "System & Logs",
+          "description": "Debug, plugins and logging",
           "debug": "Debug Mode",
           "debug_desc": "Enable verbose debug logging",
           "commercial_mode": "Commercial Mode",
@@ -2387,8 +2416,8 @@
           "identity_mode_help_footnote": "All converging modes leave prompt_cache_key unchanged: a client's original session keeps its cache key across credential changes, while upstream device/session identity remains credential-specific."
         },
         "network": {
-          "title": "Network Configuration",
-          "description": "Proxy, retry, and routing settings",
+          "title": "Network & Routing",
+          "description": "Proxy, retries, request body limit and routing",
           "proxy_url": "Proxy URL",
           "request_retry": "Request Retry Count",
           "max_retry_credentials": "Max Retry Credentials",
@@ -2413,10 +2442,16 @@
           "codex_bug_mode": "Codex Bug Mode",
           "codex_rewrite_turn_state": "Rewrite Codex turn state",
           "codex_rewrite_turn_state_desc": "Acquire and reuse a credential-bound turn state through the configured proxy provider.",
+          "codex_force_turn_state_proxy": "Force turn state proxy",
+          "codex_force_turn_state_proxy_desc": "Force later requests using a recorded turn state through the proxy that obtained it. When disabled, the proxy is recorded only.",
           "codex_turn_state_proxy_provider_urls": "Turn state proxy provider URLs",
           "codex_turn_state_proxy_provider_urls_hint": "One provider URL per line. Providers are attempted in order until one returns a valid turn state.",
+          "codex_turn_state_proxy_provider_proxy_url": "Turn state provider forward proxy",
+          "codex_turn_state_proxy_provider_proxy_url_hint": "Standalone setting; it does not inherit the credential or global proxy. Used to fetch provider URLs and reach the proxies they return. Leave empty for direct access.",
           "codex_turn_state_proxy_attempt_timeout_seconds": "Single state request timeout (seconds)",
           "codex_turn_state_proxy_attempt_timeout_seconds_hint": "Leave empty for 15 seconds; configurable from 1 to 120 seconds.",
+          "codex_turn_state_proxy_concurrency": "State acquisition concurrency",
+          "codex_turn_state_proxy_concurrency_hint": "Limits both proxy probes and state acquisition requests. Leave empty for 1; maximum 5.",
           "passthrough_headers": "Pass Through Upstream Headers",
           "passthrough_headers_desc": "Forward filtered upstream response headers to downstream clients",
           "hide_upstream_error_details": "Hide Upstream Error Details",
@@ -2455,8 +2490,8 @@
           "antigravity_credits_desc": "Retry once with enabledCreditTypes=[\"GOOGLE_ONE_AI\"] when Antigravity returns quota_exhausted 429"
         },
         "augment": {
-          "title": "Augment Customization",
-          "description": "Control Augment models and thinking progress. Image fallback uses the global network setting.",
+          "title": "Augment",
+          "description": "Augment request models, thinking progress and model selector",
           "silent_mode_model": "Silent Mode Model",
           "silent_mode_model_hint": "Leave empty to keep the CPA default policy",
           "codebase_retrieval_model": "Codebase Retrieval Model",
@@ -2471,7 +2506,7 @@
           "show_thinking_progress_desc": "Allow Augment requests to show thinking progress"
         },
         "kiro": {
-          "title": "Kiro Request Policy",
+          "title": "Kiro",
           "description": "Control Kiro account rate limits, cooldowns, and invalid auth handling",
           "per_account_rpm_limit": "Per-account RPM Limit",
           "free_rpm_limit": "Free RPM Limit",
@@ -2493,7 +2528,7 @@
           "description": "Edit usage-models groups, ordering, default model, and display metadata"
         },
         "streaming": {
-          "title": "Streaming Configuration",
+          "title": "Streaming",
           "description": "Keepalive and bootstrap retry settings",
           "keepalive_seconds": "Keepalive Seconds",
           "keepalive_hint": "Set to 0 or leave empty to disable keepalive",
@@ -2504,7 +2539,7 @@
           "disabled": "Disabled"
         },
         "payload": {
-          "title": "Payload Configuration",
+          "title": "Payload Rules",
           "description": "Default values, raw JSON rules, override rules, and filter rules",
           "default_rules": "Default Rules",
           "default_rules_desc": "Use these default values when parameters are not specified in the request",
@@ -2516,6 +2551,22 @@
           "override_raw_rules_desc": "Always overwrite parameter values as raw JSON fragments, useful for response_format, schemas, and other complex fields",
           "filter_rules": "Filter Rules",
           "filter_rules_desc": "Pre-filter upstream request body via JSON Path, automatically remove non-compliant/redundant parameters (Request Sanitization)"
+        },
+        "claude": {
+          "title": "Claude",
+          "description": "Claude cloaking, signing and header defaults"
+        },
+        "codex": {
+          "title": "Codex",
+          "description": "Codex compaction, context windows, turn-state and header defaults",
+          "compaction_title": "Context compaction",
+          "compaction_description": "Model and method used by Codex auto-compaction",
+          "turn_state_title": "Turn state proxy",
+          "turn_state_description": "Rewrite turn state and fetch turn state through proxies"
+        },
+        "gemini": {
+          "title": "Gemini / Antigravity",
+          "description": "Gemini CLI endpoint and Antigravity signature policy"
         }
       },
       "api_keys": {
@@ -2658,6 +2709,11 @@
         "cancel": "Cancel",
         "update": "Update",
         "add": "Add"
+      },
+      "groups": {
+        "general": "General",
+        "request": "Request handling",
+        "provider": "Providers"
       }
     }
   },
@@ -3340,6 +3396,8 @@
       "disabled": "Disable this entry",
       "disabledHint": "Disabled entries won't be used by the gateway",
       "websockets": "Enable WebSockets",
+      "nativeCompaction": "Enable native Codex compaction",
+      "nativeCompactionHint": "Use remote_compaction_v2 for this Codex provider; otherwise use summary compaction.",
       "testModel": "Test model",
       "testModelClaudeHint": "Used for connectivity testing only; not saved",
       "testModelAutoWith": "Auto · {{name}}",
@@ -3442,6 +3500,7 @@
         "directionDesc": "Descending"
       },
       "filter": {
+        "allProviders": "All providers",
         "allModels": "All models",
         "selectedModels": "{{selected}}/{{total}} models",
         "selectAll": "Select all",

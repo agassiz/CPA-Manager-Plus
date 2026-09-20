@@ -195,6 +195,8 @@ export interface ProviderEntryFormInput {
 
   /** Codex 专属 */
   websockets?: boolean;
+  /** Codex 专属：兼容该条目的官方 remote_compaction_v2。 */
+  enableNativeCompaction?: boolean;
   /** Claude 专属 */
   cloak?: CloakInput;
   experimentalCchSigning?: boolean;

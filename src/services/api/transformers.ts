@@ -159,6 +159,14 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (baseUrl) config.baseUrl = String(baseUrl);
   const websockets = normalizeBoolean(record?.websockets ?? record?.['websockets']);
   if (websockets !== undefined) config.websockets = websockets;
+  const enableNativeCompaction = normalizeBoolean(
+    record?.['enable-native-compaction'] ??
+      record?.enableNativeCompaction ??
+      record?.enable_native_compaction
+  );
+  if (enableNativeCompaction !== undefined) {
+    config.enableNativeCompaction = enableNativeCompaction;
+  }
   const experimentalCCHSigning = normalizeBoolean(
     record?.['experimental-cch-signing'] ??
       record?.experimentalCCHSigning ??

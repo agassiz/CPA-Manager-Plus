@@ -2,7 +2,9 @@
  * AI 提供商相关 API
  */
 
+import type { AxiosRequestConfig } from 'axios';
 import { apiClient } from './client';
+import { parseApiCallResponse, type ApiCallResult } from './apiCall';
 import {
   normalizeGeminiKeyConfig,
   normalizeOpenAIProvider,
@@ -36,6 +38,7 @@ const PROVIDER_KEY_FIELDS = [
   'baseUrl',
   'base_url',
   'websockets',
+  'enable-native-compaction',
   'proxy-url',
   'proxyUrl',
   'proxy_url',
@@ -409,6 +412,9 @@ const serializeProviderKey = (config: ProviderKeyConfig) => {
   if (config.prefix?.trim()) payload.prefix = config.prefix.trim();
   if (config.baseUrl) payload['base-url'] = config.baseUrl;
   if (config.websockets !== undefined) payload.websockets = config.websockets;
+  if (config.enableNativeCompaction !== undefined) {
+    payload['enable-native-compaction'] = config.enableNativeCompaction;
+  }
   const experimentalCchSigning =
     config.experimentalCchSigning ?? config.experimentalCCHSigning;
   if (experimentalCchSigning !== undefined) {
@@ -687,6 +693,21 @@ export const providersApi = {
 
   deleteClaudeConfig: (apiKey: string, baseUrl?: string) =>
     apiClient.delete(`/claude-api-key${buildProviderDeleteQuery(apiKey, baseUrl)}`),
+
+  // Runs the connectivity test through the backend Claude executor, so cloaking
+  // and fingerprint settings match live traffic.
+  testClaudeConfig: async (
+    config: ProviderKeyConfig,
+    model: string,
+    requestConfig?: AxiosRequestConfig
+  ): Promise<ApiCallResult> => {
+    const response = await apiClient.post<Record<string, unknown>>(
+      '/claude-api-key/test',
+      { entry: serializeProviderKey(config), model },
+      requestConfig
+    );
+    return parseApiCallResponse(response);
+  },
 
   async getVertexConfigs(): Promise<ProviderKeyConfig[]> {
     const data = await apiClient.get('/vertex-api-key');

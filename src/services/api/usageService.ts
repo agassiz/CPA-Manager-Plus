@@ -89,7 +89,7 @@ export interface CodexInspectionResult {
 
 export interface ModelPricesResponse {
   prices: Record<string, ModelPrice>;
-	use_response_model_for_billing?: boolean;
+  use_response_model_for_billing?: boolean;
 }
 
 export interface ModelPriceSyncCandidate {
@@ -971,10 +971,16 @@ export interface MonitoringAnalyticsEventRow {
   reasoning_effort?: string;
   service_tier?: string;
   response_service_tier?: string;
-	response_model?: string;
-	response_model_mismatch?: boolean;
-	billing_model?: string;
+  requested_model?: string;
+  upstream_model?: string;
+  upstream_response_model?: string;
+  upstream_model_mismatch?: boolean | null;
+  response_model?: string;
+  response_model_mismatch?: boolean;
+  billing_model?: string;
   effective_service_tier?: string;
+  downstream_transport?: string;
+  upstream_transport?: string;
   executor_type?: string;
   input_tokens: number;
   output_tokens: number;
@@ -991,6 +997,9 @@ export interface MonitoringAnalyticsEventRow {
   fail_summary?: string;
   fail_body?: string;
   codex_turn_state_length?: number | null;
+  codex_turn_state_proxy_forced?: boolean;
+  codex_turn_state_proxy_reused?: boolean;
+  codex_turn_state_proxy?: string;
   response_metadata?: ResponseHeaderMetadata;
   header_quota_recover_at_ms?: number | null;
   header_quota_used_percent?: number | null;
@@ -1245,17 +1254,17 @@ export const usageServiceApi = {
     base: string,
     prices: Record<string, ModelPrice>,
     managementKey?: string,
-	useResponseModelForBilling?: boolean
+    useResponseModelForBilling?: boolean
   ): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.put<ModelPricesResponse>(
         buildUrl(base, '/v0/management/model-prices'),
-		{
-			prices,
-			...(useResponseModelForBilling === undefined
-				? {}
-				: { use_response_model_for_billing: useResponseModelForBilling }),
-		},
+        {
+          prices,
+          ...(useResponseModelForBilling === undefined
+            ? {}
+            : { use_response_model_for_billing: useResponseModelForBilling }),
+        },
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -2196,12 +2205,25 @@ const buildFallbackMonitoringEvents = (
       auth_provider_snapshot: monitoringText(detail.auth_provider_snapshot),
       auth_project_id_snapshot: monitoringText(detail.auth_project_id_snapshot),
       resolved_model: monitoringText(detail.__resolvedModel),
+      requested_model: monitoringText(detail.requested_model || detail.__modelName),
+      upstream_model: monitoringText(
+        detail.upstream_model || detail.__resolvedModel || detail.__modelName
+      ),
+      upstream_response_model: monitoringText(
+        detail.upstream_response_model || detail.response_model
+      ),
+      upstream_model_mismatch:
+        typeof detail.upstream_model_mismatch === 'boolean'
+          ? detail.upstream_model_mismatch
+          : (detail.response_model_mismatch ?? null),
       reasoning_effort: monitoringText(detail.reasoning_effort),
       service_tier: monitoringText(detail.service_tier),
       response_service_tier: monitoringText(detail.response_service_tier),
       effective_service_tier: monitoringText(
         detail.effective_service_tier || detail.response_service_tier || detail.service_tier
       ),
+      downstream_transport: monitoringText(detail.downstream_transport),
+      upstream_transport: monitoringText(detail.upstream_transport),
       executor_type: monitoringText(detail.executor_type),
       input_tokens: inputTokens,
       output_tokens: outputTokens,
@@ -2217,6 +2239,15 @@ const buildFallbackMonitoringEvents = (
       fail_status_code: detail.fail_status_code ?? null,
       fail_summary: monitoringText(detail.fail_summary || detail.fail_body),
       fail_body: monitoringText(detail.fail_body),
+      codex_turn_state_length:
+        detail.codex_turn_state_length ?? detail.codexTurnStateLength ?? null,
+      codex_turn_state_proxy_forced:
+        detail.codex_turn_state_proxy_forced ?? detail.codexTurnStateProxyForced,
+      codex_turn_state_proxy_reused:
+        detail.codex_turn_state_proxy_reused ?? detail.codexTurnStateProxyReused,
+      codex_turn_state_proxy: monitoringText(
+        detail.codex_turn_state_proxy || detail.codexTurnStateProxy
+      ),
     };
   });
   return {

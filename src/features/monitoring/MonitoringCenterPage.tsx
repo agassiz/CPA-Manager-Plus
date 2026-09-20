@@ -54,6 +54,7 @@ import { MonitoringDataPanel } from '@/features/monitoring/components/Monitoring
 import { MonitoringActionBar } from '@/features/monitoring/components/MonitoringActionBar';
 import { MonitoringCustomRangeModal } from '@/features/monitoring/components/MonitoringCustomRangeModal';
 import { MonitoringFiltersPanel } from '@/features/monitoring/components/MonitoringFiltersPanel';
+import { CodexTurnStateMonitorPanel } from '@/features/monitoring/components/CodexTurnStateMonitorPanel';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { IconInbox } from '@/components/ui/icons';
 import {
@@ -105,6 +106,10 @@ import {
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useInterval } from '@/hooks/useInterval';
 import { useRequestMonitoringAvailability } from '@/hooks/useRequestMonitoringAvailability';
+import {
+  codexTurnStateMonitorApi,
+  type CodexTurnStateMonitorEntry,
+} from '@/services/api/codexTurnStateMonitor';
 import { isFileLogsAvailable } from '@/features/logs/logFeatureAvailability';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import { formatFileSize } from '@/utils/format';
@@ -190,6 +195,10 @@ export function MonitoringCenterPage() {
   const [usageImporting, setUsageImporting] = useState(false);
   const [usageClearing, setUsageClearing] = useState(false);
   const [failureClearing, setFailureClearing] = useState(false);
+  const [codexTurnStateMonitorClearing, setCodexTurnStateMonitorClearing] = useState(false);
+  const [codexTurnStateMonitorEntries, setCodexTurnStateMonitorEntries] = useState<
+    CodexTurnStateMonitorEntry[]
+  >([]);
   const [accountQuotaStates, setAccountQuotaStates] = useState<Record<string, AccountQuotaState>>(
     {}
   );
@@ -339,7 +348,7 @@ export function MonitoringCenterPage() {
     searchQuery: deferredSearch,
     searchApiKeyHash: deferredSearchApiKeyHash,
     scopeFilters: monitoringScopeFilters,
-    dataScope: activeDataTab,
+    dataScope: activeDataTab === 'codexTurnState' ? 'realtime' : activeDataTab,
     eventsPage: realtimePage,
     eventsPageSize: realtimePageSize,
   });
@@ -347,6 +356,40 @@ export function MonitoringCenterPage() {
   const refreshAll = useCallback(async () => {
     await Promise.all([loadApiKeyAliases(), refreshMeta(false)]);
   }, [loadApiKeyAliases, refreshMeta]);
+
+  const refreshCodexTurnStateMonitor = useCallback(async () => {
+    try {
+      const response = await codexTurnStateMonitorApi.list(50);
+      setCodexTurnStateMonitorEntries(response.items ?? []);
+    } catch {
+      setCodexTurnStateMonitorEntries([]);
+    }
+  }, []);
+
+  const handleCodexTurnStateMonitorClear = useCallback(() => {
+    showConfirmation({
+      title: t('monitoring.codex_turn_state_monitor_clear'),
+      message: t('monitoring.codex_turn_state_monitor_clear_confirm'),
+      confirmText: t('common.confirm'),
+      variant: 'danger',
+      onConfirm: async () => {
+        setCodexTurnStateMonitorClearing(true);
+        try {
+          await codexTurnStateMonitorApi.clear();
+          setCodexTurnStateMonitorEntries([]);
+          showNotification(t('monitoring.codex_turn_state_monitor_clear_success'), 'success');
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          showNotification(
+            `${t('monitoring.codex_turn_state_monitor_clear_failed')}${message ? `: ${message}` : ''}`,
+            'error'
+          );
+        } finally {
+          setCodexTurnStateMonitorClearing(false);
+        }
+      },
+    });
+  }, [showConfirmation, showNotification, t]);
 
   const setCurrentAccountPage = useCallback(
     (page: number) => {
@@ -371,6 +414,17 @@ export function MonitoringCenterPage() {
       ? Number(autoRefreshMs)
       : null
   );
+
+  useEffect(() => {
+    if (activeDataTab !== 'codexTurnState') return;
+    void refreshCodexTurnStateMonitor();
+    const intervalMs = Number(autoRefreshMs);
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return;
+    const timer = window.setInterval(() => {
+      void refreshCodexTurnStateMonitor();
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [activeDataTab, autoRefreshMs, refreshCodexTurnStateMonitor]);
 
   const monitoringUnavailable =
     !requestMonitoringAvailability.checking && !requestMonitoringAvailability.available;
@@ -706,10 +760,23 @@ export function MonitoringCenterPage() {
           total: totalCalls,
         }),
       },
+      {
+        id: 'codexTurnState',
+        label: shortLabel(
+          t,
+          'monitoring.data_tab_codex_turn_state_short',
+          'monitoring.data_tab_codex_turn_state'
+        ),
+        fullLabel: t('monitoring.data_tab_codex_turn_state'),
+        icon: 'codexTurnState',
+        badge: codexTurnStateMonitorEntries.length,
+        badgeTitle: t('monitoring.codex_turn_state_monitor_title'),
+      },
     ];
   }, [
     accountRows.length,
     apiKeyRows.length,
+    codexTurnStateMonitorEntries.length,
     monitoringFilterOptions.accountRows.length,
     monitoringFilterOptions.apiKeyRows.length,
     scopedFailureCount,
@@ -1043,6 +1110,10 @@ export function MonitoringCenterPage() {
 
     if (activeDataTab === 'apiKeys') {
       return <ApiKeySummaryPanelActions rowCount={apiKeyRows.length} t={t} />;
+    }
+
+    if (activeDataTab === 'codexTurnState') {
+      return null;
     }
 
     return (
@@ -1447,6 +1518,18 @@ export function MonitoringCenterPage() {
                 onToggleApiKey={toggleApiKeyExpanded}
                 onPageChange={handleApiKeyPageChange}
                 onPageSizeChange={handleApiKeyPageSizeChange}
+              />
+            );
+          }
+
+          if (tab === 'codexTurnState') {
+            return (
+              <CodexTurnStateMonitorPanel
+                entries={codexTurnStateMonitorEntries}
+                locale={i18n.language}
+                t={t}
+                onClear={handleCodexTurnStateMonitorClear}
+                clearing={codexTurnStateMonitorClearing}
               />
             );
           }

@@ -3,6 +3,7 @@ import type { AiProviderListRow } from './AiProvidersUnifiedTable';
 import {
   filterAndSortAiProviderRows,
   getAvailableAiProviderModels,
+  getAvailableAiProviderTypes,
 } from './aiProviderListControls';
 
 const buildRow = (
@@ -42,6 +43,7 @@ describe('AI provider list controls', () => {
     expect(
       filterAndSortAiProviderRows(rows, {
         filter: 'AUTH-INDEX-12',
+        provider: '',
         sortBy: 'name',
         sortDir: 'asc',
         selectedModels: new Set(),
@@ -60,11 +62,31 @@ describe('AI provider list controls', () => {
     expect(
       filterAndSortAiProviderRows(rows, {
         filter: '',
+        provider: '',
         sortBy: 'name',
         sortDir: 'asc',
         selectedModels: new Set(['claude-sonnet']),
       }).map((row) => row.id)
     ).toEqual(['one']);
+  });
+
+  it('filters by provider type and exposes unique provider options', () => {
+    const rows = [
+      buildRow('codex-a', { provider: 'Codex' }),
+      buildRow('claude-a', { provider: 'Claude' }),
+      buildRow('codex-b', { provider: 'Codex' }),
+    ];
+
+    expect(getAvailableAiProviderTypes(rows)).toEqual(['Claude', 'Codex']);
+    expect(
+      filterAndSortAiProviderRows(rows, {
+        filter: '',
+        provider: 'Codex',
+        sortBy: 'name',
+        sortDir: 'asc',
+        selectedModels: new Set(),
+      }).map((row) => row.id)
+    ).toEqual(['codex-a', 'codex-b']);
   });
 
   it('sorts by priority and recent success in either direction', () => {
@@ -79,6 +101,7 @@ describe('AI provider list controls', () => {
     expect(
       filterAndSortAiProviderRows(rows, {
         filter: '',
+        provider: '',
         sortBy: 'priority',
         sortDir: 'desc',
         selectedModels: new Set(),
@@ -87,6 +110,7 @@ describe('AI provider list controls', () => {
     expect(
       filterAndSortAiProviderRows(rows, {
         filter: '',
+        provider: '',
         sortBy: 'recent-success',
         sortDir: 'asc',
         selectedModels: new Set(),

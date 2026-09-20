@@ -873,7 +873,7 @@
     "codex_turn_state_expires_at": "到期時間：{{time}}",
     "codex_turn_state_refresh_success": "已刷新 Codex turn state。",
     "codex_turn_state_refresh_failed": "刷新 Codex turn state 失敗",
-    "codex_turn_state_refresh_attempts": "已嘗試 {{providers}} 個取得地址；發現 {{candidates}} 個候選代理，{{usable}} 個可用。state 請求 {{requests}} 次：有效 {{valid}}，無效 {{invalid}}，逾時 {{timeouts}}，代理或網路傳輸失敗 {{transport}}，上游 HTTP 拒絕 {{rejected}}，其他失敗 {{failed}}，成功後取消 {{canceled}}。",
+    "codex_turn_state_refresh_attempts": "已嘗試 {{providers}} 個取得地址；發現 {{candidates}} 個候選代理，{{usable}} 個可用。state 請求 {{requests}} 次：有效 {{valid}}，非空無效 {{invalid}}（已知無效長度為 312 或 356），空值 {{empty}}，未取得回應的代理或網路傳輸失敗 {{transport}}，上游 HTTP 拒絕 {{rejected}}，其他失敗 {{failed}}，取得有效值後主動取消的並行請求 {{canceled}}。",
     "codex_turn_state_copy_success": "已複製 Codex turn state。",
     "codex_turn_state_copy_failed": "複製 Codex turn state 失敗。",
     "prefix_placeholder": "",
@@ -1744,6 +1744,8 @@
     "data_tab_accounts": "帳號彙總",
     "data_tab_api_keys": "呼叫方密鑰彙總",
     "data_tab_realtime": "即時監控",
+    "data_tab_codex_turn_state": "State 刷新",
+    "data_tab_codex_turn_state_short": "State 刷新",
     "data_tab_accounts_badge_title": "帳號數：{{count}}",
     "data_tab_api_keys_badge_title": "呼叫方密鑰數：{{count}}",
     "data_tab_realtime_badge_title": "{{failed}} 失敗 / 共 {{total}} 次請求",
@@ -2090,11 +2092,38 @@
     "column_type": "類型",
     "column_source_api_key": "來源 / API Key",
     "column_model": "模型",
+    "requested_model": "請求模型",
+    "upstream_model": "上游發送模型",
+    "upstream_response_model": "上游回應模型",
+    "model_variant": "模型變體",
+    "model_mismatch": "模型不一致",
+    "model_chain_tooltip": "請求模型：{{requested}}\n上游發送模型：{{upstream}}\n上游回應模型：{{response}}",
     "column_status": "狀態",
     "column_endpoint": "介面",
     "column_client_ip": "用戶端 IP",
     "column_codex_turn_state_length": "回應 State 長度",
+    "column_codex_turn_state_proxy": "State 代理",
+    "codex_turn_state_proxy_forced_reused": "強制重用",
+    "codex_turn_state_proxy_reused": "已重用",
+    "codex_turn_state_proxy_forced_unavailable": "已開啟，未重用",
+    "codex_turn_state_proxy_recorded_only": "僅記錄",
+    "codex_turn_state_monitor_title": "State 刷新監控（獨立）",
+    "codex_turn_state_monitor_hint": "不計入普通請求統計，但會按普通請求格式寫入請求日誌。",
+    "codex_turn_state_monitor_empty": "暫無 State 刷新探測",
+    "codex_turn_state_monitor_clear": "清空探測日誌",
+    "codex_turn_state_monitor_clear_confirm": "確定要清空所有 State 刷新探測日誌嗎？",
+    "codex_turn_state_monitor_clear_success": "State 刷新探測日誌已清空",
+    "codex_turn_state_monitor_clear_failed": "清空 State 刷新探測日誌失敗",
+    "codex_turn_state_monitor_proxy": "實際代理",
+    "codex_turn_state_monitor_result": "探測結果",
+    "codex_turn_state_monitor_success": "有效",
+    "codex_turn_state_monitor_failed": "失敗",
     "column_provider_channel": "提供方 / 渠道",
+    "column_transport": "傳輸方式",
+    "transport_downstream": "客戶端",
+    "transport_upstream": "上游",
+    "transport_http": "HTTP",
+    "transport_websocket": "WebSocket",
     "column_error": "錯誤",
     "request_type": "請求類型",
     "request_status": "請求狀態",
@@ -2265,8 +2294,8 @@
       "quick_jump": "快速跳轉",
       "sections": {
         "server": {
-          "title": "伺服器設定",
-          "description": "基本伺服器設定",
+          "title": "服務與存取",
+          "description": "監聽位址、TLS 與遠端管理",
           "host": "主機位址",
           "port": "連接埠"
         },
@@ -2292,14 +2321,14 @@
           "panel_repo": "面板儲存庫"
         },
         "auth": {
-          "title": "驗證設定",
-          "description": "API 金鑰與驗證檔案目錄設定",
+          "title": "認證",
+          "description": "認證檔案目錄、API 金鑰與憑證重新整理",
           "auth_dir": "驗證檔案目錄（auth-dir）",
           "auth_dir_hint": "存放驗證檔案的目錄路徑（支援 ~）"
         },
         "system": {
-          "title": "系統設定",
-          "description": "除錯、記錄、統計與效能調整設定",
+          "title": "系統與日誌",
+          "description": "除錯、外掛與日誌設定",
           "debug": "除錯模式",
           "debug_desc": "啟用詳細的除錯記錄",
           "commercial_mode": "商業模式",
@@ -2350,8 +2379,8 @@
           "identity_mode_help_footnote": "以上收斂檔都不改變 prompt_cache_key：同一客戶端原始工作階段的快取鍵不隨憑證切換；但上游裝置/工作階段身份會按憑證區分。"
         },
         "network": {
-          "title": "網路設定",
-          "description": "代理、重試和路由設定",
+          "title": "網路與路由",
+          "description": "代理、重試、請求體限制與路由",
           "proxy_url": "代理 URL",
           "request_retry": "請求重試次數",
           "max_retry_credentials": "最大重試憑證數",
@@ -2376,10 +2405,16 @@
           "codex_bug_mode": "Codex Bug 模式",
           "codex_rewrite_turn_state": "覆寫 Codex turn state",
           "codex_rewrite_turn_state_desc": "透過設定的代理取得位址，為憑證取得並重用專屬 turn state。",
+          "codex_force_turn_state_proxy": "強制使用 state 取得代理",
+          "codex_force_turn_state_proxy_desc": "後續使用已記錄 turn state 的請求強制使用取得該 state 時的代理；關閉時只記錄代理資訊。",
           "codex_turn_state_proxy_provider_urls": "Turn state 代理取得位址",
           "codex_turn_state_proxy_provider_urls_hint": "每行填寫一個取得位址。依序嘗試，直到其中一個回傳有效 turn state。",
+          "codex_turn_state_proxy_provider_proxy_url": "Turn state 代理前置代理",
+          "codex_turn_state_proxy_provider_proxy_url_hint": "獨立設定，不繼承憑證或全域代理。用於取得代理位址及存取回傳的代理；留空為直連。",
           "codex_turn_state_proxy_attempt_timeout_seconds": "單次 state 請求逾時（秒）",
           "codex_turn_state_proxy_attempt_timeout_seconds_hint": "留空使用 15 秒；可設定 1 到 120 秒。",
+          "codex_turn_state_proxy_concurrency": "State 取得並發",
+          "codex_turn_state_proxy_concurrency_hint": "同時限制代理探測和 state 取得請求。留空使用 1，最高為 5。",
           "force_summary_compaction": "強制使用摘要壓縮",
           "force_summary_compaction_desc": "官方 Codex 自動壓縮將使用通用摘要流程，不再使用原生加密壓縮。",
           "codex_context_window_overrides": "Codex 模型上下文覆寫",
@@ -2414,7 +2449,7 @@
           "antigravity_credits_desc": "Antigravity 回傳 quota_exhausted 429 時，使用 enabledCreditTypes=[\"GOOGLE_ONE_AI\"] 重試一次"
         },
         "streaming": {
-          "title": "串流傳輸設定",
+          "title": "串流傳輸",
           "description": "Keepalive 與 bootstrap 重試設定",
           "keepalive_seconds": "Keepalive 秒數",
           "keepalive_hint": "設定為 0 或留空表示停用 keepalive",
@@ -2425,7 +2460,7 @@
           "disabled": "已停用"
         },
         "payload": {
-          "title": "Payload 設定",
+          "title": "Payload 規則",
           "description": "預設值、原始 JSON 規則、覆寫規則與篩選規則",
           "default_rules": "預設規則",
           "default_rules_desc": "當請求中未指定參數時，使用這些預設值",
@@ -2437,6 +2472,22 @@
           "override_raw_rules_desc": "始終按原始 JSON 片段覆寫參數值，適合 response_format、schema 等複雜欄位",
           "filter_rules": "篩選規則",
           "filter_rules_desc": "透過 JSON Path 預篩選上游請求體，自動剔除不合規/冗餘參數（Request Sanitization）"
+        },
+        "claude": {
+          "title": "Claude",
+          "description": "Claude 偽裝、簽名與 Header 預設值"
+        },
+        "codex": {
+          "title": "Codex",
+          "description": "Codex 壓縮、上下文視窗、turn-state 與 Header 預設值",
+          "compaction_title": "上下文壓縮",
+          "compaction_description": "Codex 自動壓縮使用的模型與壓縮方式",
+          "turn_state_title": "Turn state 代理",
+          "turn_state_description": "複寫 turn state 及透過代理取得 turn state 的設定"
+        },
+        "gemini": {
+          "title": "Gemini / Antigravity",
+          "description": "Gemini CLI 端點與 Antigravity 簽名策略"
         }
       },
       "api_keys": {
@@ -2537,6 +2588,11 @@
         "cancel": "取消",
         "update": "更新",
         "add": "新增"
+      },
+      "groups": {
+        "general": "通用",
+        "request": "請求處理",
+        "provider": "渠道專屬"
       }
     }
   },
@@ -3219,6 +3275,8 @@
       "disabled": "停用此條目",
       "disabledHint": "停用後不會被閘道使用",
       "websockets": "啟用 WebSockets",
+      "nativeCompaction": "啟用官方原生壓縮",
+      "nativeCompactionHint": "僅對目前 Codex provider 使用 remote_compaction_v2；關閉時使用摘要壓縮。",
       "testModel": "測試模型",
       "testModelClaudeHint": "僅用於連通性測試,不會被儲存",
       "testModelAutoWith": "自動 · {{name}}",
@@ -3321,6 +3379,7 @@
         "directionDesc": "降序"
       },
       "filter": {
+        "allProviders": "全部供應商",
         "allModels": "全部模型",
         "selectedModels": "{{selected}}/{{total}} 個模型",
         "selectAll": "全選",

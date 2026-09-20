@@ -27,6 +27,8 @@ export interface AuthState {
   isAuthenticated: boolean;
   apiBase: string;
   managementKey: string;
+  managementSecret?: string;
+  sessionTokenExpiresAt?: number | null;
   rememberPassword: boolean;
   serverVersion: string | null;
   serverBuildDate: string | null;

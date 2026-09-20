@@ -7,6 +7,9 @@ import type { ProviderSortBy, SortDir } from '../types';
 import styles from './ProviderResourceToolbar.module.scss';
 
 interface ProviderResourceToolbarProps {
+  availableProviders: ReadonlyArray<string>;
+  selectedProvider: string;
+  onSelectedProviderChange: (value: string) => void;
   sortBy: ProviderSortBy;
   sortDir: SortDir;
   onSortBy: (value: ProviderSortBy) => void;
@@ -17,6 +20,9 @@ interface ProviderResourceToolbarProps {
 }
 
 export function ProviderResourceToolbar({
+  availableProviders,
+  selectedProvider,
+  onSelectedProviderChange,
   sortBy,
   sortDir,
   onSortBy,
@@ -39,6 +45,14 @@ export function ProviderResourceToolbar({
       },
     ],
     [t]
+  );
+
+  const providerOptions = useMemo(
+    () => [
+      { value: '', label: t('providersPage.toolbar.filter.allProviders') },
+      ...availableProviders.map((provider) => ({ value: provider, label: provider })),
+    ],
+    [availableProviders, t]
   );
 
   useEffect(() => {
@@ -72,6 +86,17 @@ export function ProviderResourceToolbar({
 
   return (
     <div className={styles.root}>
+      <Select
+        value={selectedProvider}
+        options={providerOptions}
+        onChange={onSelectedProviderChange}
+        ariaLabel={t('providersPage.toolbar.filter.allProviders')}
+        className={styles.providerSelect}
+        dropdownClassName={styles.sortDropdown}
+        dropdownMinWidth={148}
+        fullWidth={false}
+        size="sm"
+      />
       <div className={styles.sortGroup}>
         <span className={styles.label}>{t('providersPage.toolbar.sortBy')}</span>
         <Select

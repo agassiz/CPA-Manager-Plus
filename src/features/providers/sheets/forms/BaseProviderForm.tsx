@@ -80,6 +80,7 @@ function buildInitialForm(
       headers: [emptyHeader()],
       excludedModelsText: '',
       websockets: brand === 'codex' || brand === 'xai' ? false : undefined,
+      enableNativeCompaction: brand === 'codex' ? false : undefined,
       cloak: isClaudeLikeBrand(brand)
         ? { mode: '', strictMode: false, sensitiveWordsText: '', cacheUserId: false }
         : undefined,
@@ -166,6 +167,8 @@ function buildInitialForm(
       brand === 'codex' || brand === 'xai'
         ? (cfg as ProviderKeyConfig).websockets === true
         : undefined,
+    enableNativeCompaction:
+      brand === 'codex' ? (cfg as ProviderKeyConfig).enableNativeCompaction === true : undefined,
     cloak: isClaudeLikeBrand(brand)
       ? {
           mode: (cfg as ProviderKeyConfig).cloak?.mode ?? '',
@@ -670,6 +673,22 @@ export function BaseProviderForm({
             />
             <span className={styles.checkboxText}>
               <span>{t('providersPage.form.websockets')}</span>
+            </span>
+          </label>
+        ) : null}
+
+        {brand === 'codex' ? (
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              className={styles.checkboxBox}
+              checked={form.enableNativeCompaction ?? false}
+              disabled={mutating}
+              onChange={(e) => updateField('enableNativeCompaction', e.target.checked)}
+            />
+            <span className={styles.checkboxText}>
+              <span>{t('providersPage.form.nativeCompaction')}</span>
+              <small>{t('providersPage.form.nativeCompactionHint')}</small>
             </span>
           </label>
         ) : null}

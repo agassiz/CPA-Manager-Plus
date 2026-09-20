@@ -874,7 +874,7 @@
     "codex_turn_state_expires_at": "Истекает: {{time}}",
     "codex_turn_state_refresh_success": "Codex turn state обновлён.",
     "codex_turn_state_refresh_failed": "Не удалось обновить Codex turn state",
-    "codex_turn_state_refresh_attempts": "Проверено адресов получения: {{providers}}; кандидатов прокси: {{candidates}}, доступно: {{usable}}. Запросов state: {{requests}}; валидных {{valid}}, невалидных {{invalid}}, тайм-аутов {{timeouts}}, ошибок прокси или сети {{transport}}, отклонений HTTP upstream {{rejected}}, прочих ошибок {{failed}}, отменено после успеха {{canceled}}.",
+    "codex_turn_state_refresh_attempts": "Проверено адресов получения: {{providers}}; кандидатов прокси: {{candidates}}, доступно: {{usable}}. Запросов state: {{requests}}; валидных {{valid}}, непустых невалидных {{invalid}} (известные невалидные длины: 312 или 356), пустых {{empty}}, тайм-аутов {{timeouts}}, ошибок прокси или сети без ответа {{transport}}, отклонений HTTP upstream {{rejected}}, прочих ошибок {{failed}}, параллельных запросов, отменённых после получения валидного state {{canceled}}.",
     "codex_turn_state_copy_success": "Codex turn state скопирован.",
     "codex_turn_state_copy_failed": "Не удалось скопировать Codex turn state.",
     "prefix_placeholder": "",
@@ -1732,6 +1732,8 @@
     "data_tab_api_keys_short": "Ключи",
     "data_tab_realtime": "Realtime",
     "data_tab_realtime_short": "Realtime",
+    "data_tab_codex_turn_state": "Обновление State",
+    "data_tab_codex_turn_state_short": "State",
     "data_tab_accounts_badge_title": "Аккаунтов: {{count}}",
     "data_tab_api_keys_badge_title": "Ключей клиентов: {{count}}",
     "data_tab_realtime_badge_title": "{{failed}} ошибок / всего {{total}} запросов",
@@ -2083,10 +2085,32 @@
     "column_source_api_key": "Источник / API Key",
     "column_source_api_key_short": "Источник",
     "column_model": "Модель",
+    "requested_model": "Модель запроса",
+    "upstream_model": "Модель апстрима",
+    "upstream_response_model": "Модель ответа апстрима",
+    "model_variant": "Вариант модели",
+    "model_mismatch": "Несовпадение моделей",
+    "model_chain_tooltip": "Запрос: {{requested}}\nОтправлено апстриму: {{upstream}}\nОтвет апстрима: {{response}}",
     "column_status": "Статус",
     "column_endpoint": "Endpoint",
     "column_client_ip": "IP клиента",
     "column_codex_turn_state_length": "Длина State ответа",
+    "column_codex_turn_state_proxy": "Прокси State",
+    "codex_turn_state_proxy_forced_reused": "Принудительно повторно использован",
+    "codex_turn_state_proxy_reused": "Повторно использован",
+    "codex_turn_state_proxy_forced_unavailable": "Включен, но не использован",
+    "codex_turn_state_proxy_recorded_only": "Только записан",
+    "codex_turn_state_monitor_title": "Мониторинг обновления State (отдельно)",
+    "codex_turn_state_monitor_hint": "Не входит в обычную статистику запросов, но записывается в обычном формате логов запросов.",
+    "codex_turn_state_monitor_empty": "Проверок обновления State пока нет",
+    "codex_turn_state_monitor_clear": "Очистить логи проверок",
+    "codex_turn_state_monitor_clear_confirm": "Очистить все логи проверок обновления State?",
+    "codex_turn_state_monitor_clear_success": "Логи проверок обновления State очищены",
+    "codex_turn_state_monitor_clear_failed": "Не удалось очистить логи проверок обновления State",
+    "codex_turn_state_monitor_proxy": "Фактический прокси",
+    "codex_turn_state_monitor_result": "Результат проверки",
+    "codex_turn_state_monitor_success": "Действителен",
+    "codex_turn_state_monitor_failed": "Ошибка",
     "column_provider_channel": "Provider / Channel",
     "column_error": "Ошибка",
     "request_type": "Тип запроса",
@@ -2267,8 +2291,8 @@
       "quick_jump": "Быстрый переход",
       "sections": {
         "server": {
-          "title": "Настройки сервера",
-          "description": "Базовые параметры сервера",
+          "title": "Сервер и доступ",
+          "description": "Адрес, TLS и удалённое управление",
           "host": "Адрес хоста",
           "port": "Порт"
         },
@@ -2294,14 +2318,14 @@
           "panel_repo": "Репозиторий панели"
         },
         "auth": {
-          "title": "Настройки аутентификации",
-          "description": "API-ключи и каталог аутентификации",
+          "title": "Аутентификация",
+          "description": "Каталог auth, API-ключи и обновление учётных данных",
           "auth_dir": "Каталог auth-dir",
           "auth_dir_hint": "Путь к каталогу с файлами аутентификации (поддерживает ~)"
         },
         "system": {
-          "title": "Системные настройки",
-          "description": "Отладка, журналирование, статистика и производительность",
+          "title": "Система и логи",
+          "description": "Отладка, плагины и логирование",
           "debug": "Режим отладки",
           "debug_desc": "Включить подробные отладочные журналы",
           "commercial_mode": "Коммерческий режим",
@@ -2352,8 +2376,8 @@
           "identity_mode_help_footnote": "Все режимы свёртывания оставляют prompt_cache_key неизменным: исходная сессия клиента сохраняет ключ кэша при смене ключа, а идентичность upstream остается привязанной к ключу."
         },
         "network": {
-          "title": "Сетевые настройки",
-          "description": "Параметры прокси, повторов и маршрутизации",
+          "title": "Сеть и маршрутизация",
+          "description": "Прокси, повторы, лимит тела запроса и маршрутизация",
           "proxy_url": "URL прокси",
           "request_retry": "Количество повторов запросов",
           "max_retry_credentials": "Максимум учётных данных для повторов",
@@ -2378,10 +2402,16 @@
           "codex_bug_mode": "Codex Bug Mode",
           "codex_rewrite_turn_state": "Перезаписывать Codex turn state",
           "codex_rewrite_turn_state_desc": "Получать и повторно использовать turn state привязанный к учетным данным через настроенный источник прокси.",
+          "codex_force_turn_state_proxy": "Принудительный прокси turn state",
+          "codex_force_turn_state_proxy_desc": "Принудительно направлять последующие запросы с сохраненным turn state через прокси, который его получил. При отключении прокси только сохраняется.",
           "codex_turn_state_proxy_provider_urls": "URL источников прокси для turn state",
           "codex_turn_state_proxy_provider_urls_hint": "По одному URL источника в строке. Источники перебираются по порядку, пока один не вернет действительный turn state.",
+          "codex_turn_state_proxy_provider_proxy_url": "Промежуточный прокси для turn state",
+          "codex_turn_state_proxy_provider_proxy_url_hint": "Отдельная настройка; не наследует прокси учетных данных или глобальный прокси. Используется для загрузки URL источников и доступа к возвращенным прокси. Оставьте пустым для прямого подключения.",
           "codex_turn_state_proxy_attempt_timeout_seconds": "Тайм-аут одного state-запроса (секунды)",
           "codex_turn_state_proxy_attempt_timeout_seconds_hint": "Оставьте пустым для 15 секунд; можно задать от 1 до 120 секунд.",
+          "codex_turn_state_proxy_concurrency": "Параллелизм получения state",
+          "codex_turn_state_proxy_concurrency_hint": "Ограничивает и проверку прокси, и запросы получения state. Пусто — 1, максимум — 5.",
           "force_summary_compaction": "Принудительное сжатие через сводку",
           "force_summary_compaction_desc": "Автоматическое сжатие официального Codex использует переносимый поток сводки вместо встроенного зашифрованного сжатия.",
           "codex_context_window_overrides": "Переопределения контекста моделей Codex",
@@ -2416,7 +2446,7 @@
           "antigravity_credits_desc": "При ответе Antigravity quota_exhausted 429 повторять запрос один раз с enabledCreditTypes=[\"GOOGLE_ONE_AI\"]"
         },
         "streaming": {
-          "title": "Настройки стриминга",
+          "title": "Потоковая передача",
           "description": "Параметры keepalive и повторов запуска",
           "keepalive_seconds": "Период keepalive (сек)",
           "keepalive_hint": "Установите 0 или оставьте поле пустым, чтобы отключить keepalive",
@@ -2427,7 +2457,7 @@
           "disabled": "Отключено"
         },
         "payload": {
-          "title": "Настройки полезной нагрузки",
+          "title": "Правила Payload",
           "description": "Значения по умолчанию, raw JSON-правила, правила переопределения и фильтрации",
           "default_rules": "Правила по умолчанию",
           "default_rules_desc": "Использовать эти значения, если параметр не указан в запросе",
@@ -2439,6 +2469,22 @@
           "override_raw_rules_desc": "Всегда перезаписывать значения как raw JSON-фрагменты; полезно для response_format, схем и других сложных полей",
           "filter_rules": "Правила фильтрации",
           "filter_rules_desc": "Предварительно фильтровать тело исходящего запроса через JSON Path, автоматически удалять несоответствующие или лишние параметры (санитизация запроса)"
+        },
+        "claude": {
+          "title": "Claude",
+          "description": "Маскировка Claude, подписи и заголовки по умолчанию"
+        },
+        "codex": {
+          "title": "Codex",
+          "description": "Сжатие Codex, окна контекста, turn-state и заголовки по умолчанию",
+          "compaction_title": "Сжатие контекста",
+          "compaction_description": "Модель и способ автоматического сжатия Codex",
+          "turn_state_title": "Прокси turn state",
+          "turn_state_description": "Перезапись turn state и получение turn state через прокси"
+        },
+        "gemini": {
+          "title": "Gemini / Antigravity",
+          "description": "Эндпоинт Gemini CLI и политика подписей Antigravity"
         }
       },
       "api_keys": {
@@ -2539,6 +2585,11 @@
         "cancel": "Отменить",
         "update": "Обновить",
         "add": "Добавить"
+      },
+      "groups": {
+        "general": "Общие",
+        "request": "Обработка запросов",
+        "provider": "Провайдеры"
       }
     }
   },
@@ -3221,6 +3272,8 @@
       "disabled": "Отключить эту запись",
       "disabledHint": "Отключённые записи не используются шлюзом",
       "websockets": "Включить WebSockets",
+      "nativeCompaction": "Включить встроенное сжатие Codex",
+      "nativeCompactionHint": "Использовать remote_compaction_v2 для этого Codex-провайдера; иначе использовать сводку.",
       "testModel": "Тестовая модель",
       "testModelClaudeHint": "Используется только для проверки соединения; не сохраняется",
       "testModelAutoWith": "Авто · {{name}}",
@@ -3323,6 +3376,7 @@
         "directionDesc": "По убыванию"
       },
       "filter": {
+        "allProviders": "Все провайдеры",
         "allModels": "Все модели",
         "selectedModels": "{{selected}}/{{total}} моделей",
         "selectAll": "Выбрать все",
