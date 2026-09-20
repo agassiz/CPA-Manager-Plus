@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import iconAntigravity from '@/assets/icons/antigravity.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconCodex from '@/assets/icons/codex.svg';
+import iconDevin from '@/assets/icons/devin.svg';
+import iconDevinDark from '@/assets/icons/devin-dark.svg';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
@@ -9,6 +11,7 @@ import iconIflow from '@/assets/icons/iflow.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKiro from '@/assets/icons/kiro.svg';
+import iconMeta from '@/assets/icons/meta.svg';
 import iconQwen from '@/assets/icons/qwen.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import type { AuthFileItem } from '@/types';
@@ -29,18 +32,22 @@ export type QuotaProviderType =
   | 'antigravity'
   | 'claude'
   | 'codex'
+  | 'devin'
   | 'gemini-cli'
   | 'kiro'
   | 'kimi'
+  | 'meta'
   | 'xai';
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
   'claude',
   'codex',
+  'devin',
   'gemini-cli',
   'kiro',
   'kimi',
+  'meta',
   'xai',
 ]);
 
@@ -93,6 +100,14 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  devin: {
+    light: { bg: '#f3f4f6', text: '#111827', border: '1px solid #d1d5db' },
+    dark: { bg: '#111827', text: '#f9fafb', border: '1px solid #374151' },
+  },
+  meta: {
+    light: { bg: '#e6f1ff', text: '#0867df' },
+    dark: { bg: '#12366b', text: '#7db7ff' },
+  },
   // Antigravity logo: 多色（主色 #3789F9 蓝 + #53A89A 青绿），用青色区分
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },
@@ -128,9 +143,11 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   aistudio: iconGemini,
   claude: iconClaude,
   codex: iconCodex,
+  devin: { light: iconDevin, dark: iconDevinDark },
   gemini: iconGemini,
   'gemini-cli': iconGemini,
   kiro: iconKiro,
+  meta: iconMeta,
   xai: { light: iconGrok, dark: iconGrokDark },
   iflow: iconIflow,
   kimi: { light: iconKimiLight, dark: iconKimiDark },

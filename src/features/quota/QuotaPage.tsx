@@ -15,17 +15,16 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,
   KIRO_CONFIG,
   KIMI_CONFIG,
-  XAI_CONFIG
+  META_CONFIG,
+  XAI_CONFIG,
 } from '@/components/quota';
 import type { QuotaSortMode } from '@/components/quota/quotaConfigs';
 import type { AuthFileItem } from '@/types';
-import {
-  readQuotaPageUiState,
-  writeQuotaPageUiState,
-} from './quotaPageUiState';
+import { readQuotaPageUiState, writeQuotaPageUiState } from './quotaPageUiState';
 import styles from './QuotaPage.module.scss';
 
 export function QuotaPage() {
@@ -45,7 +44,7 @@ export function QuotaPage() {
       { value: 'default', label: t('quota_management.sort_default') },
       { value: 'name-asc', label: t('quota_management.sort_name_asc') },
       { value: 'plan-desc', label: t('quota_management.sort_plan_desc') },
-      { value: 'plan-asc', label: t('quota_management.sort_plan_asc') }
+      { value: 'plan-asc', label: t('quota_management.sort_plan_asc') },
     ],
     [t]
   );
@@ -171,6 +170,22 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={XAI_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+        searchQuery={searchQuery}
+        sortMode={sortMode}
+      />
+      <QuotaSection
+        config={DEVIN_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+        searchQuery={searchQuery}
+        sortMode={sortMode}
+      />
+      <QuotaSection
+        config={META_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

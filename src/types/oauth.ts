@@ -5,11 +5,13 @@
 
 // OAuth 提供商类型
 export type OAuthProvider =
+  | 'meta'
   | 'codex'
   | 'anthropic'
   | 'antigravity'
   | 'gemini-cli'
-  | 'kimi';
+  | 'kimi'
+  | 'devin';
 
 // OAuth 流程状态
 export interface OAuthFlow {

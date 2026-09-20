@@ -379,6 +379,18 @@ describe('useVisualConfig', () => {
     harness.unmount();
   });
 
+  it('defaults codex identity-mode to full convergence when YAML omits it', () => {
+    const harness = mountUseVisualConfig();
+
+    act(() => {
+      const result = harness.getCurrent().loadVisualValuesFromYaml('host: 127.0.0.1\n');
+      expect(result.ok).toBe(true);
+    });
+
+    expect(harness.getCurrent().visualValues.codexIdentityMode).toBe('full');
+    harness.unmount();
+  });
+
   it('drops the legacy identity-confuse key when writing identity-mode', () => {
     const harness = mountUseVisualConfig();
     const yaml = [

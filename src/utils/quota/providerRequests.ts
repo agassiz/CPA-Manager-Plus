@@ -20,11 +20,15 @@ import type {
   KiroOverageQuota,
   KiroQuotaPayload,
   KimiQuotaRow,
+  DevinQuotaData,
+  MetaQuotaData,
   XaiBillingConfig,
   XaiBillingSummary,
 } from '@/types';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api/apiCall';
 import { authFilesApi } from '@/services/api/authFiles';
+import { hasDevinQuotaObservation, readDevinQuotaResponse } from '@/services/api/devinQuota';
+import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
 import {
   ANTIGRAVITY_CODE_ASSIST_URLS,
   ANTIGRAVITY_QUOTA_URLS,
@@ -78,6 +82,24 @@ import { buildCodexQuotaWindowInfos } from './codexQuota';
 const DEFAULT_ANTIGRAVITY_PROJECT_ID = 'bamboo-precept-lgxtn';
 const ANTIGRAVITY_G1_CREDIT_TYPE = 'GOOGLE_ONE_AI';
 const GEMINI_CLI_G1_CREDIT_TYPE = 'GOOGLE_ONE_AI';
+const META_MUSE_QUOTA_URL = 'https://api.meta.ai/muse-code/key';
+const DEVIN_QUOTA_URL =
+  'https://server.codeium.com/exa.seat_management_pb.SeatManagementService/GetUserStatus';
+const DEVIN_MAX_CONCURRENCY = 3;
+let activeDevinQuotaRequests = 0;
+const pendingDevinQuotaRequests: Array<() => void> = [];
+
+const acquireDevinQuotaSlot = async (): Promise<void> => {
+  if (activeDevinQuotaRequests >= DEVIN_MAX_CONCURRENCY) {
+    await new Promise<void>((resolve) => pendingDevinQuotaRequests.push(resolve));
+  }
+  activeDevinQuotaRequests += 1;
+};
+
+const releaseDevinQuotaSlot = () => {
+  activeDevinQuotaRequests = Math.max(0, activeDevinQuotaRequests - 1);
+  pendingDevinQuotaRequests.shift()?.();
+};
 
 const GEMINI_CLI_TIER_LABELS: Record<string, string> = {
   'free-tier': 'tier_free',
@@ -986,7 +1008,9 @@ export const buildXaiBillingSummary = (
   const currentPeriod = config.currentPeriod ?? config.current_period;
   const productUsage = config.productUsage ?? config.product_usage;
   const grokBuildUsagePercent = Array.isArray(productUsage)
-    ? productUsage.find((item) => normalizeStringValue(item?.product)?.toLowerCase() === 'grokbuild')
+    ? productUsage.find(
+        (item) => normalizeStringValue(item?.product)?.toLowerCase() === 'grokbuild'
+      )
     : undefined;
   const includedUsagePercent = normalizeNumberValue(
     grokBuildUsagePercent?.usagePercent ??
@@ -994,10 +1018,13 @@ export const buildXaiBillingSummary = (
       config.creditUsagePercent
   );
   const billingPeriodStart =
-    normalizeStringValue(config.billingPeriodStart ?? config.billing_period_start ?? currentPeriod?.start) ??
-    undefined;
+    normalizeStringValue(
+      config.billingPeriodStart ?? config.billing_period_start ?? currentPeriod?.start
+    ) ?? undefined;
   const billingPeriodEnd =
-    normalizeStringValue(config.billingPeriodEnd ?? config.billing_period_end ?? currentPeriod?.end) ?? undefined;
+    normalizeStringValue(
+      config.billingPeriodEnd ?? config.billing_period_end ?? currentPeriod?.end
+    ) ?? undefined;
   const usesIncludedUsage = monthlyLimitCents === null || monthlyLimitCents <= 0;
 
   if (
@@ -1044,7 +1071,10 @@ const xaiRequest = (authIndex: string, url: string, header: Record<string, strin
 
 const xaiBillingSummaryFromResult = (result: Awaited<ReturnType<typeof apiCallApi.request>>) => {
   const payload = parseXaiBillingPayload(result.body ?? result.bodyText);
-  return buildXaiBillingSummary(payload?.config, payload?.subscriptionTier ?? payload?.subscription_tier);
+  return buildXaiBillingSummary(
+    payload?.config,
+    payload?.subscriptionTier ?? payload?.subscription_tier
+  );
 };
 
 export const fetchXaiQuota = async (
@@ -1061,7 +1091,9 @@ export const fetchXaiQuota = async (
   if (userResult.statusCode >= 200 && userResult.statusCode < 300) {
     const userID = xaiUserIDFromPayload(userResult.body ?? userResult.bodyText);
     if (userID) {
-      const creditsResult = await xaiRequest(authIndex, XAI_CREDITS_BILLING_URL, { 'x-userid': userID });
+      const creditsResult = await xaiRequest(authIndex, XAI_CREDITS_BILLING_URL, {
+        'x-userid': userID,
+      });
       if (creditsResult.statusCode >= 200 && creditsResult.statusCode < 300) {
         const creditsSummary = xaiBillingSummaryFromResult(creditsResult);
         if (creditsSummary) return creditsSummary;
@@ -1084,4 +1116,113 @@ export const fetchXaiQuota = async (
   }
 
   return summary;
+};
+
+const readMetaDcaToken = (text: string): string => {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error('invalid_auth_file');
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('invalid_auth_file');
+  }
+  const raw = (payload as Record<string, unknown>).dca_token;
+  const token = typeof raw === 'string' ? raw.trim() : '';
+  if (!/^dca:[^\s]+$/.test(token)) throw new Error('missing_dca_token');
+  return token;
+};
+
+const isRuntimeOnlyQuotaFile = (file: AuthFileItem): boolean => {
+  const raw = file.runtimeOnly ?? file.runtime_only;
+  return raw === true || (typeof raw === 'string' && raw.trim().toLowerCase() === 'true');
+};
+
+export const fetchMetaQuota = async (file: AuthFileItem, t: TFunction): Promise<MetaQuotaData> => {
+  const authIndex = normalizeAuthIndex(file.authIndex ?? file.auth_index);
+  if (!authIndex) throw new Error(t('meta_quota.missing_auth_index'));
+  if (!file.name?.trim() || isRuntimeOnlyQuotaFile(file)) {
+    throw new Error(t('meta_quota.missing_file'));
+  }
+
+  let dcaToken: string;
+  try {
+    dcaToken = readMetaDcaToken(await authFilesApi.downloadText(file.name));
+  } catch (error: unknown) {
+    const code = error instanceof Error ? error.message : '';
+    if (code === 'missing_dca_token' || code === 'invalid_auth_file') {
+      throw new Error(t(`meta_quota.${code}`));
+    }
+    throw new Error(t('meta_quota.download_failed'));
+  }
+
+  const result = await apiCallApi.request({
+    authIndex,
+    method: 'POST',
+    url: META_MUSE_QUOTA_URL,
+    header: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${dcaToken}`,
+      'x-api-version': '1.0.0',
+    },
+    data: '{}',
+  });
+  if (result.statusCode < 200 || result.statusCode >= 300) {
+    throw createStatusError(
+      t('meta_quota.request_failed', { status: result.statusCode }),
+      result.statusCode,
+      { upstream: true }
+    );
+  }
+  const quota = parseMetaQuotaPayload(result.body ?? result.bodyText);
+  if (!quota) throw new Error(t('meta_quota.invalid_response'));
+  return quota;
+};
+
+export const fetchDevinQuota = async (
+  file: AuthFileItem,
+  t: TFunction
+): Promise<DevinQuotaData> => {
+  const authIndex = normalizeAuthIndex(file.authIndex ?? file.auth_index);
+  if (!file.name?.trim() || !authIndex) {
+    throw new Error(t('devin_quota.missing_identity'));
+  }
+
+  await acquireDevinQuotaSlot();
+  try {
+    const result = await apiCallApi.request({
+      authIndex,
+      method: 'POST',
+      url: DEVIN_QUOTA_URL,
+      header: {
+        'Content-Type': 'application/json',
+        'Connect-Protocol-Version': '1',
+      },
+      data: JSON.stringify({
+        metadata: {
+          ideName: 'chisel',
+          ideVersion: '3000.10.21',
+          apiKey: '$TOKEN$',
+          locale: 'en',
+          os: 'darwin',
+          extensionVersion: '3000.10.21',
+          clientName: 'chisel',
+        },
+      }),
+    });
+    if (result.statusCode < 200 || result.statusCode >= 300) {
+      throw createStatusError(getApiCallErrorMessage(result), result.statusCode, {
+        upstream: true,
+      });
+    }
+    const quota = readDevinQuotaResponse(result.body);
+    if (!hasDevinQuotaObservation(quota)) {
+      throw new Error(t('devin_quota.empty_data'));
+    }
+    return quota;
+  } finally {
+    releaseDevinQuotaSlot();
+  }
 };

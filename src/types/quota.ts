@@ -304,6 +304,50 @@ export interface CodexQuotaState {
   upstreamError?: boolean;
 }
 
+export interface DevinQuotaWindow {
+  id: 'daily' | 'weekly';
+  label?: string;
+  remainingPercent: number | null;
+  resetAtMs: number | null;
+  periodHours: number;
+}
+
+export interface DevinQuotaData {
+  windows: DevinQuotaWindow[];
+  observedAtMs: number | null;
+  plan: string | null;
+  planStartMs: number | null;
+  planEndMs: number | null;
+}
+
+export interface DevinQuotaState extends DevinQuotaData {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  error?: string;
+  errorStatus?: number;
+  upstreamError?: boolean;
+}
+
+export interface MetaQuotaWindow {
+  id: 'window' | 'weekly';
+  usedPercent: number | null;
+  resetAt?: number;
+  durationMinutes?: number;
+}
+
+export interface MetaQuotaData {
+  planName?: string;
+  isSubscriptionActive?: boolean;
+  windows: MetaQuotaWindow[];
+}
+
+export interface MetaQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  data?: MetaQuotaData;
+  error?: string;
+  errorStatus?: number;
+  upstreamError?: boolean;
+}
+
 // Kimi API payload types
 export interface KimiUsageDetail {
   used?: number;

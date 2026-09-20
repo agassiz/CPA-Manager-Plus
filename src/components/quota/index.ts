@@ -9,9 +9,11 @@ export {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,
   KIRO_CONFIG,
   KIMI_CONFIG,
+  META_CONFIG,
   XAI_CONFIG,
 } from './quotaConfigs';
 export type { QuotaConfig } from './quotaConfigs';

@@ -268,7 +268,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   claudeHeaderStabilizeDeviceProfile: false,
   codexHeaderUserAgent: '',
   codexHeaderBetaFeatures: '',
-  codexIdentityMode: 'off',
+  codexIdentityMode: 'full',
   augmentSilentModeModel: '',
   augmentCodebaseRetrievalModel: '',
   augmentUseConfiguredCompletionModels: false,

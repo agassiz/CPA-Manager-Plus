@@ -53,7 +53,7 @@ function parseCodexIdentityMode(codex: Record<string, unknown> | null): CodexIde
     }
   }
   const legacy = codex?.['identity-confuse'] ?? codex?.identityConfuse;
-  return legacy === true ? 'confuse' : 'off';
+  return legacy === true ? 'confuse' : 'full';
 }
 
 function extractApiKeyValue(raw: unknown): string | null {
@@ -1321,7 +1321,7 @@ export function useVisualConfig() {
         if (
           docHas(doc, ['codex']) ||
           codexHasIdentityKey ||
-          values.codexIdentityMode !== 'off' ||
+          values.codexIdentityMode !== 'full' ||
           values.codexForceSuperCategory ||
           values.codexBugMode ||
           values.codexRewriteTurnState ||
@@ -1342,7 +1342,7 @@ export function useVisualConfig() {
         ) {
           ensureMapInDoc(doc, ['codex']);
           if (
-            values.codexIdentityMode !== 'off' ||
+            values.codexIdentityMode !== 'full' ||
             dirtyFields.has('codexIdentityMode') ||
             codexHasIdentityKey
           ) {

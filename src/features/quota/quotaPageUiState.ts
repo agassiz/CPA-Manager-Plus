@@ -4,9 +4,11 @@ export type QuotaSectionType =
   | 'antigravity'
   | 'claude'
   | 'codex'
+  | 'devin'
   | 'gemini-cli'
   | 'kiro'
   | 'kimi'
+  | 'meta'
   | 'xai';
 export type QuotaPageUiState = {
   searchQuery: string;
@@ -25,9 +27,11 @@ const QUOTA_SECTION_TYPE_SET = new Set<QuotaSectionType>([
   'antigravity',
   'claude',
   'codex',
+  'devin',
   'gemini-cli',
   'kiro',
   'kimi',
+  'meta',
   'xai',
 ]);
 

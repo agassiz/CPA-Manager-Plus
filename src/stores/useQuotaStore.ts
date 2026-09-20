@@ -9,9 +9,11 @@ import type {
   AntigravityQuotaState,
   ClaudeQuotaState,
   CodexQuotaState,
+  DevinQuotaState,
   GeminiCliQuotaState,
   KiroQuotaState,
   KimiQuotaState,
+  MetaQuotaState,
   XaiQuotaState,
 } from '@/types';
 
@@ -22,22 +24,26 @@ interface QuotaStoreState {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
   kiroQuota: Record<string, KiroQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
+  metaQuota: Record<string, MetaQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
+  setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   activateQuotaCacheScope: (scope: string) => void;
   clearQuotaCache: () => void;
 }
 
-const resolveUpdater = <T,>(updater: QuotaUpdater<T>, prev: T): T => {
+const resolveUpdater = <T>(updater: QuotaUpdater<T>, prev: T): T => {
   if (typeof updater === 'function') {
     return (updater as (value: T) => T)(prev);
   }
@@ -48,9 +54,11 @@ const emptyQuotaState = {
   antigravityQuota: {},
   claudeQuota: {},
   codexQuota: {},
+  devinQuota: {},
   geminiCliQuota: {},
   kiroQuota: {},
   kimiQuota: {},
+  metaQuota: {},
   xaiQuota: {},
 };
 
@@ -72,12 +80,16 @@ export const useQuotaStore = create<QuotaStoreState>()(
         set((state) => ({ claudeQuota: resolveUpdater(updater, state.claudeQuota) })),
       setCodexQuota: (updater) =>
         set((state) => ({ codexQuota: resolveUpdater(updater, state.codexQuota) })),
+      setDevinQuota: (updater) =>
+        set((state) => ({ devinQuota: resolveUpdater(updater, state.devinQuota) })),
       setGeminiCliQuota: (updater) =>
         set((state) => ({ geminiCliQuota: resolveUpdater(updater, state.geminiCliQuota) })),
       setKiroQuota: (updater) =>
         set((state) => ({ kiroQuota: resolveUpdater(updater, state.kiroQuota) })),
       setKimiQuota: (updater) =>
         set((state) => ({ kimiQuota: resolveUpdater(updater, state.kimiQuota) })),
+      setMetaQuota: (updater) =>
+        set((state) => ({ metaQuota: resolveUpdater(updater, state.metaQuota) })),
       setXaiQuota: (updater) =>
         set((state) => ({ xaiQuota: resolveUpdater(updater, state.xaiQuota) })),
       activateQuotaCacheScope: (scope) =>
@@ -98,7 +110,8 @@ export const useQuotaStore = create<QuotaStoreState>()(
           return data ? JSON.stringify(data) : null;
         },
         setItem: (name, value) => {
-          if (typeof localStorage !== 'undefined') obfuscatedStorage.setItem(name, JSON.parse(value));
+          if (typeof localStorage !== 'undefined')
+            obfuscatedStorage.setItem(name, JSON.parse(value));
         },
         removeItem: (name) => obfuscatedStorage.removeItem(name),
       })),
@@ -107,9 +120,11 @@ export const useQuotaStore = create<QuotaStoreState>()(
         antigravityQuota: persistSuccessfulQuota(state.antigravityQuota),
         claudeQuota: persistSuccessfulQuota(state.claudeQuota),
         codexQuota: persistSuccessfulQuota(state.codexQuota),
+        devinQuota: persistSuccessfulQuota(state.devinQuota),
         geminiCliQuota: persistSuccessfulQuota(state.geminiCliQuota),
         kiroQuota: persistSuccessfulQuota(state.kiroQuota),
         kimiQuota: persistSuccessfulQuota(state.kimiQuota),
+        metaQuota: persistSuccessfulQuota(state.metaQuota),
         xaiQuota: persistSuccessfulQuota(state.xaiQuota),
       }),
     }

@@ -14,11 +14,15 @@ import type {
   CodexRateLimitResetCredit,
   CodexQuotaState,
   CodexQuotaWindow,
+  DevinQuotaData,
+  DevinQuotaState,
   GeminiCliQuotaBucketState,
   GeminiCliQuotaState,
   KiroQuotaState,
   KimiQuotaRow,
   KimiQuotaState,
+  MetaQuotaData,
+  MetaQuotaState,
   XaiBillingSummary,
   XaiQuotaState,
 } from '@/types';
@@ -33,18 +37,22 @@ import {
   fetchAntigravityQuota,
   fetchClaudeQuota,
   fetchCodexQuota,
+  fetchDevinQuota,
   fetchGeminiCliCodeAssist,
   fetchGeminiCliQuotaBuckets,
   fetchKiroQuota,
   fetchKimiQuota,
+  fetchMetaQuota,
   fetchXaiQuota,
   isAntigravityFile,
   isClaudeFile,
   isCodexFile,
+  isDevinFile,
   isDisabledAuthFile,
   isGeminiCliFile,
   isKiroFile,
   isKimiFile,
+  isMetaFile,
   isRuntimeOnlyAuthFile,
   isXaiFile,
   resetCodexQuota,
@@ -54,7 +62,16 @@ import styles from '@/features/quota/QuotaPage.module.scss';
 
 type QuotaUpdater<T> = T | ((prev: T) => T);
 
-type QuotaType = 'antigravity' | 'claude' | 'codex' | 'gemini-cli' | 'kiro' | 'kimi' | 'xai';
+type QuotaType =
+  | 'antigravity'
+  | 'claude'
+  | 'codex'
+  | 'devin'
+  | 'gemini-cli'
+  | 'kiro'
+  | 'kimi'
+  | 'meta'
+  | 'xai';
 export type QuotaSortMode = 'default' | 'name-asc' | 'plan-desc' | 'plan-asc';
 
 const QUOTA_PROGRESS_HIGH_THRESHOLD = 70;
@@ -74,16 +91,20 @@ export interface QuotaStore {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
   kiroQuota: Record<string, KiroQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
+  metaQuota: Record<string, MetaQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
+  setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   clearQuotaCache: () => void;
 }
@@ -644,6 +665,213 @@ export const CODEX_CONFIG: QuotaConfig<
   renderQuotaItems: renderCodexItems,
 };
 
+const formatQuotaTimestamp = (value: number | null | undefined): string => {
+  if (!value || !Number.isFinite(value)) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString(undefined, {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const renderDevinItems = (
+  quota: DevinQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap, QuotaProgressBar } = helpers;
+  const { createElement: h, Fragment } = React;
+  const nodes: ReactNode[] = [];
+
+  if (quota.plan) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'plan', className: styleMap.codexPlan },
+        h('span', { className: styleMap.codexPlanLabel }, t('devin_quota.plan_label')),
+        h('span', { className: styleMap.codexPlanValue }, quota.plan),
+        quota.planEndMs
+          ? h(
+              'span',
+              { className: styleMap.quotaReset },
+              `${t('devin_quota.plan_end')}: ${formatQuotaTimestamp(quota.planEndMs)}`
+            )
+          : null
+      )
+    );
+  }
+
+  nodes.push(
+    ...quota.windows.map((window) =>
+      h(
+        'div',
+        { key: window.id, className: styleMap.quotaRow },
+        h(
+          'div',
+          { className: styleMap.quotaRowHeader },
+          h('span', { className: styleMap.quotaModel }, t(`devin_quota.${window.id}`)),
+          h(
+            'div',
+            { className: styleMap.quotaMeta },
+            h(
+              'span',
+              { className: styleMap.quotaPercent },
+              window.remainingPercent === null ? '--' : `${window.remainingPercent}%`
+            ),
+            h(
+              'span',
+              { className: styleMap.quotaReset },
+              window.resetAtMs
+                ? formatQuotaTimestamp(window.resetAtMs)
+                : t('devin_quota.reset_unknown')
+            )
+          )
+        ),
+        h(QuotaProgressBar, {
+          percent: window.remainingPercent,
+          highThreshold: QUOTA_PROGRESS_HIGH_THRESHOLD,
+          mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
+        })
+      )
+    )
+  );
+  return h(Fragment, null, ...nodes);
+};
+
+export const DEVIN_CONFIG: QuotaConfig<DevinQuotaState, DevinQuotaData> = {
+  type: 'devin',
+  i18nPrefix: 'devin_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isDevinFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchDevinQuota,
+  storeSelector: (state) => state.devinQuota,
+  storeSetter: 'setDevinQuota',
+  buildLoadingState: () => ({
+    status: 'loading',
+    windows: [],
+    observedAtMs: null,
+    plan: null,
+    planStartMs: null,
+    planEndMs: null,
+  }),
+  buildSuccessState: (data) => ({ status: 'success', ...data }),
+  buildErrorState: (message, status, upstreamError) => ({
+    status: 'error',
+    windows: [],
+    observedAtMs: null,
+    plan: null,
+    planStartMs: null,
+    planEndMs: null,
+    error: message,
+    errorStatus: status,
+    upstreamError,
+  }),
+  cardClassName: styles.kimiCard,
+  controlsClassName: styles.kimiControls,
+  controlClassName: styles.kimiControl,
+  gridClassName: styles.kimiGrid,
+  getSearchText: (_file, quota) => [quota?.plan],
+  renderQuotaItems: renderDevinItems,
+};
+
+const renderMetaItems = (
+  quota: MetaQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap, QuotaProgressBar } = helpers;
+  const { createElement: h, Fragment } = React;
+  const data = quota.data;
+  if (!data) {
+    return h('div', { className: styleMap.quotaMessage }, t('meta_quota.empty_data'));
+  }
+
+  const nodes: ReactNode[] = [];
+  if (data.planName || data.isSubscriptionActive !== undefined) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'plan', className: styleMap.codexPlan },
+        data.planName ? h('span', { className: styleMap.codexPlanValue }, data.planName) : null,
+        data.isSubscriptionActive !== undefined
+          ? h(
+              'span',
+              { className: styleMap.codexPlanValue },
+              t(data.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive')
+            )
+          : null
+      )
+    );
+  }
+
+  nodes.push(
+    ...data.windows.map((window) => {
+      const remaining = window.usedPercent === null ? null : 100 - window.usedPercent;
+      const label =
+        window.id === 'window' && window.durationMinutes
+          ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+          : t(`meta_quota.${window.id}`);
+      return h(
+        'div',
+        { key: window.id, className: styleMap.quotaRow },
+        h(
+          'div',
+          { className: styleMap.quotaRowHeader },
+          h('span', { className: styleMap.quotaModel }, label),
+          h(
+            'div',
+            { className: styleMap.quotaMeta },
+            h(
+              'span',
+              { className: styleMap.quotaPercent },
+              remaining === null ? '--' : `${Number(remaining.toFixed(1))}%`
+            ),
+            h(
+              'span',
+              { className: styleMap.quotaReset },
+              window.resetAt ? formatQuotaTimestamp(window.resetAt * 1000) : t('meta_quota.unknown')
+            )
+          )
+        ),
+        h(QuotaProgressBar, {
+          percent: remaining,
+          highThreshold: QUOTA_PROGRESS_HIGH_THRESHOLD,
+          mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
+        })
+      );
+    })
+  );
+  return h(Fragment, null, ...nodes);
+};
+
+export const META_CONFIG: QuotaConfig<MetaQuotaState, MetaQuotaData> = {
+  type: 'meta',
+  i18nPrefix: 'meta_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isMetaFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchMetaQuota,
+  storeSelector: (state) => state.metaQuota,
+  storeSetter: 'setMetaQuota',
+  buildLoadingState: () => ({ status: 'loading' }),
+  buildSuccessState: (data) => ({ status: 'success', data }),
+  buildErrorState: (message, status, upstreamError) => ({
+    status: 'error',
+    error: message,
+    errorStatus: status,
+    upstreamError,
+  }),
+  cardClassName: styles.kimiCard,
+  controlsClassName: styles.kimiControls,
+  controlClassName: styles.kimiControl,
+  gridClassName: styles.kimiGrid,
+  getSearchText: (_file, quota) => [quota?.data?.planName],
+  renderQuotaItems: renderMetaItems,
+};
+
 export const GEMINI_CLI_CONFIG: QuotaConfig<
   GeminiCliQuotaState,
   {
@@ -1015,7 +1243,9 @@ const renderXaiItems = (
   const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
   const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
   const amountLabel = billing.usesIncludedUsage
-    ? t('xai_quota.included_usage', { used: usedPercent === null ? '--' : `${Math.round(usedPercent)}%` })
+    ? t('xai_quota.included_usage', {
+        used: usedPercent === null ? '--' : `${Math.round(usedPercent)}%`,
+      })
     : t('xai_quota.usage_amount', {
         used: formatXaiCurrency(billing.usedCents),
         limit: formatXaiCurrency(billing.monthlyLimitCents),
@@ -1034,7 +1264,9 @@ const renderXaiItems = (
         h(
           'span',
           { className: styleMap.quotaModel },
-          t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit')
+          t(
+            billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'
+          )
         ),
         h(
           'div',
@@ -1058,7 +1290,11 @@ const renderXaiItems = (
         'div',
         { key: 'on-demand-cap', className: styleMap.codexPlan },
         h('span', { className: styleMap.codexPlanLabel }, t('xai_quota.on_demand_cap')),
-        h('span', { className: styleMap.codexPlanValue }, formatXaiCurrency(billing.onDemandCapCents))
+        h(
+          'span',
+          { className: styleMap.codexPlanValue },
+          formatXaiCurrency(billing.onDemandCapCents)
+        )
       )
     );
   }

@@ -6,10 +6,12 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,
   KIRO_CONFIG,
   KIMI_CONFIG,
-  XAI_CONFIG
+  META_CONFIG,
+  XAI_CONFIG,
 } from '@/components/quota';
 import { useNotificationStore, useQuotaStore } from '@/stores';
 import type { AntigravityQuotaState, AuthFileItem, CodexQuotaState, KiroQuotaState } from '@/types';
@@ -23,24 +25,28 @@ import { authFilesApi } from '@/services/api/authFiles';
 import {
   isRuntimeOnlyAuthFile,
   resolveQuotaErrorMessage,
-  type QuotaProviderType
+  type QuotaProviderType,
 } from '@/features/authFiles/constants';
 import { QuotaProgressBar } from '@/features/authFiles/components/QuotaProgressBar';
 import styles from '@/features/authFiles/AuthFilesPage.module.scss';
 
-export type QuotaState = {
-  status?: string;
-  error?: string;
-  errorStatus?: number;
-  upstreamError?: boolean;
-} | undefined;
+export type QuotaState =
+  | {
+      status?: string;
+      error?: string;
+      errorStatus?: number;
+      upstreamError?: boolean;
+    }
+  | undefined;
 const noopQuotaStateUpdater = (() => undefined) as unknown as (updater: unknown) => void;
 const getQuotaConfig = (type: QuotaProviderType) => {
   if (type === 'antigravity') return ANTIGRAVITY_CONFIG;
   if (type === 'claude') return CLAUDE_CONFIG;
   if (type === 'codex') return CODEX_CONFIG;
+  if (type === 'devin') return DEVIN_CONFIG;
   if (type === 'kiro') return KIRO_CONFIG;
   if (type === 'kimi') return KIMI_CONFIG;
+  if (type === 'meta') return META_CONFIG;
   if (type === 'xai') return XAI_CONFIG;
   return GEMINI_CLI_CONFIG;
 };
@@ -72,7 +78,8 @@ export const preserveCodexPlanType = (
 export const getAuthFileQuotaErrorMessage = (t: TFunction, quota: QuotaState): string => {
   const quotaErrorStatus =
     quota && typeof quota === 'object' && 'errorStatus' in quota ? quota.errorStatus : undefined;
-  const quotaError = quota && typeof quota === 'object' && 'error' in quota ? quota.error : undefined;
+  const quotaError =
+    quota && typeof quota === 'object' && 'error' in quota ? quota.error : undefined;
   const quotaUpstreamError =
     quota && typeof quota === 'object' && 'upstreamError' in quota
       ? quota.upstreamError
@@ -107,7 +114,7 @@ export const buildEmbeddedCodexQuota = (
     rateLimitResetCreditsAvailableCount: normalizeNumberValue(
       resetCredits?.available_count ?? resetCredits?.availableCount
     ),
-    fetchedAtMs: file.codex_quota_updated_at_ms
+    fetchedAtMs: file.codex_quota_updated_at_ms,
   };
 };
 
@@ -128,17 +135,17 @@ const buildEmbeddedAntigravityQuota = (file: AuthFileItem): AntigravityQuotaStat
   return {
     status: 'success',
     groups: [],
-    creditBalance
+    creditBalance,
   };
 };
 
 const isCodexQuotaWithoutWindows = (quota: unknown): quota is CodexQuotaState => {
   return Boolean(
     quota &&
-      typeof quota === 'object' &&
-      'windows' in quota &&
-      Array.isArray((quota as CodexQuotaState).windows) &&
-      (quota as CodexQuotaState).windows.length === 0
+    typeof quota === 'object' &&
+    'windows' in quota &&
+    Array.isArray((quota as CodexQuotaState).windows) &&
+    (quota as CodexQuotaState).windows.length === 0
   );
 };
 
@@ -180,28 +187,28 @@ const buildEmbeddedKiroQuota = (file: AuthFileItem): KiroQuotaState | undefined 
     baseQuota: null,
     freeTrialQuota: null,
     overageQuota: null,
-    overageStatus
+    overageStatus,
   };
 };
 
 const isKiroQuotaWithoutDetails = (quota: unknown): quota is KiroQuotaState => {
   return Boolean(
     quota &&
-      typeof quota === 'object' &&
-      'baseQuota' in quota &&
-      'freeTrialQuota' in quota &&
-      !(quota as KiroQuotaState).baseQuota &&
-      !(quota as KiroQuotaState).freeTrialQuota &&
-      !(quota as KiroQuotaState).overageQuota
+    typeof quota === 'object' &&
+    'baseQuota' in quota &&
+    'freeTrialQuota' in quota &&
+    !(quota as KiroQuotaState).baseQuota &&
+    !(quota as KiroQuotaState).freeTrialQuota &&
+    !(quota as KiroQuotaState).overageQuota
   );
 };
 
 type DefinedQuotaState = Exclude<QuotaState, undefined>;
 
-export const selectEffectiveQuota = <
-  T extends DefinedQuotaState,
-  U extends DefinedQuotaState
->(quota: T | undefined, embeddedQuota: U | undefined): T | U | undefined => {
+export const selectEffectiveQuota = <T extends DefinedQuotaState, U extends DefinedQuotaState>(
+  quota: T | undefined,
+  embeddedQuota: U | undefined
+): T | U | undefined => {
   if (!quota) return embeddedQuota;
   if (!embeddedQuota || quota.status !== 'success' || embeddedQuota.status !== 'success') {
     return quota;
@@ -245,8 +252,10 @@ export function useAuthFileQuotaRefresh(
     if (quotaType === 'antigravity') return state.antigravityQuota[file.name] as QuotaState;
     if (quotaType === 'claude') return state.claudeQuota[file.name] as QuotaState;
     if (quotaType === 'codex') return state.codexQuota[file.name] as QuotaState;
+    if (quotaType === 'devin') return state.devinQuota[file.name] as QuotaState;
     if (quotaType === 'kiro') return state.kiroQuota[file.name] as QuotaState;
     if (quotaType === 'kimi') return state.kimiQuota[file.name] as QuotaState;
+    if (quotaType === 'meta') return state.metaQuota[file.name] as QuotaState;
     if (quotaType === 'xai') return state.xaiQuota[file.name] as QuotaState;
     return state.geminiCliQuota[file.name] as QuotaState;
   });
@@ -255,18 +264,22 @@ export function useAuthFileQuotaRefresh(
       ? (buildEmbeddedCodexQuota(file, t) as QuotaState)
       : quotaType === 'antigravity'
         ? (buildEmbeddedAntigravityQuota(file) as QuotaState)
-      : quotaType === 'kiro'
-        ? (buildEmbeddedKiroQuota(file) as QuotaState)
-        : undefined;
+        : quotaType === 'kiro'
+          ? (buildEmbeddedKiroQuota(file) as QuotaState)
+          : undefined;
   const effectiveQuota = selectEffectiveQuota(quota, embeddedQuota);
 
   const updateQuotaState = useQuotaStore((state) => {
     if (!quotaType) return noopQuotaStateUpdater;
-    if (quotaType === 'antigravity') return state.setAntigravityQuota as unknown as (updater: unknown) => void;
-    if (quotaType === 'claude') return state.setClaudeQuota as unknown as (updater: unknown) => void;
+    if (quotaType === 'antigravity')
+      return state.setAntigravityQuota as unknown as (updater: unknown) => void;
+    if (quotaType === 'claude')
+      return state.setClaudeQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'codex') return state.setCodexQuota as unknown as (updater: unknown) => void;
+    if (quotaType === 'devin') return state.setDevinQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'kiro') return state.setKiroQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'kimi') return state.setKimiQuota as unknown as (updater: unknown) => void;
+    if (quotaType === 'meta') return state.setMetaQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'xai') return state.setXaiQuota as unknown as (updater: unknown) => void;
     return state.setGeminiCliQuota as unknown as (updater: unknown) => void;
   });
@@ -293,18 +306,14 @@ export function useAuthFileQuotaRefresh(
 
     updateQuotaState((prev: Record<string, unknown>) => ({
       ...prev,
-      [file.name]: preserveCodexPlanType(
-        quotaType,
-        prev[file.name],
-        config.buildLoadingState()
-      )
+      [file.name]: preserveCodexPlanType(quotaType, prev[file.name], config.buildLoadingState()),
     }));
 
     try {
       const data = await config.fetchQuota(file, t);
       updateQuotaState((prev: Record<string, unknown>) => ({
         ...prev,
-        [file.name]: config.buildSuccessState(data)
+        [file.name]: config.buildSuccessState(data),
       }));
       requestAuthFilesRefresh();
       showNotification(t('auth_files.quota_refresh_success', { name: file.name }), 'success');
@@ -318,7 +327,7 @@ export function useAuthFileQuotaRefresh(
           quotaType,
           prev[file.name],
           config.buildErrorState(message, status, upstreamError)
-        )
+        ),
       }));
       requestAuthFilesRefresh();
       showNotification(t('auth_files.quota_refresh_failed', { name: file.name, message }), 'error');
@@ -331,7 +340,7 @@ export function useAuthFileQuotaRefresh(
     requestAuthFilesRefresh,
     showNotification,
     t,
-    updateQuotaState
+    updateQuotaState,
   ]);
 
   const quotaStatus = effectiveQuota?.status ?? 'idle';
@@ -341,7 +350,7 @@ export function useAuthFileQuotaRefresh(
     quota: effectiveQuota,
     quotaStatus,
     canRefreshQuota,
-    refreshQuotaForFile
+    refreshQuotaForFile,
   };
 }
 
@@ -401,7 +410,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
           } finally {
             setIsUpdatingKiroOverage(false);
           }
-        }
+        },
       });
     },
     [file.name, refreshQuotaForFile, showConfirmation, showNotification, t]
@@ -466,7 +475,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
       ) : quotaStatus === 'error' ? (
         <div className={styles.quotaError}>
           {t(`${config.i18nPrefix}.load_failed`, {
-            message: quotaErrorMessage
+            message: quotaErrorMessage,
           })}
         </div>
       ) : quota ? (

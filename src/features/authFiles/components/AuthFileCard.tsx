@@ -217,9 +217,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const showQuotaRefreshButton =
     showQuotaLayout && quotaRefresh.quotaStatus !== 'loading' && quotaRefresh.canRefreshQuota;
   const resetCreditsAvailableCount =
-    quotaType === 'codex'
-      ? getCodexQuotaResetCreditsAvailableCount(quotaRefresh.quota)
-      : null;
+    quotaType === 'codex' ? getCodexQuotaResetCreditsAvailableCount(quotaRefresh.quota) : null;
   const showQuotaResetButton =
     showQuotaLayout &&
     quotaType === 'codex' &&
@@ -227,9 +225,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     quotaRefresh.canRefreshQuota &&
     (resetCreditsAvailableCount ?? 0) > 0;
   const canResetQuota =
-    showQuotaResetButton &&
-    (resetCreditsAvailableCount ?? 0) > 0 &&
-    quotaRefresh.canRefreshQuota;
+    showQuotaResetButton && (resetCreditsAvailableCount ?? 0) > 0 && quotaRefresh.canRefreshQuota;
   const resetCreditsBadge =
     resetCreditsAvailableCount !== null && resetCreditsAvailableCount > 0
       ? resetCreditsAvailableCount > 99
@@ -250,18 +246,15 @@ export function AuthFileCard(props: AuthFileCardProps) {
           const data = await resetCodexQuota(file, t);
           useQuotaStore.getState().setCodexQuota((prev) => ({
             ...prev,
-            [file.name]: CODEX_CONFIG.buildSuccessState(data)
+            [file.name]: CODEX_CONFIG.buildSuccessState(data),
           }));
           window.dispatchEvent(new Event('auth-files-refresh'));
           showNotification(t('codex_quota.reset_success', { key: file.name }), 'success');
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : t('common.unknown_error');
-          showNotification(
-            t('codex_quota.reset_failed', { key: file.name, message }),
-            'error'
-          );
+          showNotification(t('codex_quota.reset_failed', { key: file.name, message }), 'error');
         }
-      }
+      },
     });
   }, [canResetQuota, file, quotaRefresh.quota, quotaType, showConfirmation, showNotification, t]);
 
@@ -278,9 +271,13 @@ export function AuthFileCard(props: AuthFileCardProps) {
               ? styles.kiroCard
               : quotaType === 'kimi'
                 ? styles.kimiCard
-                : quotaType === 'xai'
-                  ? styles.xaiCard
-                  : '';
+                : quotaType === 'meta'
+                  ? styles.geminiCliCard
+                  : quotaType === 'devin'
+                    ? styles.xaiCard
+                    : quotaType === 'xai'
+                      ? styles.xaiCard
+                      : '';
 
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndexKey = normalizeRecentRequestAuthIndex(rawAuthIndex);

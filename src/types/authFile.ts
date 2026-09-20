@@ -15,6 +15,8 @@ export type AuthFileType =
   | 'claude'
   | 'codex'
   | 'antigravity'
+  | 'devin'
+  | 'meta'
   | 'xai'
   | 'kiro'
   | 'iflow'

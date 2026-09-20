@@ -5,9 +5,11 @@ import type {
   ClaudeQuotaState,
   CodexQuotaState,
   CodexQuotaWindow,
+  DevinQuotaState,
   GeminiCliQuotaState,
   KimiQuotaState,
   KiroQuotaState,
+  MetaQuotaState,
   XaiBillingSummary,
   XaiQuotaState,
 } from '@/types';
@@ -177,6 +179,19 @@ const formatKiroUnixTime = (timestamp: number | undefined): string => {
   return `${month}/${day} ${hours}:${minutes}`;
 };
 
+const formatTimestampMs = (timestamp: number | null | undefined): string => {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString(undefined, {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
 const formatKiroNumber = (value: number | null | undefined, digits = 2): string => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '-';
   return new Intl.NumberFormat(undefined, {
@@ -259,6 +274,51 @@ export const buildAuthFileTableQuotaItems = (
 
   const items: AuthFileTableQuotaDisplayItem[] = [];
 
+  if (quotaType === 'devin') {
+    const devin = quota as DevinQuotaState;
+    if (devin.plan) {
+      pushMeta(items, 'plan', t('devin_quota.plan_label'), devin.plan);
+    }
+    for (const window of devin.windows ?? []) {
+      pushProgress(
+        items,
+        window.id,
+        t(`devin_quota.${window.id}`),
+        window.remainingPercent,
+        window.resetAtMs ? formatTimestampMs(window.resetAtMs) : t('devin_quota.reset_unknown')
+      );
+    }
+    return items;
+  }
+
+  if (quotaType === 'meta') {
+    const meta = (quota as MetaQuotaState).data;
+    if (!meta) return [];
+    const planDetail = [
+      meta.planName,
+      meta.isSubscriptionActive === undefined
+        ? null
+        : t(meta.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    pushMeta(items, 'plan', t('meta_quota.plan'), planDetail || null);
+    for (const window of meta.windows ?? []) {
+      const label =
+        window.id === 'window' && window.durationMinutes
+          ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+          : t(`meta_quota.${window.id}`);
+      pushProgress(
+        items,
+        window.id,
+        label,
+        usedPercentToRemaining(window.usedPercent),
+        window.resetAt ? formatTimestampMs(window.resetAt * 1000) : t('meta_quota.unknown')
+      );
+    }
+    return items;
+  }
+
   if (quotaType === 'xai') {
     const billing = getXaiTableQuotaBilling(quota as XaiQuotaState);
     if (!billing) return [];
@@ -317,7 +377,9 @@ export const buildAuthFileTableQuotaItems = (
   if (quotaType === 'antigravity') {
     const anti = quota as AntigravityQuotaState;
     for (const group of anti.groups ?? []) {
-      const remaining = clampRemainingPercent(Math.round(Math.max(0, Math.min(1, group.remainingFraction)) * 100));
+      const remaining = clampRemainingPercent(
+        Math.round(Math.max(0, Math.min(1, group.remainingFraction)) * 100)
+      );
       pushProgress(
         items,
         group.id,
@@ -354,7 +416,9 @@ export const buildAuthFileTableQuotaItems = (
       const remaining =
         bucket.remainingFraction === null
           ? null
-          : clampRemainingPercent(Math.round(Math.max(0, Math.min(1, bucket.remainingFraction)) * 100));
+          : clampRemainingPercent(
+              Math.round(Math.max(0, Math.min(1, bucket.remainingFraction)) * 100)
+            );
       const amount =
         bucket.remainingAmount === null || bucket.remainingAmount === undefined
           ? null
@@ -415,7 +479,13 @@ export const buildAuthFileTableQuotaItems = (
         overage.currentOverages === null && overage.cap === null
           ? '-'
           : `${formatKiroNumber(remaining)} / ${cap > 0 ? formatKiroNumber(cap, 0) : '-'} ${unitLabel}`;
-      pushProgress(items, 'overage-usage', t('kiro_quota.overage_usage'), remainingPercent, amountLabel);
+      pushProgress(
+        items,
+        'overage-usage',
+        t('kiro_quota.overage_usage'),
+        remainingPercent,
+        amountLabel
+      );
     }
     if (kiro.baseQuota) {
       const { used, limit, resetTime } = kiro.baseQuota;
@@ -473,6 +543,27 @@ export const getAuthFileTableQuotaItems = (
   quota: unknown,
   t: TFunction
 ): AuthFileTableQuotaItem[] => {
+  if (quotaType === 'devin') {
+    return ((quota as DevinQuotaState | undefined)?.windows ?? []).map((window) => ({
+      id: window.id,
+      label: t(`devin_quota.${window.id}`),
+      percent: window.remainingPercent,
+      resetLabel: formatTimestampMs(window.resetAtMs),
+    }));
+  }
+
+  if (quotaType === 'meta') {
+    return ((quota as MetaQuotaState | undefined)?.data?.windows ?? []).map((window) => ({
+      id: window.id,
+      label:
+        window.id === 'window' && window.durationMinutes
+          ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+          : t(`meta_quota.${window.id}`),
+      percent: usedPercentToRemaining(window.usedPercent),
+      resetLabel: window.resetAt ? formatTimestampMs(window.resetAt * 1000) : '-',
+    }));
+  }
+
   if (quotaType === 'antigravity') {
     return getAntigravityTableQuotaItems(quota as AntigravityQuotaState | undefined);
   }
@@ -571,7 +662,9 @@ export const getAuthFileTableQuotaItems = (
   return [
     {
       id: 'monthly-limit',
-      label: t(billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'),
+      label: t(
+        billing.usesIncludedUsage ? 'xai_quota.included_usage_label' : 'xai_quota.monthly_limit'
+      ),
       percent: usedPercentToRemaining(billing.usedPercent),
       resetLabel: billing.billingPeriodEnd
         ? formatQuotaResetTime(billing.billingPeriodEnd)
@@ -671,7 +764,9 @@ const findCodexQuotaWindow = (
   const windows = quota?.windows ?? [];
   return (
     windows.find(preferredMatch) ??
-    windows.find((window) => normalizeWindowSeconds(window.limitWindowSeconds) === limitWindowSeconds) ??
+    windows.find(
+      (window) => normalizeWindowSeconds(window.limitWindowSeconds) === limitWindowSeconds
+    ) ??
     null
   );
 };
@@ -1008,10 +1103,8 @@ export const getAuthFileCodexPlanLabel = (
   return planType || normalized;
 };
 
-export const getAuthFilePlanType = (
-  file: AuthFileItem,
-  quota?: CodexQuotaState
-): string | null => quota?.planType ?? resolveCodexPlanType(file) ?? null;
+export const getAuthFilePlanType = (file: AuthFileItem, quota?: CodexQuotaState): string | null =>
+  quota?.planType ?? resolveCodexPlanType(file) ?? null;
 
 export const getAuthFilePlanLabel = (
   file: AuthFileItem,
