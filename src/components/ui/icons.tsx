@@ -479,6 +479,35 @@ export function IconTrendingUp({ size = 20, ...props }: IconProps) {
   );
 }
 
+export function IconServer({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+      <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+      <line x1="6" x2="6.01" y1="6" y2="6" />
+      <line x1="6" x2="6.01" y1="18" y2="18" />
+    </svg>
+  );
+}
+
+export function IconRoute({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <circle cx="6" cy="19" r="3" />
+      <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+      <circle cx="18" cy="5" r="3" />
+    </svg>
+  );
+}
+
+export function IconActivity({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
+    </svg>
+  );
+}
+
 export function IconDollarSign({ size = 20, ...props }: IconProps) {
   return (
     <svg {...baseSvgProps} width={size} height={size} {...props}>
@@ -613,6 +642,19 @@ export function IconSidebarOauth({ size = 20, ...props }: IconProps) {
       />
       <circle cx="12" cy="11" r="1.5" fill="currentColor" stroke="none" />
       <path d="M12 12.5v2.5" />
+    </svg>
+  );
+}
+
+export function IconSidebarPrices({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...sidebarSvgProps} width={size} height={size} {...props}>
+      <path
+        d="M12.59 3.59A2 2 0 0 0 11.17 3H5a2 2 0 0 0-2 2v6.17a2 2 0 0 0 .59 1.42l7.82 7.82a2 2 0 0 0 2.83 0l6.17-6.17a2 2 0 0 0 0-2.83z"
+        fill="currentColor"
+        fillOpacity="0.12"
+      />
+      <circle cx="7.5" cy="7.5" r="1.5" />
     </svg>
   );
 }

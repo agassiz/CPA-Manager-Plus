@@ -554,7 +554,10 @@ export function DashboardPage() {
                 </span>
               </div>
               <div className={styles.configItem}>
-                <span className={styles.configLabel}>
+                <span
+                  className={styles.configLabel}
+                  title={t('basic_settings.logging_to_file_enable')}
+                >
                   {t('basic_settings.logging_to_file_enable')}
                 </span>
                 <span
@@ -564,11 +567,15 @@ export function DashboardPage() {
                 </span>
               </div>
               <div className={styles.configItem}>
-                <span className={styles.configLabel}>{t('basic_settings.retry_count_label')}</span>
+                <span className={styles.configLabel} title={t('basic_settings.retry_count_label')}>
+                  {t('basic_settings.retry_count_label')}
+                </span>
                 <span className={styles.configValue}>{config.requestRetry ?? 0}</span>
               </div>
               <div className={styles.configItem}>
-                <span className={styles.configLabel}>{t('basic_settings.ws_auth_enable')}</span>
+                <span className={styles.configLabel} title={t('basic_settings.ws_auth_enable')}>
+                  {t('basic_settings.ws_auth_enable')}
+                </span>
                 <span className={`${styles.configValue} ${config.wsAuth ? styles.on : styles.off}`}>
                   {config.wsAuth ? t('common.enabled') : t('common.disabled')}
                 </span>

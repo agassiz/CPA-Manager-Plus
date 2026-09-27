@@ -95,9 +95,6 @@ export function LoginPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const login = useAuthStore((state) => state.login);
   const restoreSession = useAuthStore((state) => state.restoreSession);
-  const storedBase = useAuthStore((state) => state.apiBase);
-  const storedKey = useAuthStore((state) => state.managementKey);
-  const storedRememberPassword = useAuthStore((state) => state.rememberPassword);
   const languageMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [apiBase, setApiBase] = useState('');
@@ -172,10 +169,11 @@ export function LoginPage() {
           return;
         }
 
+        const { apiBase: storedBase, managementSecret, rememberPassword } = useAuthStore.getState();
         setApiBase(storedBase || detectedBase);
         setShowCustomBase(false);
-        setManagementKeyInput(storedKey || '');
-        setRememberCredential(storedRememberPassword || Boolean(storedKey));
+        setManagementKeyInput(rememberPassword ? managementSecret || '' : '');
+        setRememberCredential(rememberPassword);
       } finally {
         if (!autoLoginSuccess) {
           setAutoLoading(false);

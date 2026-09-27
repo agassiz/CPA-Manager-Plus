@@ -43,6 +43,11 @@ const normalizeNumber = (value: unknown): number | undefined => {
   return undefined;
 };
 
+const normalizeStringList = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : [];
+
 const normalizeModelAliases = (models: unknown): ModelAlias[] => {
   if (!Array.isArray(models)) return [];
   return models
@@ -74,6 +79,17 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
       }
       if (item.image === true) {
         entry.image = true;
+      }
+      const maxContextLength = normalizeNumber(item['max-context-length']);
+      if (maxContextLength !== undefined && maxContextLength > 0) {
+        entry.maxContextLength = maxContextLength;
+      }
+      const inputModalities = normalizeStringList(item['input-modalities']);
+      if (inputModalities.length) entry.inputModalities = inputModalities;
+      const outputModalities = normalizeStringList(item['output-modalities']);
+      if (outputModalities.length) entry.outputModalities = outputModalities;
+      if (item['use-max-completion-tokens'] === true) {
+        entry.useMaxCompletionTokens = true;
       }
       if (isRecord(item.thinking)) {
         entry.thinking = item.thinking;

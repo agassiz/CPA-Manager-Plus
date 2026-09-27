@@ -417,11 +417,13 @@ export const useAuthStore = create<AuthStoreState>()(
         useConfigStore.getState().clearCache();
         useModelsStore.getState().clearCache();
         apiClient.setConfig({ apiBase: '', managementKey: '' });
+        const { rememberPassword, managementSecret } = get();
         set({
           isAuthenticated: false,
           apiBase: '',
           managementKey: '',
-          managementSecret: '',
+          // Keep the remembered secret so the login page can prefill it after the session token expires.
+          managementSecret: rememberPassword ? managementSecret : '',
           sessionTokenExpiresAt: null,
           serverVersion: null,
           serverBuildDate: null,

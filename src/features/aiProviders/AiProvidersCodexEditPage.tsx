@@ -181,6 +181,7 @@ export function AiProvidersCodexEditPage() {
       models: form.modelEntries,
       formHeaders: form.headers,
       apiKey: form.apiKey,
+      proxyUrl: form.proxyUrl ?? '',
     },
     connectivityMessages
   );

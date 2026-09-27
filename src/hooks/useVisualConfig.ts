@@ -617,7 +617,6 @@ function getNextDirtyFields(
       'responsesCompactModel',
       'forceSummaryCompaction',
       'authAutoRefreshWorkers',
-      'enableGeminiCliEndpoint',
       'antigravitySignatureCacheEnabled',
       'antigravitySignatureBypassStrict',
       'claudeHeaderUserAgent',
@@ -693,6 +692,9 @@ function getNextDirtyFields(
   if (Object.prototype.hasOwnProperty.call(patch, 'loggingToFile')) {
     updateDirty('loggingToFile', nextValues.loggingToFile === baselineValues.loggingToFile);
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'requestLog')) {
+    updateDirty('requestLog', nextValues.requestLog === baselineValues.requestLog);
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'logsMaxTotalSizeMb')) {
     updateDirty(
       'logsMaxTotalSizeMb',
@@ -707,6 +709,9 @@ function getNextDirtyFields(
       'forceModelPrefix',
       nextValues.forceModelPrefix === baselineValues.forceModelPrefix
     );
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'sortModelList')) {
+    updateDirty('sortModelList', nextValues.sortModelList === baselineValues.sortModelList);
   }
   if (Object.prototype.hasOwnProperty.call(patch, 'requestRetry')) {
     updateDirty('requestRetry', nextValues.requestRetry === baselineValues.requestRetry);
@@ -958,12 +963,14 @@ export function useVisualConfig() {
         commercialMode: Boolean(parsed['commercial-mode']),
         pluginsEnabled: Boolean(plugins?.enabled),
         loggingToFile: Boolean(parsed['logging-to-file']),
+        requestLog: Boolean(parsed['request-log']),
         logsMaxTotalSizeMb: String(parsed['logs-max-total-size-mb'] ?? ''),
         errorLogsMaxFiles: String(parsed['error-logs-max-files'] ?? ''),
         maxRequestBodyMb: String(parsed['max-request-body-mb'] ?? ''),
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
         forceModelPrefix: Boolean(parsed['force-model-prefix']),
+        sortModelList: Boolean(parsed['sort-model-list']),
         imageFallbackModel:
           typeof parsed['image-fallback-model'] === 'string'
             ? parsed['image-fallback-model']
@@ -1008,7 +1015,6 @@ export function useVisualConfig() {
         disableImageGeneration: parseDisableImageGenerationMode(parsed['disable-image-generation']),
         authAutoRefreshWorkers: String(parsed['auth-auto-refresh-workers'] ?? ''),
         wsAuth: Boolean(parsed['ws-auth']),
-        enableGeminiCliEndpoint: Boolean(parsed['enable-gemini-cli-endpoint']),
         antigravitySignatureCacheEnabled: Boolean(
           parsed['antigravity-signature-cache-enabled'] ?? true
         ),
@@ -1224,11 +1230,13 @@ export function useVisualConfig() {
           deleteIfMapEmpty(doc, ['plugins']);
         }
         setBooleanInDoc(doc, ['logging-to-file'], values.loggingToFile);
+        setBooleanInDoc(doc, ['request-log'], values.requestLog);
         setIntFromStringInDoc(doc, ['logs-max-total-size-mb'], values.logsMaxTotalSizeMb);
         setIntFromStringInDoc(doc, ['error-logs-max-files'], values.errorLogsMaxFiles);
         setIntFromStringInDoc(doc, ['max-request-body-mb'], values.maxRequestBodyMb);
         setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
         setBooleanInDoc(doc, ['force-model-prefix'], values.forceModelPrefix);
+        setBooleanInDoc(doc, ['sort-model-list'], values.sortModelList);
         if (
           shouldWriteManagedField(doc, ['image-fallback-model'], dirtyFields, 'imageFallbackModel')
         ) {
@@ -1250,7 +1258,6 @@ export function useVisualConfig() {
         );
         setIntFromStringInDoc(doc, ['auth-auto-refresh-workers'], values.authAutoRefreshWorkers);
         setBooleanInDoc(doc, ['ws-auth'], values.wsAuth);
-        setBooleanInDoc(doc, ['enable-gemini-cli-endpoint'], values.enableGeminiCliEndpoint);
         if (
           docHas(doc, ['antigravity-signature-cache-enabled']) ||
           !values.antigravitySignatureCacheEnabled

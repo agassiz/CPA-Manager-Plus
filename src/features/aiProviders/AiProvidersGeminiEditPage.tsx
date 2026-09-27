@@ -243,6 +243,7 @@ export function AiProvidersGeminiEditPage() {
       models: form.modelEntries,
       formHeaders: form.headers,
       apiKey: form.apiKey,
+      proxyUrl: form.proxyUrl ?? '',
     },
     connectivityMessages
   );

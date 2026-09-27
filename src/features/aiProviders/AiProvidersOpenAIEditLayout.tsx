@@ -10,7 +10,11 @@ import {
   useNotificationStore,
   useOpenAIEditDraftStore,
 } from '@/stores';
-import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputListUtils';
+import {
+  compactModelOptions,
+  entriesToModels,
+  modelsToEntries,
+} from '@/components/ui/modelInputListUtils';
 import type { ApiKeyEntry, OpenAIProviderConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
@@ -71,7 +75,7 @@ const getErrorMessage = (err: unknown) => {
 };
 
 const normalizeModelEntries = (entries: ModelEntry[]) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string; thinking?: Record<string, unknown>}>>(
+  (entries ?? []).reduce<ModelEntry[]>(
     (acc, entry) => {
       const name = String(entry?.name ?? '').trim();
       let alias = String(entry?.alias ?? '').trim();
@@ -81,7 +85,7 @@ const normalizeModelEntries = (entries: ModelEntry[]) =>
       if (!name && !alias) return acc;
       const thinking =
         entry.thinking && Object.keys(entry.thinking).length > 0 ? entry.thinking : undefined;
-      acc.push({ name, alias, thinking });
+      acc.push({ name, alias, thinking, ...compactModelOptions(entry) });
       return acc;
     },
     []

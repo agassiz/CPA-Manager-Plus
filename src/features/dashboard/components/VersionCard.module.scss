@@ -1,11 +1,7 @@
 .container {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
-
-  @media (max-width: 1360px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 .section {
@@ -31,7 +27,12 @@
 }
 
 .systemGrid {
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  // App version holds a short value, so give the extra room to server version.
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .healthGrid {

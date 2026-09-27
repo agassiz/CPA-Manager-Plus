@@ -75,7 +75,10 @@
 
 .dropdown {
   position: fixed;
-  background: var(--glass-bg);
+  // Opaque surface: the dark --glass-bg is translucent and relies on backdrop-filter,
+  // which does not blur when the dropdown opens inside a blurred modal, so the page
+  // content underneath showed through the options.
+  background: var(--app-surface-strong);
   // --glass-border is a white hairline meant for tinted glass surfaces; on the opaque
   // light dropdown background it disappears, so the floating panel needs a real border
   // like the other overlays (see DropdownMenu).
@@ -83,8 +86,6 @@
   border-radius: var(--app-radius-md);
   padding: 6px;
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--app-blur));
-  -webkit-backdrop-filter: blur(var(--app-blur));
   display: flex;
   flex-direction: column;
   gap: 4px;

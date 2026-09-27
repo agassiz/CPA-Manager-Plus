@@ -16,15 +16,13 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
+  IconActivity,
   IconCode,
-  IconDiamond,
   IconKey,
-  IconModelCluster,
-  IconSatellite,
-  IconSettings,
-  IconShield,
-  IconTimer,
-  IconTrendingUp,
+  IconRoute,
+  IconScrollText,
+  IconServer,
+  IconSidebarQuota,
   type IconProps,
 } from '@/components/ui/icons';
 import { ConfigSection } from '@/components/config/ConfigSection';
@@ -49,6 +47,13 @@ import {
   UsageModelsEditor,
 } from './VisualConfigEditorBlocks';
 import styles from './VisualConfigEditor.module.scss';
+import { useThemeStore } from '@/stores';
+import iconAugment from '@/assets/icons/augment.svg';
+import iconAugmentDark from '@/assets/icons/augment-dark.svg';
+import iconClaude from '@/assets/icons/claude.svg';
+import iconCodex from '@/assets/icons/codex.svg';
+import iconGemini from '@/assets/icons/gemini.svg';
+import iconKiro from '@/assets/icons/kiro.svg';
 
 type VisualSectionId =
   | 'server'
@@ -120,6 +125,21 @@ function SectionGrid({ children }: { children: ReactNode }) {
 function SectionStack({ children }: { children: ReactNode }) {
   return <div className={styles.sectionStack}>{children}</div>;
 }
+
+// Brand logos shared with the OAuth page, wrapped so they fit the IconProps-based section icons.
+function createBrandIcon(src: string | { light: string; dark: string }): ComponentType<IconProps> {
+  return function BrandIcon({ size = 20 }: IconProps) {
+    const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
+    const themedSrc = typeof src === 'string' ? src : src[resolvedTheme];
+    return <img src={themedSrc} width={size} height={size} alt="" aria-hidden="true" />;
+  };
+}
+
+const IconBrandAugment = createBrandIcon({ light: iconAugment, dark: iconAugmentDark });
+const IconBrandClaude = createBrandIcon(iconClaude);
+const IconBrandCodex = createBrandIcon(iconCodex);
+const IconBrandGemini = createBrandIcon(iconGemini);
+const IconBrandKiro = createBrandIcon(iconKiro);
 
 function ToggleList({ children }: { children: ReactNode }) {
   return <div className={styles.toggleList}>{children}</div>;
@@ -322,7 +342,7 @@ export function VisualConfigEditor({
         group: 'general',
         title: t('config_management.visual.sections.server.title'),
         description: t('config_management.visual.sections.server.description'),
-        icon: IconSettings,
+        icon: IconServer,
         errorCount: countErrors(['port']),
       },
       {
@@ -338,7 +358,7 @@ export function VisualConfigEditor({
         group: 'general',
         title: t('config_management.visual.sections.system.title'),
         description: t('config_management.visual.sections.system.description'),
-        icon: IconDiamond,
+        icon: IconScrollText,
         errorCount: countErrors(['logsMaxTotalSizeMb', 'errorLogsMaxFiles']),
       },
       {
@@ -346,7 +366,7 @@ export function VisualConfigEditor({
         group: 'request',
         title: t('config_management.visual.sections.network.title'),
         description: t('config_management.visual.sections.network.description'),
-        icon: IconTrendingUp,
+        icon: IconRoute,
         errorCount: countErrors([
           'requestRetry',
           'maxRetryCredentials',
@@ -359,7 +379,7 @@ export function VisualConfigEditor({
         group: 'request',
         title: t('config_management.visual.sections.streaming.title'),
         description: t('config_management.visual.sections.streaming.description'),
-        icon: IconSatellite,
+        icon: IconActivity,
         errorCount: countErrors([
           'streaming.keepaliveSeconds',
           'streaming.bootstrapRetries',
@@ -371,7 +391,7 @@ export function VisualConfigEditor({
         group: 'request',
         title: t('config_management.visual.sections.quota.title'),
         description: t('config_management.visual.sections.quota.description'),
-        icon: IconTimer,
+        icon: IconSidebarQuota,
         errorCount: 0,
       },
       {
@@ -387,7 +407,7 @@ export function VisualConfigEditor({
         group: 'provider',
         title: t('config_management.visual.sections.claude.title'),
         description: t('config_management.visual.sections.claude.description'),
-        icon: IconShield,
+        icon: IconBrandClaude,
         errorCount: 0,
       },
       {
@@ -395,7 +415,7 @@ export function VisualConfigEditor({
         group: 'provider',
         title: t('config_management.visual.sections.codex.title'),
         description: t('config_management.visual.sections.codex.description'),
-        icon: IconCode,
+        icon: IconBrandCodex,
         errorCount: countErrors(['codexModelContextWindowOverrides']),
       },
       {
@@ -403,7 +423,7 @@ export function VisualConfigEditor({
         group: 'provider',
         title: t('config_management.visual.sections.gemini.title'),
         description: t('config_management.visual.sections.gemini.description'),
-        icon: IconSatellite,
+        icon: IconBrandGemini,
         errorCount: 0,
       },
       {
@@ -411,7 +431,7 @@ export function VisualConfigEditor({
         group: 'provider',
         title: t('config_management.visual.sections.augment.title'),
         description: t('config_management.visual.sections.augment.description'),
-        icon: IconModelCluster,
+        icon: IconBrandAugment,
         errorCount: 0,
       },
       {
@@ -419,7 +439,7 @@ export function VisualConfigEditor({
         group: 'provider',
         title: t('config_management.visual.sections.kiro.title'),
         description: t('config_management.visual.sections.kiro.description'),
-        icon: IconTimer,
+        icon: IconBrandKiro,
         errorCount: countErrors([
           'kiroPerAccountRpmLimit',
           'kiroFreeRpmLimit',
@@ -610,7 +630,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.server = node;
             }}
-            icon={<IconSettings size={16} />}
+            icon={<IconServer size={16} />}
             title={t('config_management.visual.sections.server.title')}
             description={t('config_management.visual.sections.server.description')}
           >
@@ -774,7 +794,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.system = node;
             }}
-            icon={<IconDiamond size={16} />}
+            icon={<IconScrollText size={16} />}
             title={t('config_management.visual.sections.system.title')}
             description={t('config_management.visual.sections.system.description')}
           >
@@ -808,6 +828,13 @@ export function VisualConfigEditor({
                   disabled={disabled}
                   onChange={(loggingToFile) => onChange({ loggingToFile })}
                 />
+                <ToggleRow
+                  title={t('config_management.visual.sections.system.request_log')}
+                  description={t('config_management.visual.sections.system.request_log_desc')}
+                  checked={values.requestLog}
+                  disabled={disabled}
+                  onChange={(requestLog) => onChange({ requestLog })}
+                />
               </ToggleList>
               <SectionGrid>
                 <Input
@@ -837,7 +864,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.network = node;
             }}
-            icon={<IconTrendingUp size={16} />}
+            icon={<IconRoute size={16} />}
             title={t('config_management.visual.sections.network.title')}
             description={t('config_management.visual.sections.network.description')}
           >
@@ -986,6 +1013,13 @@ export function VisualConfigEditor({
                   onChange={(forceModelPrefix) => onChange({ forceModelPrefix })}
                 />
                 <ToggleRow
+                  title={t('config_management.visual.sections.network.sort_model_list')}
+                  description={t('config_management.visual.sections.network.sort_model_list_desc')}
+                  checked={values.sortModelList}
+                  disabled={disabled}
+                  onChange={(sortModelList) => onChange({ sortModelList })}
+                />
+                <ToggleRow
                   title={t('config_management.visual.sections.network.session_affinity')}
                   checked={values.routingSessionAffinity}
                   disabled={disabled}
@@ -1041,7 +1075,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.streaming = node;
             }}
-            icon={<IconSatellite size={16} />}
+            icon={<IconActivity size={16} />}
             title={t('config_management.visual.sections.streaming.title')}
             description={t('config_management.visual.sections.streaming.description')}
           >
@@ -1141,7 +1175,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.quota = node;
             }}
-            icon={<IconTimer size={16} />}
+            icon={<IconSidebarQuota size={16} />}
             title={t('config_management.visual.sections.quota.title')}
             description={t('config_management.visual.sections.quota.description')}
           >
@@ -1246,7 +1280,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.claude = node;
             }}
-            icon={<IconShield size={16} />}
+            icon={<IconBrandClaude size={16} />}
             title={t('config_management.visual.sections.claude.title')}
             description={t('config_management.visual.sections.claude.description')}
           >
@@ -1337,7 +1371,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.codex = node;
             }}
-            icon={<IconCode size={16} />}
+            icon={<IconBrandCodex size={16} />}
             title={t('config_management.visual.sections.codex.title')}
             description={t('config_management.visual.sections.codex.description')}
           >
@@ -1608,20 +1642,11 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.gemini = node;
             }}
-            icon={<IconSatellite size={16} />}
+            icon={<IconBrandGemini size={16} />}
             title={t('config_management.visual.sections.gemini.title')}
             description={t('config_management.visual.sections.gemini.description')}
           >
             <ToggleList>
-              <ToggleRow
-                title={t('config_management.visual.sections.network.enable_gemini_cli_endpoint')}
-                description={t(
-                  'config_management.visual.sections.network.enable_gemini_cli_endpoint_desc'
-                )}
-                checked={values.enableGeminiCliEndpoint}
-                disabled={disabled}
-                onChange={(enableGeminiCliEndpoint) => onChange({ enableGeminiCliEndpoint })}
-              />
               <ToggleRow
                 title={t('config_management.visual.sections.system.antigravity_signature_cache')}
                 description={t(
@@ -1652,7 +1677,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.augment = node;
             }}
-            icon={<IconCode size={16} />}
+            icon={<IconBrandAugment size={16} />}
             title={t('config_management.visual.sections.augment.title')}
             description={t('config_management.visual.sections.augment.description')}
           >
@@ -1660,7 +1685,7 @@ export function VisualConfigEditor({
               <SectionGrid>
                 <Input
                   label={t('config_management.visual.sections.augment.silent_mode_model')}
-                  placeholder="gpt-5.5"
+                  placeholder="gpt-6.1-sol"
                   value={values.augmentSilentModeModel}
                   onChange={(e) => onChange({ augmentSilentModeModel: e.target.value })}
                   disabled={disabled}
@@ -1668,7 +1693,7 @@ export function VisualConfigEditor({
                 />
                 <Input
                   label={t('config_management.visual.sections.augment.codebase_retrieval_model')}
-                  placeholder="gpt-5.5"
+                  placeholder="gpt-6.1-sol"
                   value={values.augmentCodebaseRetrievalModel}
                   onChange={(e) => onChange({ augmentCodebaseRetrievalModel: e.target.value })}
                   disabled={disabled}
@@ -1743,7 +1768,7 @@ export function VisualConfigEditor({
             ref={(node) => {
               sectionRefs.current.kiro = node;
             }}
-            icon={<IconTimer size={16} />}
+            icon={<IconBrandKiro size={16} />}
             title={t('config_management.visual.sections.kiro.title')}
             description={t('config_management.visual.sections.kiro.description')}
           >

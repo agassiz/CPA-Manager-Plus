@@ -200,7 +200,8 @@ export function AiProvidersClaudeEditPage() {
     try {
       // Test through the backend Claude executor with the edited entry, so
       // cloaking and fingerprint settings match live traffic.
-      const result = await providersApi.testClaudeConfig(
+      const result = await providersApi.testProviderKeyConfig(
+        'claude-api-key',
         {
           name: form.name?.trim() || undefined,
           apiKey: resolvedApiKey,

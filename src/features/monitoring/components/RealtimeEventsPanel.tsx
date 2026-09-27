@@ -109,6 +109,8 @@ export type RealtimeEventsPanelActionsProps = {
 
 const REALTIME_PAGE_SIZE_OPTIONS = [10, 50, 100, 150, 300] as const;
 const MIN_REALTIME_USAGE_COLUMN_WIDTH = 180;
+// The TTFT | elapsed cell has a fixed 118px layout plus cell padding.
+const MIN_REALTIME_LATENCY_COLUMN_WIDTH = 140;
 const DEFAULT_REALTIME_COLUMN_WIDTHS: Record<RealtimeColumnKey, number> = {
   source: 240,
   model: 160,
@@ -586,7 +588,11 @@ const normalizeVisibleRealtimeColumns = (columns: RealtimeColumnKey[]) => {
 };
 
 const getRealtimeColumnMinWidth = (key: RealtimeColumnKey) =>
-  key === 'usage' ? MIN_REALTIME_USAGE_COLUMN_WIDTH : MIN_REALTIME_COLUMN_WIDTH;
+  key === 'usage'
+    ? MIN_REALTIME_USAGE_COLUMN_WIDTH
+    : key === 'latency'
+      ? MIN_REALTIME_LATENCY_COLUMN_WIDTH
+      : MIN_REALTIME_COLUMN_WIDTH;
 
 const clampRealtimeColumnWidth = (key: RealtimeColumnKey, value: number) =>
   Math.min(Math.max(Math.round(value), getRealtimeColumnMinWidth(key)), MAX_REALTIME_COLUMN_WIDTH);
@@ -921,7 +927,7 @@ export function RealtimeEventsPanel({
         );
       case 'endpoint':
         return (
-          <div className={styles.primaryCell}>
+          <div className={styles.primaryCell} title={endpointDisplay || undefined}>
             <span className={styles.monoCell}>{endpointDisplay || '-'}</span>
           </div>
         );
@@ -944,7 +950,11 @@ export function RealtimeEventsPanel({
         );
       }
       case 'clientIp':
-        return <span className={styles.monoCell}>{formatOptionalText(row.clientIp)}</span>;
+        return (
+          <span className={styles.monoCell} title={row.clientIp || undefined}>
+            {formatOptionalText(row.clientIp)}
+          </span>
+        );
       case 'codexTurnStateLength':
         return (
           <span className={styles.monoCell}>

@@ -1,3 +1,5 @@
+import { compactModelOptions, type ModelEntry } from '@/components/ui/modelInputListUtils';
+
 export function areStringArraysEqual(a: readonly string[], b: readonly string[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
@@ -23,8 +25,8 @@ export function areKeyValueEntriesEqual(
 }
 
 export function areModelEntriesEqual(
-  a: readonly { name: string; alias: string; thinking?: Record<string, unknown> }[],
-  b: readonly { name: string; alias: string; thinking?: Record<string, unknown> }[]
+  a: readonly ModelEntry[],
+  b: readonly ModelEntry[]
 ): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
@@ -35,7 +37,8 @@ export function areModelEntriesEqual(
     if (
       left.name !== right.name ||
       left.alias !== right.alias ||
-      JSON.stringify(left.thinking ?? {}) !== JSON.stringify(right.thinking ?? {})
+      JSON.stringify(left.thinking ?? {}) !== JSON.stringify(right.thinking ?? {}) ||
+      JSON.stringify(compactModelOptions(left)) !== JSON.stringify(compactModelOptions(right))
     ) {
       return false;
     }

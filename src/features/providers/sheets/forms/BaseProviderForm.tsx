@@ -248,6 +248,9 @@ export function BaseProviderForm({
       apiKeyEntries: form.apiKeyEntries,
       apiKey: form.apiKey,
       fallbackApiKey,
+      proxyUrl: form.proxyUrl,
+      providerName: form.name,
+      chatCompletionsOnly: form.chatCompletionsOnly,
     },
     connectivityMessages
   );

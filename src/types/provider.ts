@@ -9,6 +9,10 @@ export interface ModelAlias {
   priority?: number;
   testModel?: string;
   image?: boolean;
+  maxContextLength?: number;
+  inputModalities?: string[];
+  outputModalities?: string[];
+  useMaxCompletionTokens?: boolean;
   thinking?: Record<string, unknown>;
 }
 

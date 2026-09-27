@@ -12,11 +12,12 @@ import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
 import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
 import { parseThinkingConfig } from './components/thinkingLevelMapping';
+import { ModelOptionsEditor } from './components/ModelOptionsEditor';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useNotificationStore } from '@/stores';
-import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
+import { getApiCallErrorMessage, providersApi } from '@/services/api';
 import type { ApiKeyEntry } from '@/types';
-import { buildHeaderObject, hasHeader } from '@/utils/headers';
+import { buildHeaderObject } from '@/utils/headers';
 import {
   buildApiKeyEntry,
   buildOpenAIChatCompletionsEndpoint,
@@ -206,14 +207,6 @@ export function AiProvidersOpenAIEditPage() {
         return false;
       }
 
-      const endpoint = form.chatCompletionsOnly
-        ? buildOpenAIChatCompletionsEndpoint(baseUrl)
-        : buildOpenAIResponsesEndpoint(baseUrl);
-      if (!endpoint) {
-        showNotification(t('notification.openai_test_url_required'), 'error');
-        return false;
-      }
-
       const keyEntry = form.apiKeyEntries[keyIndex];
       if (!keyEntry?.apiKey?.trim()) {
         setDraftKeyTestStatus(keyIndex, {
@@ -229,40 +222,22 @@ export function AiProvidersOpenAIEditPage() {
         return false;
       }
 
-      const customHeaders = buildHeaderObject(form.headers);
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...customHeaders,
-      };
-      if (!hasHeader(headers, 'authorization')) {
-        headers.Authorization = `Bearer ${keyEntry.apiKey.trim()}`;
-      }
-
       // Set loading state for this key
       setDraftKeyTestStatus(keyIndex, { status: 'loading', message: '' });
 
       try {
-        const result = await apiCallApi.request(
+        // Test through the backend OpenAI-compatible executor with only this key,
+        // so the endpoint and request shape match live traffic.
+        const result = await providersApi.testOpenAIProviderConfig(
           {
-            method: 'POST',
-            url: endpoint,
-            header: Object.keys(headers).length ? headers : undefined,
-            data: JSON.stringify(
-              form.chatCompletionsOnly
-                ? {
-                    model: modelName,
-                    messages: [{ role: 'user', content: 'Hi' }],
-                    stream: false,
-                    max_tokens: 5,
-                  }
-                : {
-                    model: modelName,
-                    input: 'Hi',
-                    stream: false,
-                    max_output_tokens: 5,
-                  }
-            ),
+            name: form.name.trim(),
+            prefix: form.prefix?.trim() || undefined,
+            baseUrl,
+            apiKeyEntries: [{ apiKey: keyEntry.apiKey.trim(), proxyUrl: keyEntry.proxyUrl?.trim() || undefined }],
+            headers: buildHeaderObject(form.headers),
+            chatCompletionsOnly: form.chatCompletionsOnly,
           },
+          modelName,
           { timeout: OPENAI_TEST_TIMEOUT_MS }
         );
 
@@ -287,6 +262,8 @@ export function AiProvidersOpenAIEditPage() {
       }
     },
     [
+      form.name,
+      form.prefix,
       form.baseUrl,
       form.chatCompletionsOnly,
       form.apiKeyEntries,
@@ -749,6 +726,19 @@ export function AiProvidersOpenAIEditPage() {
                 renderEntryDetails={(entry, index) => {
                   if (!entry.name.trim()) return null;
                   return (
+                    <>
+                    <ModelOptionsEditor
+                      value={entry}
+                      disabled={saving || disableControls || isTestingKeys}
+                      onChange={(patch) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
+                            candidateIndex === index ? { ...candidate, ...patch } : candidate
+                          ),
+                        }))
+                      }
+                    />
                     <ThinkingLevelMappingEditor
                       value={entry.thinking ? JSON.stringify(entry.thinking, null, 2) : ''}
                       disabled={saving || disableControls || isTestingKeys}
@@ -765,6 +755,7 @@ export function AiProvidersOpenAIEditPage() {
                         }));
                       }}
                     />
+                    </>
                   );
                 }}
               />

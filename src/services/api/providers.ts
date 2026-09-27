@@ -101,6 +101,10 @@ const MODEL_ALIAS_FIELDS = [
   'testModel',
   'test_model',
   'image',
+  'max-context-length',
+  'input-modalities',
+  'output-modalities',
+  'use-max-completion-tokens',
   'thinking',
 ] as const;
 
@@ -387,6 +391,18 @@ const serializeModelAliases = (models?: ModelAlias[], includeOpenAIFields = fals
             payload['test-model'] = model.testModel;
           }
           if (includeOpenAIFields && model.image) payload.image = true;
+          if (includeOpenAIFields && model.maxContextLength) {
+            payload['max-context-length'] = model.maxContextLength;
+          }
+          if (includeOpenAIFields && model.inputModalities?.length) {
+            payload['input-modalities'] = model.inputModalities;
+          }
+          if (includeOpenAIFields && model.outputModalities?.length) {
+            payload['output-modalities'] = model.outputModalities;
+          }
+          if (includeOpenAIFields && model.useMaxCompletionTokens) {
+            payload['use-max-completion-tokens'] = true;
+          }
           if (includeOpenAIFields && model.thinking) payload.thinking = model.thinking;
           return payload;
         })
@@ -524,6 +540,20 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
     payload['disable-cooling'] = provider.disableCooling;
   }
   return payload;
+};
+
+const postProviderTest = async (
+  section: string,
+  entry: Record<string, unknown>,
+  model: string,
+  requestConfig?: AxiosRequestConfig
+): Promise<ApiCallResult> => {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/${section}/test`,
+    { entry, model },
+    requestConfig
+  );
+  return parseApiCallResponse(response);
 };
 
 export const providersApi = {
@@ -694,20 +724,30 @@ export const providersApi = {
   deleteClaudeConfig: (apiKey: string, baseUrl?: string) =>
     apiClient.delete(`/claude-api-key${buildProviderDeleteQuery(apiKey, baseUrl)}`),
 
-  // Runs the connectivity test through the backend Claude executor, so cloaking
-  // and fingerprint settings match live traffic.
-  testClaudeConfig: async (
+  // Connectivity tests run through the backend provider executor with the edited
+  // entry, so the minimal test request is shaped exactly like live traffic.
+  testProviderKeyConfig: (
+    section: 'claude-api-key' | 'codex-api-key' | 'xai-api-key',
     config: ProviderKeyConfig,
     model: string,
     requestConfig?: AxiosRequestConfig
-  ): Promise<ApiCallResult> => {
-    const response = await apiClient.post<Record<string, unknown>>(
-      '/claude-api-key/test',
-      { entry: serializeProviderKey(config), model },
-      requestConfig
-    );
-    return parseApiCallResponse(response);
-  },
+  ): Promise<ApiCallResult> =>
+    postProviderTest(section, serializeProviderKey(config), model, requestConfig),
+
+  testGeminiConfig: (
+    config: GeminiKeyConfig,
+    model: string,
+    requestConfig?: AxiosRequestConfig
+  ): Promise<ApiCallResult> =>
+    postProviderTest('gemini-api-key', serializeGeminiKey(config), model, requestConfig),
+
+  // Tests the provider with only the given API key entries (normally one).
+  testOpenAIProviderConfig: (
+    provider: OpenAIProviderConfig,
+    model: string,
+    requestConfig?: AxiosRequestConfig
+  ): Promise<ApiCallResult> =>
+    postProviderTest('openai-compatibility', serializeOpenAIProvider(provider), model, requestConfig),
 
   async getVertexConfigs(): Promise<ProviderKeyConfig[]> {
     const data = await apiClient.get('/vertex-api-key');

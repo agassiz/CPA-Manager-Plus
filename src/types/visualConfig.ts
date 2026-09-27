@@ -132,11 +132,13 @@ export type VisualConfigValues = {
   commercialMode: boolean;
   pluginsEnabled: boolean;
   loggingToFile: boolean;
+  requestLog: boolean;
   logsMaxTotalSizeMb: string;
   errorLogsMaxFiles: string;
   maxRequestBodyMb: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
+  sortModelList: boolean;
   imageFallbackModel: string;
   responsesCompactModel: string;
   forceSummaryCompaction: boolean;
@@ -167,7 +169,6 @@ export type VisualConfigValues = {
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
   wsAuth: boolean;
-  enableGeminiCliEndpoint: boolean;
   antigravitySignatureCacheEnabled: boolean;
   antigravitySignatureBypassStrict: boolean;
   claudeHeaderUserAgent: string;
@@ -227,11 +228,13 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   commercialMode: false,
   pluginsEnabled: false,
   loggingToFile: false,
+  requestLog: false,
   logsMaxTotalSizeMb: '',
   errorLogsMaxFiles: '',
   maxRequestBodyMb: '',
   proxyUrl: '',
   forceModelPrefix: false,
+  sortModelList: false,
   imageFallbackModel: '',
   responsesCompactModel: '',
   forceSummaryCompaction: false,
@@ -262,7 +265,6 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
   wsAuth: false,
-  enableGeminiCliEndpoint: false,
   antigravitySignatureCacheEnabled: true,
   antigravitySignatureBypassStrict: false,
   claudeHeaderUserAgent: '',

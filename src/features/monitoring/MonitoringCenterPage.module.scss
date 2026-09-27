@@ -1358,6 +1358,23 @@
   table-layout: fixed;
 }
 
+// Narrow columns truncate with an ellipsis instead of spilling into the next column.
+// Tooltip hosts (failure status) are excluded so their popovers are not clipped.
+.realtimeTable .primaryCell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.realtimeTable .primaryCell > span:not(.realtimeFailureStatus),
+.realtimeTable td > .monoCell,
+.realtimeTable td > .mutedCell,
+.realtimeTable .realtimeTimeLine {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .realtimeResizableHeader {
   position: relative;
   display: flex;
@@ -1488,7 +1505,7 @@
 }
 
 .realtimeTimeLine {
-  width: 92px;
+  max-width: 92px;
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

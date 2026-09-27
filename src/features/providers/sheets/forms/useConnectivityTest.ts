@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
-import {
-  buildCodexResponsesEndpoint,
-  buildClaudeMessagesEndpoint,
-  buildGeminiGenerateContentEndpoint,
-  buildOpenAIChatCompletionsEndpoint,
-} from '@/components/providers/utils';
+import { getApiCallErrorMessage, providersApi, type ApiCallResult } from '@/services/api';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
-import { buildClaudeRequestHeaders } from '@/utils/claudeHeaders';
 import { getErrorMessage } from '@/utils/helpers';
+import type { ProviderKeyConfig } from '@/types';
 import type { ApiKeyEntryInput, ModelEntryInput, ProviderBrand } from '../../types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -53,6 +47,10 @@ export interface UseConnectivityTestArgs {
   apiKeyEntries?: ApiKeyEntryInput[];
   apiKey?: string;
   fallbackApiKey?: string;
+  proxyUrl?: string;
+  /** OpenAI-compatible provider name, used to match the saved provider. */
+  providerName?: string;
+  chatCompletionsOnly?: boolean;
 }
 
 export interface ConnectivityErrorMessages {
@@ -90,6 +88,9 @@ export function useConnectivityTest(
     apiKeyEntries,
     apiKey,
     fallbackApiKey,
+    proxyUrl,
+    providerName,
+    chatCompletionsOnly,
   } = args;
 
   const entriesCount = apiKeyEntries?.length ?? 0;
@@ -143,10 +144,23 @@ export function useConnectivityTest(
       (testModel ?? '').trim(),
       apiKey ?? '',
       fallbackApiKey ?? '',
+      proxyUrl ?? '',
+      providerName ?? '',
+      chatCompletionsOnly ? 'chat' : 'responses',
       h,
       m,
     ].join('||');
-  }, [apiKey, baseUrl, fallbackApiKey, testModel, formHeaders, models]);
+  }, [
+    apiKey,
+    baseUrl,
+    chatCompletionsOnly,
+    fallbackApiKey,
+    proxyUrl,
+    providerName,
+    testModel,
+    formHeaders,
+    models,
+  ]);
 
   const lastSignatureRef = useRef(signature);
   useEffect(() => {
@@ -166,93 +180,80 @@ export function useConnectivityTest(
     });
   }, []);
 
-  const runOpenAIKey = useCallback(
-    async (idx: number): Promise<boolean> => {
-      if (brand !== 'openaiCompatibility') return false;
-
-      const trimmedBase = baseUrl.trim();
-      if (!trimmedBase) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.baseUrlRequired,
-        });
-        return false;
-      }
-      const endpoint = buildOpenAIChatCompletionsEndpoint(trimmedBase);
-      if (!endpoint) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.endpointInvalid,
-        });
-        return false;
-      }
-      const entry = apiKeyEntries?.[idx];
-      const entryKey = (entry?.apiKey ?? '').trim() || (entry?.existingApiKey ?? '').trim();
-      if (!entryKey) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.apiKeyRequired,
-        });
-        return false;
-      }
-      const model = pickModel(testModel, models);
-      if (!model) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.modelRequired,
-        });
-        return false;
-      }
-
-      const headerObj: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...buildHeaderObject(formHeaders),
-      };
-      if (!hasHeader(headerObj, 'authorization')) {
-        if (entryKey) {
-          headerObj.Authorization = `Bearer ${entryKey}`;
-        }
-      }
-
-      updateOpenaiStatus(idx, { state: 'loading', message: '' });
+  // Every test runs through the backend provider executor, so the minimal test
+  // request is shaped exactly like live traffic for that provider.
+  const runTest = useCallback(
+    async (
+      setStatus: (status: ConnectivityStatus) => void,
+      request: () => Promise<ApiCallResult>
+    ): Promise<boolean> => {
+      setStatus({ state: 'loading', message: '' });
       setInFlight((n) => n + 1);
       try {
-        const result = await apiCallApi.request(
-          {
-            method: 'POST',
-            url: endpoint,
-            header: headerObj,
-            data: JSON.stringify({
-              model,
-              messages: [{ role: 'user', content: 'Hi' }],
-              stream: false,
-              max_tokens: 5,
-            }),
-          },
-          { timeout: DEFAULT_TIMEOUT_MS }
-        );
+        const result = await request();
         if (result.statusCode < 200 || result.statusCode >= 300) {
           throw new Error(getApiCallErrorMessage(result));
         }
-        updateOpenaiStatus(idx, { state: 'success', message: '' });
+        setStatus({ state: 'success', message: '' });
         return true;
       } catch (err) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: requestFailureMessage(err, messages),
-        });
+        setStatus({ state: 'error', message: requestFailureMessage(err, messages) });
         return false;
       } finally {
         setInFlight((n) => n - 1);
       }
     },
+    [messages]
+  );
+
+  const runOpenAIKey = useCallback(
+    async (idx: number): Promise<boolean> => {
+      if (brand !== 'openaiCompatibility') return false;
+      const setStatus = (status: ConnectivityStatus) => updateOpenaiStatus(idx, status);
+
+      const trimmedBase = baseUrl.trim();
+      if (!trimmedBase) {
+        setStatus({ state: 'error', message: messages.baseUrlRequired });
+        return false;
+      }
+      const entry = apiKeyEntries?.[idx];
+      const entryKey = (entry?.apiKey ?? '').trim() || (entry?.existingApiKey ?? '').trim();
+      if (!entryKey) {
+        setStatus({ state: 'error', message: messages.apiKeyRequired });
+        return false;
+      }
+      const model = pickModel(testModel, models);
+      if (!model) {
+        setStatus({ state: 'error', message: messages.modelRequired });
+        return false;
+      }
+
+      return runTest(setStatus, () =>
+        providersApi.testOpenAIProviderConfig(
+          {
+            name: (providerName ?? '').trim(),
+            baseUrl: trimmedBase,
+            apiKeyEntries: [
+              { apiKey: entryKey, proxyUrl: (entry?.proxyUrl ?? '').trim() || undefined },
+            ],
+            headers: buildHeaderObject(formHeaders),
+            chatCompletionsOnly,
+          },
+          model,
+          { timeout: DEFAULT_TIMEOUT_MS }
+        )
+      );
+    },
     [
       apiKeyEntries,
       baseUrl,
       brand,
+      chatCompletionsOnly,
       formHeaders,
       messages,
       models,
+      providerName,
+      runTest,
       testModel,
       updateOpenaiStatus,
     ]
@@ -265,203 +266,77 @@ export function useConnectivityTest(
     await Promise.all(entries.map((_, idx) => runOpenAIKey(idx)));
   }, [apiKeyEntries, brand, runOpenAIKey]);
 
+  // Resolves the single-key entry under test, or reports why it cannot run.
+  const resolveSingleKeyTest = useCallback(
+    (
+      setStatus: (status: ConnectivityStatus) => void,
+      authHeaders: string[],
+      requireBaseUrl: boolean
+    ): { config: ProviderKeyConfig; model: string } | null => {
+      const trimmedBase = baseUrl.trim();
+      if (requireBaseUrl && !trimmedBase) {
+        setStatus({ state: 'error', message: messages.baseUrlRequired });
+        return null;
+      }
+      const model = pickModel(testModel, models);
+      if (!model) {
+        setStatus({ state: 'error', message: messages.modelRequired });
+        return null;
+      }
+      const headers = buildHeaderObject(formHeaders);
+      const resolvedKey = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
+      if (!resolvedKey && !authHeaders.some((name) => hasHeader(headers, name))) {
+        setStatus({ state: 'error', message: messages.apiKeyRequired });
+        return null;
+      }
+      return {
+        config: {
+          apiKey: resolvedKey,
+          baseUrl: trimmedBase || undefined,
+          proxyUrl: (proxyUrl ?? '').trim() || undefined,
+          headers,
+        },
+        model,
+      };
+    },
+    [apiKey, baseUrl, fallbackApiKey, formHeaders, messages, models, proxyUrl, testModel]
+  );
+
   const runCodex = useCallback(async (): Promise<void> => {
     if (brand !== 'codex' && brand !== 'xai') return;
-
-    const trimmedBase = baseUrl.trim();
-    if (!trimmedBase) {
-      setCodexStatus({ state: 'error', message: messages.baseUrlRequired });
-      return;
-    }
-
-    const endpoint = buildCodexResponsesEndpoint(trimmedBase);
-    if (!endpoint) {
-      setCodexStatus({ state: 'error', message: messages.endpointInvalid });
-      return;
-    }
-
-    const model = pickModel(testModel, models);
-    if (!model) {
-      setCodexStatus({ state: 'error', message: messages.modelRequired });
-      return;
-    }
-
-    const customHeaders = buildHeaderObject(formHeaders);
-    const explicitKey = (apiKey ?? '').trim();
-    const persistedKey = (fallbackApiKey ?? '').trim();
-    const hasAuthorization = hasHeader(customHeaders, 'authorization');
-    const resolvedKey = explicitKey || persistedKey;
-
-    if (!resolvedKey && !hasAuthorization) {
-      setCodexStatus({ state: 'error', message: messages.apiKeyRequired });
-      return;
-    }
-
-    const headerObj: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    };
-    if (!hasHeader(headerObj, 'authorization')) {
-      if (resolvedKey) {
-        headerObj.Authorization = `Bearer ${resolvedKey}`;
-      }
-    }
-
-    setCodexStatus({ state: 'loading', message: '' });
-    setInFlight((n) => n + 1);
-    try {
-      const result = await apiCallApi.request(
-        {
-          method: 'POST',
-          url: endpoint,
-          header: headerObj,
-          data: JSON.stringify({
-            model,
-            input: 'Hi',
-            stream: false,
-          }),
-        },
+    const resolved = resolveSingleKeyTest(setCodexStatus, ['authorization'], true);
+    if (!resolved) return;
+    await runTest(setCodexStatus, () =>
+      providersApi.testProviderKeyConfig(
+        brand === 'xai' ? 'xai-api-key' : 'codex-api-key',
+        resolved.config,
+        resolved.model,
         { timeout: DEFAULT_TIMEOUT_MS }
-      );
-      if (result.statusCode < 200 || result.statusCode >= 300) {
-        throw new Error(getApiCallErrorMessage(result));
-      }
-      setCodexStatus({ state: 'success', message: '' });
-    } catch (err) {
-      setCodexStatus({
-        state: 'error',
-        message: requestFailureMessage(err, messages),
-      });
-    } finally {
-      setInFlight((n) => n - 1);
-    }
-  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+      )
+    );
+  }, [brand, resolveSingleKeyTest, runTest]);
 
   const runGemini = useCallback(async (): Promise<void> => {
     if (brand !== 'gemini') return;
-
-    const model = pickModel(testModel, models);
-    if (!model) {
-      setGeminiStatus({ state: 'error', message: messages.modelRequired });
-      return;
-    }
-
-    const endpoint = buildGeminiGenerateContentEndpoint(baseUrl ?? '', model);
-    if (!endpoint) {
-      setGeminiStatus({ state: 'error', message: messages.endpointInvalid });
-      return;
-    }
-
-    const customHeaders = buildHeaderObject(formHeaders);
-    const explicitKey = (apiKey ?? '').trim();
-    const persistedKey = (fallbackApiKey ?? '').trim();
-    const hasApiKeyHeader = hasHeader(customHeaders, 'x-goog-api-key');
-    const resolvedKey = explicitKey || persistedKey;
-
-    if (!resolvedKey && !hasApiKeyHeader) {
-      setGeminiStatus({ state: 'error', message: messages.apiKeyRequired });
-      return;
-    }
-
-    const headerObj: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    };
-    if (!hasHeader(headerObj, 'x-goog-api-key')) {
-      if (resolvedKey) {
-        headerObj['x-goog-api-key'] = resolvedKey;
-      }
-    }
-
-    setGeminiStatus({ state: 'loading', message: '' });
-    setInFlight((n) => n + 1);
-    try {
-      const result = await apiCallApi.request(
-        {
-          method: 'POST',
-          url: endpoint,
-          header: headerObj,
-          data: JSON.stringify({
-            contents: [{ parts: [{ text: 'Hi' }] }],
-            generationConfig: { maxOutputTokens: 8 },
-          }),
-        },
-        { timeout: DEFAULT_TIMEOUT_MS }
-      );
-      if (result.statusCode < 200 || result.statusCode >= 300) {
-        throw new Error(getApiCallErrorMessage(result));
-      }
-      setGeminiStatus({ state: 'success', message: '' });
-    } catch (err) {
-      setGeminiStatus({
-        state: 'error',
-        message: requestFailureMessage(err, messages),
-      });
-    } finally {
-      setInFlight((n) => n - 1);
-    }
-  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+    const resolved = resolveSingleKeyTest(setGeminiStatus, ['x-goog-api-key'], false);
+    if (!resolved) return;
+    await runTest(setGeminiStatus, () =>
+      providersApi.testGeminiConfig(resolved.config, resolved.model, {
+        timeout: DEFAULT_TIMEOUT_MS,
+      })
+    );
+  }, [brand, resolveSingleKeyTest, runTest]);
 
   const runClaude = useCallback(async (): Promise<void> => {
     if (brand !== 'claude' && brand !== 'claudeApi') return;
-
-    const endpoint = buildClaudeMessagesEndpoint(baseUrl ?? '');
-    if (!endpoint) {
-      setClaudeStatus({ state: 'error', message: messages.endpointInvalid });
-      return;
-    }
-    const model = pickModel(testModel, models);
-    if (!model) {
-      setClaudeStatus({ state: 'error', message: messages.modelRequired });
-      return;
-    }
-
-    const customHeaders = buildHeaderObject(formHeaders);
-    const explicitKey = (apiKey ?? '').trim();
-    const persistedKey = (fallbackApiKey ?? '').trim();
-    const hasApiKeyHeader = hasHeader(customHeaders, 'x-api-key');
-    const hasAuthorization = hasHeader(customHeaders, 'authorization');
-    const resolvedKey = explicitKey || persistedKey;
-
-    if (!resolvedKey && !hasApiKeyHeader && !hasAuthorization) {
-      setClaudeStatus({ state: 'error', message: messages.apiKeyRequired });
-      return;
-    }
-
-    const headerObj = buildClaudeRequestHeaders(endpoint, {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    }, resolvedKey);
-
-    setClaudeStatus({ state: 'loading', message: '' });
-    setInFlight((n) => n + 1);
-    try {
-      const result = await apiCallApi.request(
-        {
-          method: 'POST',
-          url: endpoint,
-          header: headerObj,
-          data: JSON.stringify({
-            model,
-            max_tokens: 8,
-            messages: [{ role: 'user', content: 'Hi' }],
-          }),
-        },
-        { timeout: DEFAULT_TIMEOUT_MS }
-      );
-      if (result.statusCode < 200 || result.statusCode >= 300) {
-        throw new Error(getApiCallErrorMessage(result));
-      }
-      setClaudeStatus({ state: 'success', message: '' });
-    } catch (err) {
-      setClaudeStatus({
-        state: 'error',
-        message: requestFailureMessage(err, messages),
-      });
-    } finally {
-      setInFlight((n) => n - 1);
-    }
-  }, [apiKey, baseUrl, brand, fallbackApiKey, formHeaders, messages, models, testModel]);
+    const resolved = resolveSingleKeyTest(setClaudeStatus, ['x-api-key', 'authorization'], false);
+    if (!resolved) return;
+    await runTest(setClaudeStatus, () =>
+      providersApi.testProviderKeyConfig('claude-api-key', resolved.config, resolved.model, {
+        timeout: DEFAULT_TIMEOUT_MS,
+      })
+    );
+  }, [brand, resolveSingleKeyTest, runTest]);
 
   return {
     openaiStatuses,
