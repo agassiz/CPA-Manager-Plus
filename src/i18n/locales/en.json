@@ -3452,8 +3452,25 @@
       "validation": {
         "nameRequired": "Name is required",
         "apiKeyRequired": "At least one API key is required",
-        "baseUrlRequired": "Base URL is required"
-      }
+        "baseUrlRequired": "Base URL is required",
+        "weightInteger": "Scheduling weight must be an integer",
+        "weightMax": "Scheduling weight cannot exceed {{max}}"
+      },
+      "thinkingLevelsAllowed": "Allowed thinking levels",
+      "thinkingLevels": {
+        "none": "Disable thinking",
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Extra high",
+        "max": "Maximum",
+        "auto": "Automatic"
+      },
+      "weight": "Scheduling weight",
+      "weightHint": "Default 1 · ≤ 0 is excluded · maximum 1,000,000",
+      "thinkingLevelsAllowedHint": "None selected: inherits the built-in catalog entry with the same upstream model name; if there is none, low, medium and high are allowed by default. With selections: only the checked levels are allowed and any other level is rejected or adjusted to the nearest one.",
+      "modelImageOnlyHint": "An image model is only served through /v1/images/* and is hidden from the Codex chat model list, so modalities, context window, max_completion_tokens and thinking levels do not apply."
     },
     "delete": {
       "title": "Delete resource",

@@ -1,59 +1,94 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 14px;
 }
 
-.checkboxRow {
-  display: flex;
-  align-items: flex-start;
+.cardGrid,
+.modalityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  cursor: pointer;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
-.checkboxText {
+.card {
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  box-sizing: border-box;
+}
+
+.cardSelected {
+  border-color: color-mix(in srgb, var(--primary-color) 50%, var(--border-color));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--bg-primary));
+}
+
+.cardText {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.cardTitle {
   color: var(--text-primary);
   font-size: 13px;
+  font-weight: 500;
+}
 
-  small {
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  flex: 1;
+  align-items: center;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  max-width: 360px;
 }
 
 .label {
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .hint {
   color: var(--text-secondary);
   font-size: 12px;
-}
-
-.modalities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  line-height: 1.5;
 }
 
 .input {
   min-width: 0;
-  min-height: 32px;
-  padding: 5px 8px;
+  min-height: 34px;
+  padding: 6px 10px;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
 }

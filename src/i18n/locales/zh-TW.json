@@ -3331,8 +3331,25 @@
       "validation": {
         "nameRequired": "名稱必填",
         "apiKeyRequired": "至少填寫一個 API 金鑰",
-        "baseUrlRequired": "服務位址必填"
-      }
+        "baseUrlRequired": "服務位址必填",
+        "weightInteger": "調度權重必須是整數",
+        "weightMax": "調度權重不能超過 {{max}}"
+      },
+      "thinkingLevelsAllowed": "允許的思考檔位",
+      "thinkingLevels": {
+        "none": "關閉思考",
+        "minimal": "最少",
+        "low": "低",
+        "medium": "中",
+        "high": "高",
+        "xhigh": "超高",
+        "max": "最大",
+        "auto": "自動"
+      },
+      "weight": "調度權重",
+      "weightHint": "預設 1 · ≤ 0 時不參與 · 最大 1,000,000",
+      "thinkingLevelsAllowedHint": "不勾選：沿用內建模型目錄中同名模型的設定（依上游模型名稱比對）；沒有同名內建模型時，預設允許 low、medium、high。勾選後：僅允許所選檔位，不在其中的檔位會被拒絕或就近調整。",
+      "modelImageOnlyHint": "圖片模型僅透過 /v1/images/* 介面提供服務，不會出現在 Codex 對話模型列表中，因此輸入/輸出模態、上下文視窗、max_completion_tokens 與思考檔位都不適用。"
     },
     "delete": {
       "title": "刪除資源",

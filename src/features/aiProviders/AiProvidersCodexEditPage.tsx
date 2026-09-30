@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { WeightInput } from './components/WeightInput';
+import { hasInvalidWeight } from '@/utils/credentialWeight';
 import { HeaderInputList } from '@/components/ui/HeaderInputList';
-import { ModelInputList } from '@/components/ui/ModelInputList';
 import { Modal } from '@/components/ui/Modal';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { Select } from '@/components/ui/Select';
@@ -16,7 +17,12 @@ import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
 import { modelsApi, providersApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
-import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
+import {
+  buildHeaderObject,
+  headersToEntries,
+  normalizeHeaderEntries,
+  withCodexClientIdentity,
+} from '@/utils/headers';
 import {
   areKeyValueEntriesEqual,
   areModelEntriesEqual,
@@ -34,6 +40,7 @@ import {
 import { ConnectivityStatusIcon } from '@/features/providers/sheets/forms/ConnectivityStatusIcon';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
+import { ModelThinkingInputList } from './components/ModelThinkingInputList';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -60,21 +67,24 @@ const getErrorMessage = (err: unknown) => {
   return '';
 };
 
-const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string }>>((acc, entry) => {
+type NormalizedModelEntry = { name: string; alias: string; thinking?: Record<string, unknown> };
+
+const normalizeModelEntries = (entries: NormalizedModelEntry[]) =>
+  (entries ?? []).reduce<NormalizedModelEntry[]>((acc, entry) => {
     const name = String(entry?.name ?? '').trim();
     let alias = String(entry?.alias ?? '').trim();
     if (name && alias === name) {
       alias = '';
     }
     if (!name && !alias) return acc;
-    acc.push({ name, alias });
+    acc.push(entry?.thinking ? { name, alias, thinking: entry.thinking } : { name, alias });
     return acc;
   }, []);
 
 type CodexFormBaseline = {
   name: string;
   apiKey: string;
+  weight: number | null;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -90,6 +100,7 @@ type CodexFormBaseline = {
 const buildCodexBaseline = (form: ProviderFormState): CodexFormBaseline => ({
   name: String(form.name ?? '').trim(),
   apiKey: String(form.apiKey ?? '').trim(),
+  weight: form.weight ?? null,
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -288,6 +299,7 @@ export function AiProvidersCodexEditPage() {
     baseline.name !== String(form.name ?? '').trim() ||
     baseline.apiKey !== form.apiKey.trim() ||
     baseline.priority !== normalizedPriority ||
+    baseline.weight !== (form.weight ?? null) ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.websockets !== Boolean(form.websockets) ||
@@ -395,7 +407,7 @@ export function AiProvidersCodexEditPage() {
       const list = await modelsApi.fetchV1ModelsViaApiCall(
         form.baseUrl ?? '',
         hasCustomAuthorization ? undefined : apiKey,
-        headerObject
+        withCodexClientIdentity(headerObject)
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -514,6 +526,10 @@ export function AiProvidersCodexEditPage() {
       return;
     }
 
+    if (hasInvalidWeight(form.weight)) {
+      showNotification(t('providersPage.form.validation.weightInteger'), 'error');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -521,6 +537,7 @@ export function AiProvidersCodexEditPage() {
         name: form.name?.trim() || undefined,
         apiKey: form.apiKey.trim(),
         priority: form.priority !== undefined ? Math.trunc(form.priority) : undefined,
+        weight: form.weight,
         prefix: form.prefix?.trim() || undefined,
         baseUrl,
         websockets: Boolean(form.websockets),
@@ -654,6 +671,11 @@ export function AiProvidersCodexEditPage() {
                 }}
                 disabled={disableControls || saving}
               />
+              <WeightInput
+                value={form.weight}
+                disabled={disableControls || saving}
+                onChange={(weight) => setForm((prev) => ({ ...prev, weight }))}
+              />
               <Input
                 label={t('ai_providers.prefix_label')}
                 placeholder={t('ai_providers.prefix_placeholder')}
@@ -749,19 +771,10 @@ export function AiProvidersCodexEditPage() {
               </div>
               <div className={styles.sectionHint}>{t('ai_providers.codex_models_hint')}</div>
 
-              <ModelInputList
+              <ModelThinkingInputList
                 entries={form.modelEntries}
                 onChange={(entries) => setForm((prev) => ({ ...prev, modelEntries: entries }))}
-                namePlaceholder={t('common.model_name_placeholder')}
-                aliasPlaceholder={t('common.model_alias_placeholder')}
                 disabled={disableControls || saving}
-                hideAddButton
-                className={styles.modelInputList}
-                rowClassName={styles.modelInputRow}
-                inputClassName={styles.modelInputField}
-                removeButtonClassName={styles.modelRowRemoveButton}
-                removeButtonTitle={t('common.delete')}
-                removeButtonAriaLabel={t('common.delete')}
               />
 
               <div className={styles.modelTestPanel}>
@@ -792,7 +805,6 @@ export function AiProvidersCodexEditPage() {
                     variant={connectivity.codexStatus.state === 'error' ? 'danger' : 'secondary'}
                     size="sm"
                     onClick={() => void connectivity.runCodex()}
-                    loading={connectivity.codexStatus.state === 'loading'}
                     disabled={
                       disableControls ||
                       saving ||

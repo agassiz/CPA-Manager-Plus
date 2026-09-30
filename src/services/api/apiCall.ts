@@ -100,7 +100,7 @@ export const apiCallApi = {
     payload: ApiCallRequest,
     config?: AxiosRequestConfig
   ): Promise<ApiCallResult> => {
-    const response = await apiClient.post<Record<string, unknown>>('/api-call', payload, config);
+    const response = await apiClient.post<Record<string, unknown>>('/requests/api-call', payload, config);
     return parseApiCallResponse(response);
   }
 };

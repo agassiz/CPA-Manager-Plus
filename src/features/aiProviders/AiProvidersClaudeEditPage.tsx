@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { WeightInput } from './components/WeightInput';
 import { Select } from '@/components/ui/Select';
 import { HeaderInputList } from '@/components/ui/HeaderInputList';
-import { ModelInputList } from '@/components/ui/ModelInputList';
+import { ModelThinkingInputList } from './components/ModelThinkingInputList';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
@@ -15,8 +16,6 @@ import { useNotificationStore } from '@/stores';
 import { buildHeaderObject } from '@/utils/headers';
 import { buildClaudeMessagesEndpoint, parseTextList } from '@/components/providers/utils';
 import { buildClaudeModelsPayload, type ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
-import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
-import { parseThinkingConfig } from './components/thinkingLevelMapping';
 import styles from './AiProvidersPage.module.scss';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 
@@ -333,6 +332,11 @@ export function AiProvidersClaudeEditPage() {
                 }}
                 disabled={saving || disableControls || isTesting}
               />
+              <WeightInput
+                value={form.weight}
+                disabled={saving || disableControls || isTesting}
+                onChange={(weight) => setForm((prev) => ({ ...prev, weight }))}
+              />
               <Input
                 label={t('ai_providers.prefix_label')}
                 placeholder={t('ai_providers.prefix_placeholder')}
@@ -407,41 +411,10 @@ export function AiProvidersClaudeEditPage() {
 
               <div className={styles.sectionHint}>{t('ai_providers.claude_models_hint')}</div>
 
-              <ModelInputList
+              <ModelThinkingInputList
                 entries={form.modelEntries}
                 onChange={(entries) => setForm((prev) => ({ ...prev, modelEntries: entries }))}
-                namePlaceholder={t('common.model_name_placeholder')}
-                aliasPlaceholder={t('common.model_alias_placeholder')}
                 disabled={saving || disableControls || isTesting}
-                hideAddButton
-                className={styles.modelInputList}
-                rowClassName={styles.modelInputRow}
-                inputClassName={styles.modelInputField}
-                removeButtonClassName={styles.modelRowRemoveButton}
-                removeButtonTitle={t('common.delete')}
-                removeButtonAriaLabel={t('common.delete')}
-                entryDetailsClassName={styles.modelThinkingMapping}
-                renderEntryDetails={(entry, index) => {
-                  if (!entry.name.trim()) return null;
-                  return (
-                    <ThinkingLevelMappingEditor
-                      value={entry.thinking ? JSON.stringify(entry.thinking, null, 2) : ''}
-                      disabled={saving || disableControls || isTesting}
-                      onChange={(thinkingJson) => {
-                        const parsed = parseThinkingConfig(thinkingJson);
-                        if (parsed.error) return;
-                        const thinking =
-                          Object.keys(parsed.config).length > 0 ? parsed.config : undefined;
-                        setForm((prev) => ({
-                          ...prev,
-                          modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
-                            candidateIndex === index ? { ...candidate, thinking } : candidate
-                          ),
-                        }));
-                      }}
-                    />
-                  );
-                }}
               />
 
               <div className={styles.modelTestPanel}>

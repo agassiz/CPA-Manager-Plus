@@ -29,7 +29,7 @@ describe('oauthApi Meta and Devin support', () => {
     });
 
     await expect(oauthApi.startAuth('meta')).resolves.toMatchObject({ user_code: 'META-CODE' });
-    expect(mocks.get).toHaveBeenCalledWith('/meta-auth-url', { params: undefined });
+    expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', { params: { provider: 'meta' } });
   });
 
   it('starts and cancels a Devin web login session', async () => {
@@ -39,10 +39,10 @@ describe('oauthApi Meta and Devin support', () => {
     await oauthApi.startAuth('devin');
     await oauthApi.cancelSession('devin-state');
 
-    expect(mocks.get).toHaveBeenCalledWith('/devin-auth-url', {
-      params: { is_webui: true },
+    expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', {
+      params: { provider: 'devin', is_webui: true },
     });
-    expect(mocks.delete).toHaveBeenCalledWith('/oauth-session', {
+    expect(mocks.delete).toHaveBeenCalledWith('/oauth/session', {
       params: { state: 'devin-state' },
     });
   });

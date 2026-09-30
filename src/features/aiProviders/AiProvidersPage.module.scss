@@ -1657,6 +1657,29 @@ $openai-toolbar-control-height: 36px;
   }
 }
 
+// Outranks the global `.header-input-list .header-input-row` column template.
+.modelInputList .modelInputRow.modelInputRowCollapsible {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+
+    > :nth-child(3) {
+      grid-column: 1 / 4;
+    }
+
+    > :nth-child(4) {
+      grid-column: 2 / 3;
+      grid-row: 1 / 2;
+    }
+
+    > :nth-child(5) {
+      grid-column: 3 / 4;
+      grid-row: 1 / 2;
+    }
+  }
+}
+
 .modelInputField {
   min-width: 0;
 }
@@ -1666,11 +1689,20 @@ $openai-toolbar-control-height: 36px;
 }
 
 .modelThinkingMapping {
-  margin: 0 0 $spacing-xs;
-  padding: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 0 $spacing-sm;
+  padding: 14px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  background: var(--bg-secondary);
+  background: var(--surface-subtle);
+
+  // Separate stacked sections (capability options, then thinking levels).
+  > * + * {
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
 }
 
 .modelTestPanel {
@@ -1783,9 +1815,9 @@ $openai-toolbar-control-height: 36px;
 // 表头
 .keyTableHeader {
   display: grid;
-  grid-template-columns: 46px 56px minmax(220px, 1.4fr) minmax(200px, 1.1fr) 180px;
+  grid-template-columns: 46px 56px minmax(220px, 1.4fr) minmax(200px, 1.1fr) 96px 180px;
   gap: $spacing-sm;
-  min-width: 760px;
+  min-width: 860px;
   padding: 10px $spacing-md;
   background: var(--surface-subtle-strong);
   border: 1px solid var(--border-subtle);
@@ -1802,9 +1834,9 @@ $openai-toolbar-control-height: 36px;
 // 数据行
 .keyTableRow {
   display: grid;
-  grid-template-columns: 46px 56px minmax(220px, 1.4fr) minmax(200px, 1.1fr) 180px;
+  grid-template-columns: 46px 56px minmax(220px, 1.4fr) minmax(200px, 1.1fr) 96px 180px;
   gap: $spacing-sm;
-  min-width: 760px;
+  min-width: 860px;
   padding: 10px $spacing-md;
   background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
@@ -1840,7 +1872,8 @@ $openai-toolbar-control-height: 36px;
 }
 
 .keyTableColKey,
-.keyTableColProxy {
+.keyTableColProxy,
+.keyTableColWeight {
   min-width: 0;
   display: flex;
   align-items: center;

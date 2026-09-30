@@ -18,7 +18,7 @@ const CPA_MANAGER_LATEST_RELEASE_URL =
   'https://api.github.com/repos/seakee/CPA-Manager-Plus/releases/latest';
 
 export const versionApi = {
-  checkLatest: () => apiClient.get<Record<string, unknown>>('/latest-version'),
+  checkLatest: () => apiClient.get<Record<string, unknown>>('/server/latest-version'),
 
   checkManagerLatest: async () => {
     const response = await axios.get<ManagerLatestRelease>(CPA_MANAGER_LATEST_RELEASE_URL, {

@@ -9,7 +9,7 @@ import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { modelsApi } from '@/services/api';
 import type { ModelInfo } from '@/utils/models';
-import { buildHeaderObject, hasHeader } from '@/utils/headers';
+import { buildHeaderObject, hasHeader, withCodexClientIdentity } from '@/utils/headers';
 import { buildOpenAIModelsEndpoint } from '@/components/providers/utils';
 import type { OpenAIEditOutletContext } from './AiProvidersOpenAIEditLayout';
 import styles from './AiProvidersPage.module.scss';
@@ -73,13 +73,17 @@ export function AiProvidersOpenAIModelsPage() {
         const list = await modelsApi.fetchModelsViaApiCall(
           trimmedBaseUrl,
           hasAuthHeader ? undefined : firstKey,
-          headerObject
+          withCodexClientIdentity(headerObject)
         );
         setModels(list);
       } catch (err: unknown) {
         if (allowFallback) {
           try {
-            const list = await modelsApi.fetchModelsViaApiCall(trimmedBaseUrl);
+            const list = await modelsApi.fetchModelsViaApiCall(
+              trimmedBaseUrl,
+              undefined,
+              withCodexClientIdentity()
+            );
             setModels(list);
             return;
           } catch (fallbackErr: unknown) {

@@ -4,7 +4,6 @@ import {
   IconDownload,
   IconEye,
   IconEyeOff,
-  IconLoader2,
   IconPlus,
   IconX,
 } from '@/components/ui/icons';
@@ -644,11 +643,6 @@ export function BaseProviderForm({
                   disabled={mutating || connectivity.isTestingAny}
                   onClick={() => void singleConnectivity.run()}
                 >
-                  {singleConnectivity.status.state === 'loading' ? (
-                    <span className={`${styles.statusIcon} ${styles.statusIconLoading}`}>
-                      <IconLoader2 size={14} />
-                    </span>
-                  ) : null}
                   <span>{t('providersPage.connectivity.test')}</span>
                 </button>
                 <ConnectivityStatusIcon state={singleConnectivity.status.state} />

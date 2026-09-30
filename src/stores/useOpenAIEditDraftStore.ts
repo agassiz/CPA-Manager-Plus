@@ -32,6 +32,7 @@ export type OpenAIEditBaseline = {
   apiKeyEntries: Array<{
     apiKey: string;
     proxyUrl: string;
+    weight: number | null;
     headers: Array<{ key: string; value: string }>;
   }>;
   models: ModelEntry[];

@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { WeightInput } from './components/WeightInput';
+import { hasInvalidWeight } from '@/utils/credentialWeight';
 import { HeaderInputList } from '@/components/ui/HeaderInputList';
-import { ModelInputList } from '@/components/ui/ModelInputList';
 import { Modal } from '@/components/ui/Modal';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { Select } from '@/components/ui/Select';
@@ -34,6 +35,7 @@ import {
 import { ConnectivityStatusIcon } from '@/features/providers/sheets/forms/ConnectivityStatusIcon';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
+import { ModelThinkingInputList } from './components/ModelThinkingInputList';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -56,20 +58,23 @@ const stripGeminiModelResourceName = (value: string) => {
     .replace(/^\/?models\//i, '');
 };
 
-const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string }>>((acc, entry) => {
+type NormalizedModelEntry = { name: string; alias: string; thinking?: Record<string, unknown> };
+
+const normalizeModelEntries = (entries: NormalizedModelEntry[]) =>
+  (entries ?? []).reduce<NormalizedModelEntry[]>((acc, entry) => {
     const name = stripGeminiModelResourceName(entry?.name ?? '').trim();
     let alias = String(entry?.alias ?? '').trim();
     if (name && alias === name) {
       alias = '';
     }
     if (!name && !alias) return acc;
-    acc.push({ name, alias });
+    acc.push(entry?.thinking ? { name, alias, thinking: entry.thinking } : { name, alias });
     return acc;
   }, []);
 
 type GeminiFormBaseline = {
   apiKey: string;
+  weight: number | null;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -82,6 +87,7 @@ type GeminiFormBaseline = {
 
 const buildGeminiBaseline = (form: GeminiFormState): GeminiFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
+  weight: form.weight ?? null,
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -474,6 +480,7 @@ export function AiProvidersGeminiEditPage() {
   const isDirty =
     baseline.apiKey !== form.apiKey.trim() ||
     baseline.priority !== normalizedPriority ||
+    baseline.weight !== (form.weight ?? null) ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
@@ -500,6 +507,10 @@ export function AiProvidersGeminiEditPage() {
   const handleSave = useCallback(async () => {
     if (!canSave) return;
 
+    if (hasInvalidWeight(form.weight)) {
+      showNotification(t('providersPage.form.validation.weightInteger'), 'error');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -511,6 +522,7 @@ export function AiProvidersGeminiEditPage() {
       const payload: GeminiKeyConfig = {
         apiKey: form.apiKey.trim(),
         priority: form.priority !== undefined ? Math.trunc(form.priority) : undefined,
+        weight: form.weight,
         prefix: form.prefix?.trim() || undefined,
         baseUrl: form.baseUrl?.trim() || undefined,
         proxyUrl: form.proxyUrl?.trim() || undefined,
@@ -642,6 +654,11 @@ export function AiProvidersGeminiEditPage() {
                 />
                 <div className="hint">{t('providersPage.form.disableCoolingHint')}</div>
               </div>
+              <WeightInput
+                value={form.weight}
+                disabled={disableControls || saving}
+                onChange={(weight) => setForm((prev) => ({ ...prev, weight }))}
+              />
               <Input
                 label={t('ai_providers.prefix_label')}
                 placeholder={t('ai_providers.prefix_placeholder')}
@@ -707,19 +724,10 @@ export function AiProvidersGeminiEditPage() {
               </div>
               <div className={styles.sectionHint}>{t('ai_providers.gemini_models_hint')}</div>
 
-              <ModelInputList
+              <ModelThinkingInputList
                 entries={form.modelEntries}
                 onChange={(entries) => setForm((prev) => ({ ...prev, modelEntries: entries }))}
-                namePlaceholder={t('common.model_name_placeholder')}
-                aliasPlaceholder={t('common.model_alias_placeholder')}
                 disabled={disableControls || saving}
-                hideAddButton
-                className={styles.modelInputList}
-                rowClassName={styles.modelInputRow}
-                inputClassName={styles.modelInputField}
-                removeButtonClassName={styles.modelRowRemoveButton}
-                removeButtonTitle={t('common.delete')}
-                removeButtonAriaLabel={t('common.delete')}
               />
               <div className={styles.modelTestPanel}>
                 <div className={styles.modelTestMeta}>
@@ -749,7 +757,6 @@ export function AiProvidersGeminiEditPage() {
                     variant={connectivity.geminiStatus.state === 'error' ? 'danger' : 'secondary'}
                     size="sm"
                     onClick={() => void connectivity.runGemini()}
-                    loading={connectivity.geminiStatus.state === 'loading'}
                     disabled={
                       disableControls ||
                       saving ||

@@ -195,7 +195,7 @@ describe('securityAuditApi response normalization', () => {
 
     await securityAuditApi.probe('openai_moderations', guard, moderations);
 
-    expect(mocks.post).toHaveBeenCalledWith('/security-audit/probe', {
+    expect(mocks.post).toHaveBeenCalledWith('/observability/security-audit/probe', {
       engine: 'openai_moderations',
       guard,
       moderations,
@@ -223,7 +223,7 @@ describe('securityAuditApi response normalization', () => {
     });
 
     await expect(securityAuditApi.getUsage('day')).resolves.toMatchObject({ buckets: [] });
-    expect(mocks.get).toHaveBeenCalledWith('/security-audit/usage', {
+    expect(mocks.get).toHaveBeenCalledWith('/observability/security-audit/usage', {
       params: { 'group-by': 'day' },
     });
   });

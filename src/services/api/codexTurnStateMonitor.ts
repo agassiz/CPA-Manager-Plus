@@ -24,7 +24,7 @@ export interface CodexTurnStateMonitorClearResponse {
 
 export const codexTurnStateMonitorApi = {
   list: (limit = 50): Promise<CodexTurnStateMonitorResponse> =>
-    apiClient.get('/monitoring/codex-turn-state', { params: { limit } }),
+    apiClient.get('/observability/monitoring/codex-turn-state', { params: { limit } }),
   clear: (): Promise<CodexTurnStateMonitorClearResponse> =>
-    apiClient.delete('/monitoring/codex-turn-state'),
+    apiClient.delete('/observability/monitoring/codex-turn-state'),
 };

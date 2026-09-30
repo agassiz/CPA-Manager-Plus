@@ -1155,7 +1155,7 @@ const parseContentDispositionFilename = (value: string): string => {
 export const usageServiceApi = {
   getStatus: async (base: string, managementKey?: string): Promise<UsageServiceStatus> => {
     return withUsageServiceError(async () => {
-      const usageResponse = await axios.get<UsagePayload>(buildUrl(base, '/v0/management/usage'), {
+      const usageResponse = await axios.get<UsagePayload>(buildUrl(base, '/v8/management/observability/usage'), {
         timeout: USAGE_SERVICE_TIMEOUT_MS,
         headers: authHeaders(managementKey),
       });
@@ -1186,7 +1186,7 @@ export const usageServiceApi = {
     options: UsageRequestOptions = {}
   ): Promise<UsagePayload> => {
     return withUsageServiceError(async () => {
-      const response = await axios.get<UsagePayload>(buildUrl(base, '/v0/management/usage'), {
+      const response = await axios.get<UsagePayload>(buildUrl(base, '/v8/management/observability/usage'), {
         timeout: USAGE_SERVICE_TIMEOUT_MS,
         headers: authHeaders(managementKey),
         params: options.includeDetails ? { details: 1 } : undefined,
@@ -1201,7 +1201,7 @@ export const usageServiceApi = {
   ): Promise<UsageModelStatsResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<UsageModelStatsResponse>(
-        buildUrl(base, '/v0/management/usage/model-stats'),
+        buildUrl(base, '/v8/management/observability/usage/model-stats'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1214,7 +1214,7 @@ export const usageServiceApi = {
   clearUsage: async (base: string, managementKey?: string): Promise<UsageClearResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.delete<UsageClearResponse>(
-        buildUrl(base, '/v0/management/usage'),
+        buildUrl(base, '/v8/management/observability/usage'),
         {
           timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1227,7 +1227,7 @@ export const usageServiceApi = {
   clearFailures: async (base: string, managementKey?: string): Promise<FailureClearResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.delete<FailureClearResponse>(
-        buildUrl(base, '/v0/management/usage/failures'),
+        buildUrl(base, '/v8/management/observability/usage/failures'),
         {
           timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1240,7 +1240,7 @@ export const usageServiceApi = {
   getModelPrices: async (base: string, managementKey?: string): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<ModelPricesResponse>(
-        buildUrl(base, '/v0/management/model-prices'),
+        buildUrl(base, '/v8/management/observability/usage/model-prices'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1258,7 +1258,7 @@ export const usageServiceApi = {
   ): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.put<ModelPricesResponse>(
-        buildUrl(base, '/v0/management/model-prices'),
+        buildUrl(base, '/v8/management/observability/usage/model-prices'),
         {
           prices,
           ...(useResponseModelForBilling === undefined
@@ -1280,7 +1280,7 @@ export const usageServiceApi = {
   ): Promise<ApiKeyAliasesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<ApiKeyAliasesResponse>(
-        buildUrl(base, '/v0/management/api-key-aliases'),
+        buildUrl(base, '/v8/management/observability/usage/api-key-aliases'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1310,7 +1310,7 @@ export const usageServiceApi = {
         body.allowOrphanAliasCleanup = true;
       }
       const response = await axios.put<ApiKeyAliasesResponse>(
-        buildUrl(base, '/v0/management/api-key-aliases'),
+        buildUrl(base, '/v8/management/observability/usage/api-key-aliases'),
         body,
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -1328,7 +1328,7 @@ export const usageServiceApi = {
   ): Promise<void> => {
     await withUsageServiceError(async () => {
       await axios.delete(
-        buildUrl(base, `/v0/management/api-key-aliases/${encodeURIComponent(apiKeyHash)}`),
+        buildUrl(base, `/v8/management/observability/usage/api-key-aliases/${encodeURIComponent(apiKeyHash)}`),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -1350,7 +1350,7 @@ export const usageServiceApi = {
             strategy: modelsOrOptions?.strategy,
           };
       const response = await axios.post<ModelPriceSyncResponse>(
-        buildUrl(base, '/v0/management/model-prices/sync'),
+        buildUrl(base, '/v8/management/observability/usage/model-prices/sync'),
         body,
         {
           timeout: 30 * 1000,
@@ -1363,7 +1363,7 @@ export const usageServiceApi = {
 
   exportUsage: async (base: string, managementKey?: string): Promise<UsageExportResponse> => {
     return withUsageServiceError(async () => {
-      const response = await axios.get<Blob>(buildUrl(base, '/v0/management/usage/export'), {
+      const response = await axios.get<Blob>(buildUrl(base, '/v8/management/observability/usage/export'), {
         timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
         headers: authHeaders(managementKey),
         responseType: 'blob',
@@ -1383,7 +1383,7 @@ export const usageServiceApi = {
   ): Promise<UsageImportResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.post<UsageImportResponse>(
-        buildUrl(base, '/v0/management/usage/import'),
+        buildUrl(base, '/v8/management/observability/usage/import'),
         payload,
         {
           timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
@@ -2598,7 +2598,7 @@ export const dashboardApi = {
 
       try {
         const response = await axios.get<DashboardSummaryResponse>(
-          buildUrl(base, '/v0/management/dashboard/summary'),
+          buildUrl(base, '/v8/management/observability/dashboard/summary'),
           {
             timeout: USAGE_SERVICE_TIMEOUT_MS,
             headers: authHeaders(managementKey),
@@ -2611,7 +2611,7 @@ export const dashboardApi = {
           throw error;
         }
         const usageResponse = await axios.get<UsagePayload>(
-          buildUrl(base, '/v0/management/usage'),
+          buildUrl(base, '/v8/management/observability/usage'),
           {
             timeout: USAGE_SERVICE_TIMEOUT_MS,
             headers: authHeaders(managementKey),
@@ -2634,7 +2634,7 @@ export const monitoringAnalyticsApi = {
   ): Promise<UsageHeaderSnapshotsResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<UsageHeaderSnapshotsResponse>(
-        buildUrl(base, '/v0/management/monitoring/header-snapshots'),
+        buildUrl(base, '/v8/management/observability/monitoring/header-snapshots'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -2651,7 +2651,7 @@ export const monitoringAnalyticsApi = {
   ): Promise<MonitoringAnalyticsResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.post<MonitoringAnalyticsResponse>(
-        buildUrl(base, '/v0/management/monitoring/analytics'),
+        buildUrl(base, '/v8/management/observability/monitoring/analytics'),
         request,
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,

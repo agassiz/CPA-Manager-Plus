@@ -9,7 +9,7 @@ import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { modelsApi } from '@/services/api';
 import type { ModelInfo } from '@/utils/models';
-import { buildHeaderObject } from '@/utils/headers';
+import { buildHeaderObject, withClaudeClientIdentity } from '@/utils/headers';
 import type { ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
 import styles from './AiProvidersPage.module.scss';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
@@ -66,7 +66,7 @@ export function AiProvidersClaudeModelsPage() {
       const list = await modelsApi.fetchClaudeModelsViaApiCall(
         form.baseUrl ?? '',
         form.apiKey.trim() || undefined,
-        headerObject
+        withClaudeClientIdentity(headerObject)
       );
       setModels(list);
     } catch (err: unknown) {

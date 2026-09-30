@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { configFieldUrl, configV8Api } from './v8Config';
 import type { AuthFilesResponse } from '@/types/authFile';
 import type { KiroQuotaPayload, OAuthModelAliasEntry } from '@/types';
 import { parseTimestampMs } from '@/utils/timestamp';
@@ -440,16 +441,17 @@ const normalizeOauthModelAlias = (payload: unknown): Record<string, OAuthModelAl
   return result;
 };
 
-const OAUTH_MODEL_ALIAS_ENDPOINT = '/oauth-model-alias';
+const OAUTH_EXCLUDED_MODELS_PATH = ['oauth', 'excluded-models'];
+const OAUTH_MODEL_ALIAS_PATH = ['oauth', 'model-alias'];
 
 export const authFilesApi = {
-  list: async () => dedupeAuthFilesResponse(await apiClient.get<AuthFilesResponse>('/auth-files')),
+  list: async () => dedupeAuthFilesResponse(await apiClient.get<AuthFilesResponse>('/credentials')),
 
   patchFile: (payload: AuthFilePatchPayload) =>
-    apiClient.patch<AuthFileStatusResponse>('/auth-files', payload),
+    apiClient.patch<AuthFileStatusResponse>('/credentials', payload),
 
   setStatus: (name: string, disabled: boolean) =>
-    apiClient.patch<AuthFileStatusResponse>('/auth-files/status', { name, disabled }),
+    apiClient.patch<AuthFileStatusResponse>('/credentials/status', { name, disabled }),
 
   setStatusWithFallback: async (name: string, disabled: boolean) => {
     try {
@@ -460,16 +462,16 @@ export const authFilesApi = {
   },
 
   patchFields: (name: string, fields: AuthFileFieldsPatch) =>
-    apiClient.patch('/auth-files/fields', { name, ...fields }),
+    apiClient.patch('/credentials/fields', { name, ...fields }),
 
   getCodexTurnState: (name: string, model: string) =>
     apiClient.get<CodexTurnStateCacheStatus>(
-      `/auth-files/codex-turn-state?name=${encodeURIComponent(name)}&model=${encodeURIComponent(model)}`
+      `/credentials/codex-turn-state?name=${encodeURIComponent(name)}&model=${encodeURIComponent(model)}`
     ),
 
   refreshCodexTurnState: (name: string, model: string) =>
     apiClient.post<CodexTurnStateRefreshResponse>(
-      '/auth-files/codex-turn-state/refresh',
+      '/credentials/codex-turn-state/refresh',
       { name, model },
       { timeout: 0 }
     ),
@@ -484,7 +486,7 @@ export const authFilesApi = {
     files.forEach((file) => {
       formData.append('file', file, file.name);
     });
-    const payload = await apiClient.postForm<AuthFileBatchUploadResponse>('/auth-files', formData);
+    const payload = await apiClient.postForm<AuthFileBatchUploadResponse>('/credentials', formData);
     return normalizeBatchUploadResponse(payload, requestedNames);
   },
 
@@ -496,7 +498,7 @@ export const authFilesApi = {
       return { status: 'ok', deleted: 0, files: [], failed: [] };
     }
 
-    const payload = await apiClient.delete<AuthFileBatchDeleteResponse>('/auth-files', {
+    const payload = await apiClient.delete<AuthFileBatchDeleteResponse>('/credentials', {
       data: { names: requestedNames },
     });
     return normalizeBatchDeleteResponse(payload, requestedNames);
@@ -511,28 +513,28 @@ export const authFilesApi = {
     }
 
     const payload = await apiClient.delete<AuthFileBatchDeleteResponse>(
-      `/auth-files?name=${encodeURIComponent(requestedNames[0])}`
+      `/credentials?name=${encodeURIComponent(requestedNames[0])}`
     );
     return normalizeBatchDeleteResponse(payload, requestedNames);
   },
 
-  deleteAll: () => apiClient.delete('/auth-files', { params: { all: true } }),
+  deleteAll: () => apiClient.delete('/credentials', { params: { all: true } }),
 
   clearRuntimeErrors: () =>
-    apiClient.patch<AuthFileRuntimeClearResponse>('/auth-files/runtime-state/clear'),
+    apiClient.patch<AuthFileRuntimeClearResponse>('/credentials/runtime-state/clear'),
 
   getKiroUsage: (name: string) =>
-    apiClient.get<KiroQuotaPayload>(`/auth-files/kiro/usage?name=${encodeURIComponent(name)}`),
+    apiClient.get<KiroQuotaPayload>(`/credentials/kiro/usage?name=${encodeURIComponent(name)}`),
 
   setKiroOverage: (name: string, enabled: boolean) =>
-    apiClient.patch<{ status: string; overage_status: string }>('/auth-files/kiro/overage', {
+    apiClient.patch<{ status: string; overage_status: string }>('/credentials/kiro/overage', {
       name,
       enabled,
     }),
 
   downloadText: async (name: string): Promise<string> => {
     const response = await apiClient.getRaw(
-      `/auth-files/download?name=${encodeURIComponent(name)}`,
+      `/credentials/download?name=${encodeURIComponent(name)}`,
       {
         responseType: 'blob',
       }
@@ -553,22 +555,22 @@ export const authFilesApi = {
 
   // OAuth 排除模型
   async getOauthExcludedModels(): Promise<Record<string, string[]>> {
-    const data = await apiClient.get('/oauth-excluded-models');
+    const data = await configV8Api.readValue<unknown>(OAUTH_EXCLUDED_MODELS_PATH, {});
     return normalizeOauthExcludedModels(data);
   },
 
   saveOauthExcludedModels: (provider: string, models: string[]) =>
-    apiClient.patch('/oauth-excluded-models', { provider, models }),
+    configV8Api.patchAt(OAUTH_EXCLUDED_MODELS_PATH, { [provider]: models }),
 
   deleteOauthExcludedEntry: (provider: string) =>
-    apiClient.delete(`/oauth-excluded-models?provider=${encodeURIComponent(provider)}`),
+    apiClient.delete(configFieldUrl([...OAUTH_EXCLUDED_MODELS_PATH, provider])),
 
   replaceOauthExcludedModels: (map: Record<string, string[]>) =>
-    apiClient.put('/oauth-excluded-models', normalizeOauthExcludedModels(map)),
+    configV8Api.putAt(OAUTH_EXCLUDED_MODELS_PATH, normalizeOauthExcludedModels(map)),
 
   // OAuth 模型别名
   async getOauthModelAlias(): Promise<Record<string, OAuthModelAliasEntry[]>> {
-    const data = await apiClient.get(OAUTH_MODEL_ALIAS_ENDPOINT);
+    const data = await configV8Api.readValue<unknown>(OAUTH_MODEL_ALIAS_PATH, {});
     return normalizeOauthModelAlias(data);
   },
 
@@ -578,10 +580,7 @@ export const authFilesApi = {
       .toLowerCase();
     const normalizedAliases =
       normalizeOauthModelAlias({ [normalizedChannel]: aliases })[normalizedChannel] ?? [];
-    await apiClient.patch(OAUTH_MODEL_ALIAS_ENDPOINT, {
-      channel: normalizedChannel,
-      aliases: normalizedAliases,
-    });
+    await configV8Api.patchAt(OAUTH_MODEL_ALIAS_PATH, { [normalizedChannel]: normalizedAliases });
   },
 
   deleteOauthModelAlias: async (channel: string) => {
@@ -590,16 +589,9 @@ export const authFilesApi = {
       .toLowerCase();
 
     try {
-      await apiClient.patch(OAUTH_MODEL_ALIAS_ENDPOINT, {
-        channel: normalizedChannel,
-        aliases: [],
-      });
+      await apiClient.delete(configFieldUrl([...OAUTH_MODEL_ALIAS_PATH, normalizedChannel]));
     } catch (err: unknown) {
-      const status = getStatusCode(err);
-      if (status !== 405) throw err;
-      await apiClient.delete(
-        `${OAUTH_MODEL_ALIAS_ENDPOINT}?channel=${encodeURIComponent(normalizedChannel)}`
-      );
+      if (getStatusCode(err) !== 404) throw err;
     }
   },
 
@@ -608,7 +600,7 @@ export const authFilesApi = {
     name: string
   ): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
     const data = await apiClient.get<Record<string, unknown>>(
-      `/auth-files/models?name=${encodeURIComponent(name)}`
+      `/credentials/models?name=${encodeURIComponent(name)}`
     );
     const models = data.models ?? data['models'];
     return Array.isArray(models)
@@ -625,7 +617,7 @@ export const authFilesApi = {
       .toLowerCase();
     if (!normalizedChannel) return [];
     const data = await apiClient.get<Record<string, unknown>>(
-      `/model-definitions/${encodeURIComponent(normalizedChannel)}`
+      `/routing/model-definitions/${encodeURIComponent(normalizedChannel)}`
     );
     const models = data.models ?? data['models'];
     return Array.isArray(models)

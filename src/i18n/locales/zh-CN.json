@@ -3541,8 +3541,25 @@
       "validation": {
         "nameRequired": "名称必填",
         "apiKeyRequired": "至少填写一个 API 密钥",
-        "baseUrlRequired": "服务地址必填"
-      }
+        "baseUrlRequired": "服务地址必填",
+        "weightInteger": "调度权重必须是整数",
+        "weightMax": "调度权重不能超过 {{max}}"
+      },
+      "thinkingLevelsAllowed": "允许的思考档位",
+      "thinkingLevels": {
+        "none": "关闭思考",
+        "minimal": "最少",
+        "low": "低",
+        "medium": "中",
+        "high": "高",
+        "xhigh": "超高",
+        "max": "最大",
+        "auto": "自动"
+      },
+      "weight": "调度权重",
+      "weightHint": "默认 1 · ≤ 0 时不参与 · 最大 1,000,000",
+      "thinkingLevelsAllowedHint": "不勾选：沿用内置模型目录中同名模型的配置（按上游模型名匹配）；没有同名内置模型时，默认允许 low、medium、high。勾选后：仅允许所选档位，不在其中的档位会被拒绝或就近调整。",
+      "modelImageOnlyHint": "图片模型仅通过 /v1/images/* 接口提供服务，不会出现在 Codex 对话模型列表中，因此输入/输出模态、上下文窗口、max_completion_tokens 和思考档位都不适用。"
     },
     "delete": {
       "title": "删除资源",

@@ -37,6 +37,29 @@ export function hasHeader(headers: Record<string, unknown> | null | undefined, n
   return Object.keys(headers).some((key) => key.toLowerCase() === target);
 }
 
+// Mirrors the Codex Desktop identity the backend Codex/OpenAI-compat executors send
+// (codexDesktopUserAgent / codexDesktopOriginator), so relays that gate on the
+// client identity accept /models discovery the same way they accept live traffic.
+export const CODEX_CLIENT_IDENTITY_HEADERS: Readonly<Record<string, string>> = {
+  'User-Agent':
+    'Codex Desktop/0.155.0-alpha.9.2 (Mac OS 26.6.2; arm64) unknown (Codex Desktop; 26.915.31945)',
+  Originator: 'Codex Desktop',
+};
+
+export function withCodexClientIdentity(headers: Record<string, string> = {}): Record<string, string> {
+  return hasHeader(headers, 'user-agent') ? headers : { ...CODEX_CLIENT_IDENTITY_HEADERS, ...headers };
+}
+
+// Mirrors the backend Claude executor's default fingerprint
+// (defaultClaudeFingerprintUserAgent) for the same client-identity reason.
+export const CLAUDE_CLIENT_IDENTITY_HEADERS: Readonly<Record<string, string>> = {
+  'User-Agent': 'claude-cli/2.1.280 (external, cli)',
+};
+
+export function withClaudeClientIdentity(headers: Record<string, string> = {}): Record<string, string> {
+  return hasHeader(headers, 'user-agent') ? headers : { ...CLAUDE_CLIENT_IDENTITY_HEADERS, ...headers };
+}
+
 export function headersToEntries(headers?: Record<string, string | undefined | null>): HeaderEntry[] {
   if (!headers || typeof headers !== 'object') return [];
   return Object.entries(headers)

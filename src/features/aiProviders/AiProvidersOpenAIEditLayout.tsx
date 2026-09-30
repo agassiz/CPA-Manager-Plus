@@ -1,3 +1,4 @@
+import { hasInvalidWeight } from '@/utils/credentialWeight';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -108,14 +109,16 @@ const normalizeApiKeyEntries = (entries: ApiKeyEntry[]) =>
     Array<{
       apiKey: string;
       proxyUrl: string;
+      weight: number | null;
       headers: Array<{ key: string; value: string }>;
     }>
   >((acc, entry) => {
     const apiKey = String(entry?.apiKey ?? '').trim();
     const proxyUrl = String(entry?.proxyUrl ?? '').trim();
     const headers = normalizeKeyHeaders(entry?.headers);
+    const weight = entry?.weight ?? null;
     if (!apiKey && !proxyUrl && headers.length === 0) return acc;
-    acc.push({ apiKey, proxyUrl, headers });
+    acc.push({ apiKey, proxyUrl, weight, headers });
     return acc;
   }, []);
 
@@ -148,7 +151,8 @@ const areNormalizedApiKeyEntriesEqual = (
     if (!left || !right) return false;
     if (
       left.apiKey !== right.apiKey ||
-      left.proxyUrl !== right.proxyUrl
+      left.proxyUrl !== right.proxyUrl ||
+      left.weight !== right.weight
     ) {
       return false;
     }
@@ -493,6 +497,11 @@ export function AiProvidersOpenAIEditLayout() {
       return;
     }
 
+    if (form.apiKeyEntries.some((entry: ApiKeyEntry) => hasInvalidWeight(entry.weight))) {
+      showNotification(t('providersPage.form.validation.weightInteger'), 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: OpenAIProviderConfig = {
@@ -503,6 +512,7 @@ export function AiProvidersOpenAIEditLayout() {
         apiKeyEntries: form.apiKeyEntries.map((entry: ApiKeyEntry) => ({
           apiKey: entry.apiKey.trim(),
           proxyUrl: entry.proxyUrl?.trim() || undefined,
+          weight: entry.weight,
           headers: entry.headers,
         })),
       };

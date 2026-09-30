@@ -1,7 +1,6 @@
 import { authFilesApi } from '@/services/api/authFiles';
-import { apiClient } from '@/services/api/client';
+import { configV8Api, expandProviderGroups } from '@/services/api/v8Config';
 import type { Config } from '@/types/config';
-import { extractArrayPayload } from '../model/base';
 import { normalizeOpenAIChannel } from '../model/authMeta';
 import type { MonitoringChannelMeta, MonitoringMetaPayload } from '../model/types';
 
@@ -10,7 +9,7 @@ export const loadMonitoringMetaPayload = async (
 ): Promise<MonitoringMetaPayload> => {
   const [authResult, channelResult] = await Promise.allSettled([
     authFilesApi.list(),
-    apiClient.get('/openai-compatibility'),
+    configV8Api.readValue<unknown>(['api-keys', 'openai-compatibility'], []),
   ]);
 
   const authFiles =
@@ -21,7 +20,7 @@ export const loadMonitoringMetaPayload = async (
   let channels: MonitoringChannelMeta[] = [];
 
   if (channelResult.status === 'fulfilled') {
-    channels = extractArrayPayload(channelResult.value, 'openai-compatibility')
+    channels = expandProviderGroups(channelResult.value, 'openai-compatibility')
       .map((item, index) => normalizeOpenAIChannel(item, index))
       .filter(Boolean) as MonitoringChannelMeta[];
   } else if (config?.openaiCompatibility?.length) {

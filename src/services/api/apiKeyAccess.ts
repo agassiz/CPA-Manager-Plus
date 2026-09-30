@@ -73,7 +73,7 @@ const normalizeRule = (rule: ApiKeyAccessRule): ApiKeyAccessRule => ({
 
 export const apiKeyAccessApi = {
   async list(): Promise<ApiKeyAccessRule[]> {
-    const response = await apiClient.get<ApiKeyAccessResponse>('/api-key-access');
+    const response = await apiClient.get<ApiKeyAccessResponse>('/access/api-key-access');
     return Array.isArray(response.items)
       ? response.items.map((rule) =>
           normalizeRule({
@@ -87,7 +87,7 @@ export const apiKeyAccessApi = {
   },
 
   async options(): Promise<ApiKeyAccessOptions> {
-    const response = await apiClient.get<ApiKeyAccessOptionsResponse>('/api-key-access/options');
+    const response = await apiClient.get<ApiKeyAccessOptionsResponse>('/access/api-key-access/options');
     const providers = Array.isArray(response.providers)
       ? response.providers
           .map((provider) => ({
@@ -115,7 +115,7 @@ export const apiKeyAccessApi = {
   },
 
   replace: (items: ApiKeyAccessRule[]) =>
-    apiClient.put('/api-key-access', {
+    apiClient.put('/access/api-key-access', {
       items: items.map((rule) => {
         const normalized = normalizeRule(rule);
         return {

@@ -8,9 +8,13 @@ const { mocks } = vi.hoisted(() => ({
 }));
 
 vi.mock('./client', () => ({
-  apiClient: {
-    get: mocks.get,
-    put: mocks.put,
+  apiClient: {},
+}));
+
+vi.mock('./v8Config', () => ({
+  configV8Api: {
+    readFlat: mocks.get,
+    putProviderList: mocks.put,
   },
 }));
 
@@ -44,7 +48,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/codex-api-key', [
+    expect(mocks.put).toHaveBeenCalledWith('codex-api-key', [
       {
         'raw-field': 'keep',
         'api-key': 'old-key',
@@ -66,7 +70,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/codex-api-key', [
+    expect(mocks.put).toHaveBeenCalledWith('codex-api-key', [
       {
         name: 'Codex Team A',
         'api-key': 'sk-codex',
@@ -92,7 +96,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/codex-api-key', [
+    expect(mocks.put).toHaveBeenCalledWith('codex-api-key', [
       {
         'api-key': 'sk-codex-native',
         'base-url': 'https://codex.example.com/v1',
@@ -134,7 +138,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/openai-compatibility', [
+    expect(mocks.put).toHaveBeenCalledWith('openai-compatibility', [
       {
         'raw-provider-field': 'keep-provider',
         name: 'openai-compatible',
@@ -175,7 +179,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/openai-compatibility', [
+    expect(mocks.put).toHaveBeenCalledWith('openai-compatibility', [
       {
         name: 'openai-compatible',
         'base-url': 'https://api.example.com/v1',
@@ -191,7 +195,7 @@ describe('providersApi provider config serialization', () => {
 
     await providersApi.saveGeminiKeys([{ apiKey: 'gemini-key' }]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/gemini-api-key', [{ 'api-key': 'gemini-key' }]);
+    expect(mocks.put).toHaveBeenCalledWith('gemini-api-key', [{ 'api-key': 'gemini-key' }]);
   });
 
   it('serializes Claude cache optimization fields', async () => {
@@ -211,7 +215,7 @@ describe('providersApi provider config serialization', () => {
       },
     ]);
 
-    expect(mocks.put).toHaveBeenCalledWith('/claude-api-key', [
+    expect(mocks.put).toHaveBeenCalledWith('claude-api-key', [
       {
         name: 'Claude Team A',
         'api-key': 'sk-claude',
@@ -273,7 +277,7 @@ describe('providersApi provider config serialization', () => {
       disableCooling: true,
     });
 
-    expect(mocks.put).toHaveBeenCalledWith('/xai-api-key', [
+    expect(mocks.put).toHaveBeenCalledWith('xai-api-key', [
       {
         'api-key': 'existing',
         'base-url': 'https://api.x.ai/v1',
@@ -286,6 +290,38 @@ describe('providersApi provider config serialization', () => {
         websockets: true,
         'disable-cooling': true,
       },
+    ]);
+  });
+});
+
+describe('providersApi weight and thinking serialization', () => {
+  it('writes provider weight and per-model thinking levels for Claude-style keys', async () => {
+    mocks.get.mockResolvedValue({ 'claude-api-key': [] });
+    mocks.put.mockResolvedValue({});
+
+    await providersApi.saveClaudeConfigs([
+      {
+        apiKey: 'k',
+        weight: 3,
+        models: [{ name: 'm', thinking: { levels: ['low', 'high'] } }],
+      },
+    ]);
+
+    expect(mocks.put).toHaveBeenCalledWith('claude-api-key', [
+      { 'api-key': 'k', weight: 3, models: [{ name: 'm', thinking: { levels: ['low', 'high'] } }] },
+    ]);
+  });
+
+  it('writes per-key weight for OpenAI-compatible entries', async () => {
+    mocks.get.mockResolvedValue({ 'openai-compatibility': [] });
+    mocks.put.mockResolvedValue({});
+
+    await providersApi.saveOpenAIProviders([
+      { name: 'oa', baseUrl: 'https://x/v1', apiKeyEntries: [{ apiKey: 'k1', weight: 5 }] },
+    ]);
+
+    expect(mocks.put).toHaveBeenCalledWith('openai-compatibility', [
+      { name: 'oa', 'base-url': 'https://x/v1', 'api-key-entries': [{ 'api-key': 'k1', weight: 5 }] },
     ]);
   });
 });

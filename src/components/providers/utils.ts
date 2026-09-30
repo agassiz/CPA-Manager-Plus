@@ -48,7 +48,7 @@ export const excludedModelsToText = (models?: string[]) =>
 export const normalizeOpenAIBaseUrl = (baseUrl: string): string => {
   let trimmed = String(baseUrl || '').trim();
   if (!trimmed) return '';
-  trimmed = trimmed.replace(/\/?v0\/management\/?$/i, '');
+  trimmed = trimmed.replace(/\/?v[08]\/management\/?$/i, '');
   trimmed = trimmed.replace(/\/+$/g, '');
   if (!/^https?:\/\//i.test(trimmed)) {
     trimmed = `http://${trimmed}`;
@@ -61,7 +61,7 @@ export const normalizeClaudeBaseUrl = (baseUrl: string): string => {
   if (!trimmed) {
     return 'https://api.anthropic.com';
   }
-  trimmed = trimmed.replace(/\/?v0\/management\/?$/i, '');
+  trimmed = trimmed.replace(/\/?v[08]\/management\/?$/i, '');
   trimmed = trimmed.replace(/\/+$/g, '');
   if (!/^https?:\/\//i.test(trimmed)) {
     trimmed = `http://${trimmed}`;

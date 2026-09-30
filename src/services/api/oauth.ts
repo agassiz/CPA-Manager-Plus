@@ -51,10 +51,16 @@ const WEBUI_SUPPORTED: OAuthProvider[] = [
 const CALLBACK_PROVIDER_MAP: Partial<Record<OAuthProvider, string>> = {
   'gemini-cli': 'gemini',
 };
+// The v8 login endpoint names the Anthropic provider "claude".
+const LOGIN_PROVIDER_MAP: Partial<Record<OAuthProvider, string>> = {
+  anthropic: 'claude',
+};
 
 export const oauthApi = {
   startAuth: (provider: OAuthProvider, options?: { projectId?: string; method?: string }) => {
-    const params: Record<string, string | boolean> = {};
+    const params: Record<string, string | boolean> = {
+      provider: LOGIN_PROVIDER_MAP[provider] ?? provider,
+    };
     if (WEBUI_SUPPORTED.includes(provider)) {
       params.is_webui = true;
     }
@@ -64,24 +70,22 @@ export const oauthApi = {
     if (provider === 'kiro' && options?.method) {
       params.method = options.method;
     }
-    return apiClient.get<OAuthStartResponse>(`/${provider}-auth-url`, {
-      params: Object.keys(params).length ? params : undefined,
-    });
+    return apiClient.get<OAuthStartResponse>('/oauth/auth-url', { params });
   },
 
   getAuthStatus: (state: string) =>
-    apiClient.get<OAuthStatusResponse>(`/get-auth-status`, {
+    apiClient.get<OAuthStatusResponse>('/oauth/status', {
       params: { state },
     }),
 
   cancelSession: (state: string) =>
-    apiClient.delete<OAuthCancelResponse>('/oauth-session', {
+    apiClient.delete<OAuthCancelResponse>('/oauth/session', {
       params: { state },
     }),
 
   submitCallback: (provider: OAuthProvider, redirectUrl: string) => {
     const callbackProvider = CALLBACK_PROVIDER_MAP[provider] ?? provider;
-    return apiClient.post<OAuthCallbackResponse>('/oauth-callback', {
+    return apiClient.post<OAuthCallbackResponse>('/oauth/callback', {
       provider: callbackProvider,
       redirect_url: redirectUrl,
     });

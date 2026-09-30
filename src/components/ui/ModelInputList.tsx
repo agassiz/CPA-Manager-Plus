@@ -1,6 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { Button } from './Button';
-import { IconX } from './icons';
+import { IconChevronDown, IconX } from './icons';
 import type { ModelEntry } from './modelInputListUtils';
 
 interface ModelInputListProps {
@@ -20,6 +20,11 @@ interface ModelInputListProps {
   removeButtonAriaLabel?: string;
   renderEntryDetails?: (entry: ModelEntry, index: number) => ReactNode;
   entryDetailsClassName?: string;
+  /** Show entry details only for the row whose chevron button was clicked. */
+  collapsibleDetails?: boolean;
+  toggleButtonClassName?: string;
+  expandLabel?: string;
+  collapseLabel?: string;
 }
 
 export function ModelInputList({
@@ -39,7 +44,12 @@ export function ModelInputList({
   removeButtonAriaLabel = 'Remove',
   renderEntryDetails,
   entryDetailsClassName = '',
+  collapsibleDetails = false,
+  toggleButtonClassName = '',
+  expandLabel = 'Expand',
+  collapseLabel = 'Collapse',
 }: ModelInputListProps) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const currentEntries = entries.length ? entries : [{ name: '', alias: '' }];
   const containerClassName = ['header-input-list', className].filter(Boolean).join(' ');
   const inputClassNames = ['input', inputClassName].filter(Boolean).join(' ');
@@ -59,6 +69,10 @@ export function ModelInputList({
   };
 
   const removeEntry = (index: number) => {
+    setExpandedIndex((prev) => {
+      if (prev === null || prev === index) return null;
+      return prev > index ? prev - 1 : prev;
+    });
     const next = currentEntries.filter((_, idx) => idx !== index);
     onChange(next.length ? next : [{ name: '', alias: '' }]);
   };
@@ -67,6 +81,8 @@ export function ModelInputList({
     <div className={containerClassName}>
       {currentEntries.map((entry, index) => {
         const details = renderEntryDetails?.(entry, index);
+        const expanded = collapsibleDetails && expandedIndex === index;
+        const toggleLabel = expanded ? collapseLabel : expandLabel;
         return (
           <Fragment key={index}>
             <div className={rowClassNames}>
@@ -85,6 +101,28 @@ export function ModelInputList({
                 onChange={(e) => updateEntry(index, 'alias', e.target.value)}
                 disabled={disabled}
               />
+              {collapsibleDetails && details ? (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  iconOnly
+                  onClick={() => setExpandedIndex(expanded ? null : index)}
+                  className={toggleButtonClassName}
+                  title={toggleLabel}
+                  aria-label={toggleLabel}
+                  aria-expanded={expanded}
+                >
+                  <IconChevronDown
+                    size={14}
+                    style={{
+                      transition: 'transform 0.15s ease',
+                      transform: expanded ? 'rotate(180deg)' : undefined,
+                    }}
+                  />
+                </Button>
+              ) : collapsibleDetails ? (
+                <span aria-hidden="true" />
+              ) : null}
               <Button
                 variant="ghost"
                 size="xs"
@@ -98,7 +136,9 @@ export function ModelInputList({
                 <IconX size={14} />
               </Button>
             </div>
-            {details ? <div className={entryDetailsClassName}>{details}</div> : null}
+            {details && (!collapsibleDetails || expanded) ? (
+              <div className={entryDetailsClassName}>{details}</div>
+            ) : null}
           </Fragment>
         );
       })}

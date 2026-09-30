@@ -11,12 +11,12 @@ const normalizeAuthIndices = (authIndices: ReadonlyArray<string>): string[] =>
 
 export const usageCounterSnapshotsApi = {
   reset: (authIndices: ReadonlyArray<string>) =>
-    apiClient.post<UsageCounterSnapshotResponse>('/usage/counter-snapshots', {
+    apiClient.post<UsageCounterSnapshotResponse>('/observability/usage/counter-snapshots', {
       auth_indices: normalizeAuthIndices(authIndices),
     }),
 
   restore: (authIndices: ReadonlyArray<string>) =>
-    apiClient.delete<UsageCounterSnapshotResponse>('/usage/counter-snapshots', {
+    apiClient.delete<UsageCounterSnapshotResponse>('/observability/usage/counter-snapshots', {
       data: { auth_indices: normalizeAuthIndices(authIndices) },
     }),
 };

@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { WeightInput } from './components/WeightInput';
+import { hasInvalidWeight } from '@/utils/credentialWeight';
 import { HeaderInputList } from '@/components/ui/HeaderInputList';
-import { ModelInputList } from '@/components/ui/ModelInputList';
+import { ModelThinkingInputList } from './components/ModelThinkingInputList';
 import { modelsToEntries } from '@/components/ui/modelInputListUtils';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
@@ -38,17 +40,20 @@ const buildEmptyForm = (): VertexFormState => ({
   excludedText: '',
 });
 
-const normalizeModelEntries = (entries: Array<{ name: string; alias: string }>) =>
-  (entries ?? []).reduce<Array<{ name: string; alias: string }>>((acc, entry) => {
+type NormalizedModelEntry = { name: string; alias: string; thinking?: Record<string, unknown> };
+
+const normalizeModelEntries = (entries: NormalizedModelEntry[]) =>
+  (entries ?? []).reduce<NormalizedModelEntry[]>((acc, entry) => {
     const name = String(entry?.name ?? '').trim();
     const alias = String(entry?.alias ?? '').trim();
     if (!name && !alias) return acc;
-    acc.push({ name, alias });
+    acc.push(entry?.thinking ? { name, alias, thinking: entry.thinking } : { name, alias });
     return acc;
   }, []);
 
 type VertexFormBaseline = {
   apiKey: string;
+  weight: number | null;
   priority: number | null;
   prefix: string;
   baseUrl: string;
@@ -60,6 +65,7 @@ type VertexFormBaseline = {
 
 const buildVertexBaseline = (form: VertexFormState): VertexFormBaseline => ({
   apiKey: String(form.apiKey ?? '').trim(),
+  weight: form.weight ?? null,
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -213,6 +219,7 @@ export function AiProvidersVertexEditPage() {
   const isDirty =
     baseline.apiKey !== form.apiKey.trim() ||
     baseline.priority !== normalizedPriority ||
+    baseline.weight !== (form.weight ?? null) ||
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
@@ -240,11 +247,17 @@ export function AiProvidersVertexEditPage() {
     const trimmedBaseUrl = (form.baseUrl ?? '').trim();
     const baseUrl = trimmedBaseUrl || undefined;
 
+    if (hasInvalidWeight(form.weight)) {
+      showNotification(t('providersPage.form.validation.weightInteger'), 'error');
+      return;
+    }
+
     setSaving(true);
     setError('');
     try {
       const payload: ProviderKeyConfig = {
         apiKey: form.apiKey.trim(),
+        weight: form.weight,
         priority:
           form.priority !== undefined && Number.isFinite(form.priority)
             ? Math.trunc(form.priority)
@@ -258,7 +271,7 @@ export function AiProvidersVertexEditPage() {
             const name = entry.name.trim();
             const alias = entry.alias.trim();
             if (!name || !alias) return null;
-            return { name, alias };
+            return entry.thinking ? { name, alias, thinking: entry.thinking } : { name, alias };
           })
           .filter(Boolean) as ProviderKeyConfig['models'],
         excludedModels: parseExcludedModels(form.excludedText),
@@ -353,6 +366,11 @@ export function AiProvidersVertexEditPage() {
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
               disabled={disableControls || saving}
             />
+            <WeightInput
+              value={form.weight}
+              disabled={disableControls || saving}
+              onChange={(weight) => setForm((prev) => ({ ...prev, weight }))}
+            />
             <Input
               label={t('ai_providers.prefix_label')}
               placeholder={t('ai_providers.prefix_placeholder')}
@@ -387,14 +405,9 @@ export function AiProvidersVertexEditPage() {
             />
             <div className="form-group">
               <label>{t('ai_providers.vertex_models_label')}</label>
-              <ModelInputList
+              <ModelThinkingInputList
                 entries={form.modelEntries}
                 onChange={(entries) => setForm((prev) => ({ ...prev, modelEntries: entries }))}
-                addLabel={t('ai_providers.vertex_models_add_btn')}
-                namePlaceholder={t('common.model_name_placeholder')}
-                aliasPlaceholder={t('common.model_alias_placeholder')}
-                removeButtonTitle={t('common.delete')}
-                removeButtonAriaLabel={t('common.delete')}
                 disabled={disableControls || saving}
               />
             </div>

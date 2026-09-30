@@ -8,5 +8,5 @@ export type LicenseStatusResponse = {
 };
 
 export const licenseApi = {
-  getStatus: () => apiClient.get<LicenseStatusResponse>('/license'),
+  getStatus: () => apiClient.get<LicenseStatusResponse>('/server/license'),
 };

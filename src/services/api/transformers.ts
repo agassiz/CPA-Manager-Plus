@@ -1,3 +1,4 @@
+import { readCredentialWeight } from '@/utils/credentialWeight';
 import type {
   ApiKeyEntry,
   CloakConfig,
@@ -148,6 +149,8 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
     proxyUrl: proxyUrl ? String(proxyUrl) : undefined,
     headers
   };
+  const weight = readCredentialWeight(record?.weight);
+  if (weight !== undefined) result.weight = weight;
   return result;
 };
 
@@ -159,6 +162,8 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (!trimmed) return null;
 
   const config: ProviderKeyConfig = { apiKey: trimmed };
+  const weight = readCredentialWeight(record?.weight);
+  if (weight !== undefined) config.weight = weight;
   const name = record?.name ?? record?.['name'];
   if (typeof name === 'string' && name.trim()) config.name = name.trim();
   const priority = record?.priority ?? record?.['priority'];
@@ -251,6 +256,8 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (!trimmed) return null;
 
   const config: GeminiKeyConfig = { apiKey: trimmed };
+  const weight = readCredentialWeight(record?.weight);
+  if (weight !== undefined) config.weight = weight;
   const priority = record?.priority ?? record?.['priority'];
   if (priority !== undefined && priority !== null && String(priority).trim() !== '') {
     const parsed = Number(priority);

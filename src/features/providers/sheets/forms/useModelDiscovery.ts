@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { modelsApi } from '@/services/api';
-import { buildHeaderObject } from '@/utils/headers';
+import {
+  buildHeaderObject,
+  withClaudeClientIdentity,
+  withCodexClientIdentity,
+} from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ModelInfo } from '@/utils/models';
 import type { ApiKeyEntryInput, ProviderBrand } from '../../types';
@@ -16,7 +20,6 @@ export const MODEL_DISCOVERY_BRANDS: ReadonlyArray<ProviderBrand> = [
 
 export const isModelDiscoveryBrand = (brand: ProviderBrand): boolean =>
   MODEL_DISCOVERY_BRANDS.includes(brand);
-
 export interface UseModelDiscoveryArgs {
   brand: ProviderBrand;
   baseUrl: string;
@@ -65,7 +68,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
         next = await modelsApi.fetchV1ModelsViaApiCall(
           baseUrl,
           key,
-          baseHeaders,
+          brand === 'codex' ? withCodexClientIdentity(baseHeaders) : baseHeaders,
           undefined
         );
       } else if (brand === 'claude' || brand === 'claudeApi') {
@@ -73,7 +76,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
         next = await modelsApi.fetchClaudeModelsViaApiCall(
           baseUrl,
           key,
-          baseHeaders,
+          withClaudeClientIdentity(baseHeaders),
           undefined
         );
       } else if (brand === 'openaiCompatibility') {
@@ -87,14 +90,18 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           next = await modelsApi.fetchModelsViaApiCall(
             baseUrl,
             entryKey,
-            baseHeaders
+            withCodexClientIdentity(baseHeaders)
           );
         } catch (firstErr) {
           // Some OpenAI-compatible endpoints expose /models without auth, or
           // reject the configured key for the discovery route. Retry once
-          // without any auth/headers before surfacing the original error.
+          // without auth/custom headers before surfacing the original error.
           try {
-            next = await modelsApi.fetchModelsViaApiCall(baseUrl);
+            next = await modelsApi.fetchModelsViaApiCall(
+              baseUrl,
+              undefined,
+              withCodexClientIdentity()
+            );
           } catch {
             throw firstErr;
           }

@@ -198,11 +198,11 @@ const normalizeUsage = (response: SecurityAuditUsageApiResponse): SecurityAuditU
 export const securityAuditApi = {
   getConfig: async () =>
     normalizeConfig(
-      await apiClient.get<SecurityAuditConfigResponse>('/security-audit/config')
+      await apiClient.get<SecurityAuditConfigResponse>('/observability/security-audit/config')
     ),
   updateConfig: (config: SecurityAuditConfig) =>
     apiClient
-      .put<SecurityAuditConfigResponse>('/security-audit/config', config)
+      .put<SecurityAuditConfigResponse>('/observability/security-audit/config', config)
       .then(normalizeConfig),
   probe: (
     engine: SecurityAuditEngine,
@@ -210,17 +210,17 @@ export const securityAuditApi = {
     moderations: SecurityAuditModerationsConfig
   ) =>
     apiClient.post<{ ok: boolean; 'latency-ms': number; result?: unknown; error?: string }>(
-      '/security-audit/probe',
+      '/observability/security-audit/probe',
       { engine, guard, moderations }
     ),
   getEvents: async () =>
     normalizeEvents(
-      await apiClient.get<SecurityAuditEventsApiResponse>('/security-audit/events')
+      await apiClient.get<SecurityAuditEventsApiResponse>('/observability/security-audit/events')
     ),
-  clearEvents: () => apiClient.delete<{ status: string }>('/security-audit/events'),
+  clearEvents: () => apiClient.delete<{ status: string }>('/observability/security-audit/events'),
   getUsage: async (groupBy: SecurityAuditUsageGroupBy) =>
     normalizeUsage(
-      await apiClient.get<SecurityAuditUsageApiResponse>('/security-audit/usage', {
+      await apiClient.get<SecurityAuditUsageApiResponse>('/observability/security-audit/usage', {
         params: { 'group-by': groupBy },
       })
     ),

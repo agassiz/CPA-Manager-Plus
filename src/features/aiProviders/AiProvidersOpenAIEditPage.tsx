@@ -1,3 +1,4 @@
+import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
 import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,8 +11,8 @@ import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
-import { ThinkingLevelMappingEditor } from './components/ThinkingLevelMappingEditor';
-import { parseThinkingConfig } from './components/thinkingLevelMapping';
+import { ThinkingLevelsEditor } from './components/ThinkingLevelsEditor';
+import { applyThinkingLevels } from './components/thinkingLevels';
 import { ModelOptionsEditor } from './components/ModelOptionsEditor';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useNotificationStore } from '@/stores';
@@ -400,6 +401,12 @@ export function AiProvidersOpenAIEditPage() {
       setTestMessage('');
     };
 
+    const updateEntryWeight = (idx: number, raw: string) => {
+      const weight = raw.trim() === '' ? undefined : Number(raw);
+      const next = list.map((entry, i) => (i === idx ? { ...entry, weight } : entry));
+      setForm((prev) => ({ ...prev, apiKeyEntries: next }));
+    };
+
     const removeEntry = (idx: number) => {
       const next = list.filter((_, i) => i !== idx);
       const nextLength = next.length ? next.length : 1;
@@ -444,6 +451,7 @@ export function AiProvidersOpenAIEditPage() {
             <div className={styles.keyTableColStatus}>{t('common.status')}</div>
             <div className={styles.keyTableColKey}>{t('common.api_key')}</div>
             <div className={styles.keyTableColProxy}>{t('common.proxy_url')}</div>
+            <div className={styles.keyTableColWeight}>{t('providersPage.form.weight')}</div>
             <div className={styles.keyTableColAction}>{t('common.action')}</div>
           </div>
 
@@ -520,6 +528,21 @@ export function AiProvidersOpenAIEditPage() {
                     disabled={saving || disableControls || isTestingKeys}
                     className={`input ${styles.keyTableInput}`}
                     placeholder={t('ai_providers.openai_proxy_placeholder')}
+                  />
+                </div>
+
+                {/* 调度权重 */}
+                <div className={styles.keyTableColWeight}>
+                  <input
+                    type="number"
+                    step={1}
+                    max={MAX_CREDENTIAL_WEIGHT}
+                    value={entry.weight ?? ''}
+                    onChange={(e) => updateEntryWeight(index, e.target.value)}
+                    disabled={saving || disableControls || isTestingKeys}
+                    className={`input ${styles.keyTableInput}`}
+                    placeholder="1"
+                    title={t('providersPage.form.weightHint')}
                   />
                 </div>
 
@@ -717,8 +740,11 @@ export function AiProvidersOpenAIEditPage() {
                 disabled={saving || disableControls || isTestingKeys}
                 hideAddButton
                 className={styles.modelInputList}
-                rowClassName={styles.modelInputRow}
+                rowClassName={`${styles.modelInputRow} ${styles.modelInputRowCollapsible}`}
                 inputClassName={styles.modelInputField}
+                collapsibleDetails
+                expandLabel={t('common.expand')}
+                collapseLabel={t('common.collapse')}
                 removeButtonClassName={styles.modelRowRemoveButton}
                 removeButtonTitle={t('common.delete')}
                 removeButtonAriaLabel={t('common.delete')}
@@ -739,22 +765,22 @@ export function AiProvidersOpenAIEditPage() {
                         }))
                       }
                     />
-                    <ThinkingLevelMappingEditor
-                      value={entry.thinking ? JSON.stringify(entry.thinking, null, 2) : ''}
-                      disabled={saving || disableControls || isTestingKeys}
-                      onChange={(thinkingJson) => {
-                        const parsed = parseThinkingConfig(thinkingJson);
-                        if (parsed.error) return;
-                        const thinking =
-                          Object.keys(parsed.config).length > 0 ? parsed.config : undefined;
-                        setForm((prev) => ({
-                          ...prev,
-                          modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
-                            candidateIndex === index ? { ...candidate, thinking } : candidate
-                          ),
-                        }));
-                      }}
-                    />
+                    {entry.image ? null : (
+                      <ThinkingLevelsEditor
+                        thinking={entry.thinking}
+                        disabled={saving || disableControls || isTestingKeys}
+                        onChange={(levels) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            modelEntries: prev.modelEntries.map((candidate, candidateIndex) =>
+                              candidateIndex === index
+                                ? { ...candidate, thinking: applyThinkingLevels(candidate.thinking, levels) }
+                                : candidate
+                            ),
+                          }))
+                        }
+                      />
+                    )}
                     </>
                   );
                 }}

@@ -1,3 +1,4 @@
+import { hasInvalidWeight } from '@/utils/credentialWeight';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -129,6 +130,7 @@ const normalizeCloakConfig = (cloak: ProviderFormState['cloak']) => {
 const buildClaudeBaseline = (form: ProviderFormState): ClaudeEditBaseline => ({
   name: String(form.name ?? '').trim(),
   apiKey: String(form.apiKey ?? '').trim(),
+  weight: form.weight ?? null,
   priority:
     form.priority !== undefined && Number.isFinite(form.priority)
       ? Math.trunc(form.priority)
@@ -361,6 +363,7 @@ export function AiProvidersClaudeEditLayout() {
     (baseline.name !== String(form.name ?? '').trim() ||
       baseline.apiKey !== form.apiKey.trim() ||
       baseline.priority !== normalizedPriority ||
+      baseline.weight !== (form.weight ?? null) ||
       baseline.prefix !== String(form.prefix ?? '').trim() ||
       baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
       baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
@@ -458,6 +461,10 @@ export function AiProvidersClaudeEditLayout() {
     const canSave =
       !disableControls && !saving && !resolvedLoading && !invalidIndexParam && !invalidIndex;
     if (!canSave) return;
+    if (hasInvalidWeight(form.weight)) {
+      showNotification(t('providersPage.form.validation.weightInteger'), 'error');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -465,6 +472,7 @@ export function AiProvidersClaudeEditLayout() {
         name: form.name?.trim() || undefined,
         apiKey: form.apiKey.trim(),
         priority: form.priority !== undefined ? Math.trunc(form.priority) : undefined,
+        weight: form.weight,
         prefix: form.prefix?.trim() || undefined,
         baseUrl: (form.baseUrl ?? '').trim() || undefined,
         proxyUrl: form.proxyUrl?.trim() || undefined,

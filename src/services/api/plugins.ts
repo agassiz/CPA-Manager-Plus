@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { configV8Api } from './v8Config';
 import { isRecord } from '@/utils/helpers';
 import type {
   PluginConfigField,
@@ -237,6 +238,8 @@ const errorFromInstallEvent = (event: PluginStoreInstallProgressEvent): Error =>
   return error;
 };
 
+const pluginConfigPath = (id: string): string[] => ['plugins', 'configs', id];
+
 export const pluginsApi = {
   async list(): Promise<PluginListResponse> {
     const data = await apiClient.get('/plugins');
@@ -244,7 +247,7 @@ export const pluginsApi = {
   },
 
   updateEnabled: (id: string, enabled: boolean) =>
-    apiClient.patch(`/plugins/${encodeURIComponent(id)}/enabled`, { enabled }),
+    configV8Api.patchAt(pluginConfigPath(id), { enabled }),
 
   async deletePlugin(id: string): Promise<PluginDeleteResult> {
     const data = await apiClient.delete(`/plugins/${encodeURIComponent(id)}`);
@@ -252,25 +255,32 @@ export const pluginsApi = {
   },
 
   async getConfig(id: string): Promise<PluginConfigObject> {
-    const data = await apiClient.get(`/plugins/${encodeURIComponent(id)}/config`);
+    const data = await configV8Api.readValue<unknown>(pluginConfigPath(id), {});
     return normalizePluginConfig(data);
   },
 
   putConfig: (id: string, config: PluginConfigObject) =>
-    apiClient.put(`/plugins/${encodeURIComponent(id)}/config`, config),
+    configV8Api.putAt(pluginConfigPath(id), config),
 
-  patchConfig: (id: string, patch: PluginConfigObject) =>
-    apiClient.patch(`/plugins/${encodeURIComponent(id)}/config`, patch),
+  // v8 PATCH keeps null values, so apply the shallow merge (null removes a key) here.
+  async patchConfig(id: string, patch: PluginConfigObject) {
+    const next: PluginConfigObject = { ...(await pluginsApi.getConfig(id)) };
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null || value === undefined) delete next[key];
+      else next[key] = value;
+    }
+    return configV8Api.putAt(pluginConfigPath(id), next);
+  },
 };
 
 export const pluginStoreApi = {
   async list(): Promise<PluginStoreResponse> {
-    const data = await apiClient.get('/plugin-store');
+    const data = await apiClient.get('/plugins/store');
     return normalizeStoreList(data);
   },
 
   async install(id: string): Promise<PluginStoreInstallResult> {
-    const data = await apiClient.post(`/plugin-store/${encodeURIComponent(id)}/install`);
+    const data = await apiClient.post(`/plugins/store/${encodeURIComponent(id)}/install`);
     return normalizeInstallResult(data);
   },
 
@@ -282,7 +292,7 @@ export const pluginStoreApi = {
     } = {}
   ): Promise<PluginStoreInstallResult> {
     const response = await apiClient.fetchRaw(
-      `/plugin-store/${encodeURIComponent(id)}/install/stream`,
+      `/plugins/store/${encodeURIComponent(id)}/install/stream`,
       {
         method: 'POST',
         signal: options.signal,

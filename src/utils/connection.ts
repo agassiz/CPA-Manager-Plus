@@ -6,7 +6,7 @@ export const DEFAULT_LOCAL_CPA_BASE_URL = 'http://127.0.0.1:8317';
 export const normalizeApiBase = (input: string): string => {
   let base = (input || '').trim();
   if (!base) return '';
-  base = base.replace(/\/?v0\/management\/?$/i, '');
+  base = base.replace(/\/?v[08]\/management\/?$/i, '');
   base = base.replace(/\/+$/i, '');
   if (!/^https?:\/\//i.test(base)) {
     base = `http://${base}`;

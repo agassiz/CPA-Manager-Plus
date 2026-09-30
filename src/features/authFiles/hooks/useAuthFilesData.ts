@@ -528,7 +528,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
     async (name: string) => {
       try {
         const response = await apiClient.getRaw(
-          `/auth-files/download?name=${encodeURIComponent(name)}`,
+          `/credentials/download?name=${encodeURIComponent(name)}`,
           { responseType: 'blob' }
         );
         const blob = new Blob([response.data]);
@@ -824,7 +824,7 @@ export function useAuthFilesData(): UseAuthFilesDataResult {
       for (const name of uniqueNames) {
         try {
           const response = await apiClient.getRaw(
-            `/auth-files/download?name=${encodeURIComponent(name)}`,
+            `/credentials/download?name=${encodeURIComponent(name)}`,
             { responseType: 'blob' }
           );
           const blob = new Blob([response.data]);

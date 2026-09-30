@@ -28,7 +28,7 @@ describe('authFilesApi Codex turn state refresh', () => {
     await authFilesApi.refreshCodexTurnState('codex.json', 'gpt-5.6-terra');
 
     expect(mocks.post).toHaveBeenCalledWith(
-      '/auth-files/codex-turn-state/refresh',
+      '/credentials/codex-turn-state/refresh',
       { name: 'codex.json', model: 'gpt-5.6-terra' },
       { timeout: 0 }
     );
@@ -57,7 +57,7 @@ describe('authFilesApi save auth file upload contracts', () => {
     await expect(
       authFilesApi.saveText('direct-auth.json', '{"type":"codex","access_token":"token"}')
     ).resolves.toBeUndefined();
-    expect(mocks.postForm).toHaveBeenCalledWith('/auth-files', expect.any(FormData));
+    expect(mocks.postForm).toHaveBeenCalledWith('/credentials', expect.any(FormData));
     const file = getUploadedFile();
     expect(file.name).toBe('direct-auth.json');
     await expect(file.text()).resolves.toBe('{"type":"codex","access_token":"token"}');
@@ -79,7 +79,7 @@ describe('authFilesApi save auth file upload contracts', () => {
         access_token: 'token',
       })
     ).resolves.toBeUndefined();
-    expect(mocks.postForm).toHaveBeenCalledWith('/auth-files', expect.any(FormData));
+    expect(mocks.postForm).toHaveBeenCalledWith('/credentials', expect.any(FormData));
     const file = getUploadedFile();
     expect(file.name).toBe('converted-auth.json');
     await expect(file.text()).resolves.toBe('{"type":"codex","access_token":"token"}');
