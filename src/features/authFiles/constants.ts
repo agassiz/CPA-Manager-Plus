@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next';
 import iconAntigravity from '@/assets/icons/antigravity.svg';
 import iconClaude from '@/assets/icons/claude.svg';
+import iconClineDark from '@/assets/icons/cline-dark.svg';
+import iconClineLight from '@/assets/icons/cline-light.svg';
 import iconCodex from '@/assets/icons/codex.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
@@ -31,6 +33,7 @@ export type AuthFileIconAsset = string | { light: string; dark: string };
 export type QuotaProviderType =
   | 'antigravity'
   | 'claude'
+  | 'cline'
   | 'codex'
   | 'devin'
   | 'gemini-cli'
@@ -42,6 +45,7 @@ export type QuotaProviderType =
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
   'claude',
+  'cline',
   'codex',
   'devin',
   'gemini-cli',
@@ -100,6 +104,11 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  // Cline logo: near-black glyph (#1C1C24 / #EDEDF0), graphite treatment like the other monochrome logos
+  cline: {
+    light: { bg: '#f3f4f6', text: '#1c1c24', border: '1px solid #d1d5db' },
+    dark: { bg: '#1c1c24', text: '#ededf0', border: '1px solid #3f3f4a' },
+  },
   devin: {
     light: { bg: '#f3f4f6', text: '#111827', border: '1px solid #d1d5db' },
     dark: { bg: '#111827', text: '#f9fafb', border: '1px solid #374151' },
@@ -142,6 +151,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   antigravity: iconAntigravity,
   aistudio: iconGemini,
   claude: iconClaude,
+  cline: { light: iconClineLight, dark: iconClineDark },
   codex: iconCodex,
   devin: { light: iconDevin, dark: iconDevinDark },
   gemini: iconGemini,

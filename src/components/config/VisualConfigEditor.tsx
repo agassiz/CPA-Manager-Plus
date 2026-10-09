@@ -237,6 +237,7 @@ export function VisualConfigEditor({
   const nonstreamKeepaliveErrorId = `${nonstreamKeepaliveInputId}-error`;
   const [activeSectionId, setActiveSectionId] = useState<VisualSectionId>('server');
   const sectionRefs = useRef<Partial<Record<VisualSectionId, HTMLElement | null>>>({});
+  const jumpLockRef = useRef<{ id: VisualSectionId; timer: number | null } | null>(null);
   const mobileNavScrollerRef = useRef<HTMLDivElement | null>(null);
   const mobileNavButtonRefs = useRef<Partial<Record<VisualSectionId, HTMLButtonElement | null>>>(
     {}
@@ -456,29 +457,66 @@ export function VisualConfigEditor({
 
   useEffect(() => {
     if (!isCurrentLayer) return undefined;
-    if (typeof IntersectionObserver === 'undefined') return undefined;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+    const releaseJumpLock = () => {
+      const lock = jumpLockRef.current;
+      if (!lock) return;
+      if (lock.timer !== null) window.clearTimeout(lock.timer);
+      jumpLockRef.current = null;
+    };
 
-        if (visibleEntries.length === 0) return;
-        setActiveSectionId(visibleEntries[0].target.id as VisualSectionId);
-      },
-      {
-        rootMargin: '-18% 0px -58% 0px',
-        threshold: [0.12, 0.3, 0.55],
+    // After a click-initiated smooth scroll settles, keep the clicked section highlighted even
+    // when a short trailing section cannot be scrolled to the activation line.
+    const settleJumpLock = (delay: number) => {
+      const lock = jumpLockRef.current;
+      if (!lock) return;
+      if (lock.timer !== null) window.clearTimeout(lock.timer);
+      lock.timer = window.setTimeout(() => {
+        const target = lock.id;
+        jumpLockRef.current = null;
+        setActiveSectionId(target);
+      }, delay);
+    };
+
+    // The active section is the last one whose top has crossed the activation line. Ratio-based
+    // IntersectionObserver thresholds never fire for tall sections (e.g. Codex), so a shorter
+    // neighbour (Claude) used to win after a jump.
+    let frame = 0;
+    const updateActiveFromScroll = () => {
+      frame = 0;
+      if (jumpLockRef.current) {
+        settleJumpLock(150);
+        return;
       }
-    );
+      const line = window.innerHeight * 0.3;
+      let current: VisualSectionId = sections[0]?.id ?? 'server';
+      for (const section of sections) {
+        const element = sectionRefs.current[section.id];
+        if (element && element.getBoundingClientRect().top <= line) current = section.id;
+      }
+      setActiveSectionId(current);
+    };
+    const onScroll = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(updateActiveFromScroll);
+    };
 
-    for (const section of sections) {
-      const element = sectionRefs.current[section.id];
-      if (element) observer.observe(element);
+    document.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    // Manual input takes over from a pending jump.
+    for (const type of ['wheel', 'touchstart', 'keydown'] as const) {
+      window.addEventListener(type, releaseJumpLock, { passive: true });
     }
+    onScroll();
 
-    return () => observer.disconnect();
+    return () => {
+      document.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+      for (const type of ['wheel', 'touchstart', 'keydown'] as const) {
+        window.removeEventListener(type, releaseJumpLock);
+      }
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      releaseJumpLock();
+    };
   }, [isCurrentLayer, sections]);
 
   useEffect(() => {
@@ -504,6 +542,14 @@ export function VisualConfigEditor({
 
   const handleSectionJump = useCallback((sectionId: VisualSectionId) => {
     setActiveSectionId(sectionId);
+    if (jumpLockRef.current?.timer != null) window.clearTimeout(jumpLockRef.current.timer);
+    // Scroll events keep postponing the release; this timer covers a jump that does not scroll.
+    jumpLockRef.current = {
+      id: sectionId,
+      timer: window.setTimeout(() => {
+        jumpLockRef.current = null;
+      }, 400),
+    };
     sectionRefs.current[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 

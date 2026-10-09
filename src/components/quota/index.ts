@@ -8,6 +8,7 @@ export { useQuotaLoader } from './useQuotaLoader';
 export {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
+  CLINE_CONFIG,
   CODEX_CONFIG,
   DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,

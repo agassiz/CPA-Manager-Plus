@@ -15,6 +15,7 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  CLINE_CONFIG,
   DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,
   KIRO_CONFIG,
@@ -178,6 +179,14 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={DEVIN_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+        searchQuery={searchQuery}
+        sortMode={sortMode}
+      />
+      <QuotaSection
+        config={CLINE_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

@@ -910,7 +910,13 @@
     "quota_refresh_success": "Квота для \"{{name}}\" обновлена",
     "quota_refresh_failed": "Не удалось обновить квоту для \"{{name}}\": {{message}}",
     "filter_meta": "Muse (Meta)",
-    "filter_devin": "Devin"
+    "filter_devin": "Devin",
+    "filter_cline": "Cline",
+    "cline_mode_label": "Режим Cline",
+    "cline_mode_hint": "Выберите, какие модели предоставляет этот ключ. Оба режима используют один и тот же эндпоинт; ClinePass — это подписочные модели cline-pass/*.",
+    "cline_mode_billing": "Cline Usage-Billing (оплата по использованию)",
+    "cline_mode_pass": "ClinePass (подписка)",
+    "cline_mode_all": "Все"
   },
   "antigravity_quota": {
     "title": "Квота Antigravity",
@@ -1038,6 +1044,19 @@
     "limit_window": "Лимит {{duration}}",
     "limit_index": "Лимит #{{index}}",
     "reset_hint": "сброс через {{hint}}"
+  },
+  "cline_quota": {
+    "title": "Кредиты Cline",
+    "empty_title": "Нет файлов авторизации Cline",
+    "empty_desc": "Войдите через Cline OAuth, чтобы увидеть остаток кредитов.",
+    "idle": "Нажмите, чтобы обновить кредиты",
+    "loading": "Загрузка кредитов...",
+    "load_failed": "Не удалось загрузить кредиты: {{message}}",
+    "missing_auth_index": "В файле авторизации нет auth_index",
+    "empty_data": "Нет данных о кредитах",
+    "refresh_button": "Обновить кредиты",
+    "fetch_all": "Получить все",
+    "balance_label": "Остаток кредитов"
   },
   "xai_quota": {
     "title": "Квота xAI",
@@ -1270,6 +1289,17 @@
     "kimi_oauth_status_error": "Ошибка аутентификации:",
     "kimi_oauth_start_error": "Не удалось запустить Kimi OAuth:",
     "kimi_oauth_polling_error": "Не удалось проверить статус аутентификации:",
+    "cline_oauth_title": "Cline OAuth",
+    "cline_oauth_button": "Начать вход Cline",
+    "cline_oauth_hint": "Выполните вход в Cline через поток авторизации устройства, файлы аутентификации будут получены и сохранены автоматически.",
+    "cline_oauth_url_label": "URL авторизации:",
+    "cline_open_link": "Открыть ссылку",
+    "cline_copy_link": "Копировать ссылку",
+    "cline_oauth_status_waiting": "Ожидание аутентификации...",
+    "cline_oauth_status_success": "Аутентификация успешна!",
+    "cline_oauth_status_error": "Ошибка аутентификации:",
+    "cline_oauth_start_error": "Не удалось запустить Cline OAuth:",
+    "cline_oauth_polling_error": "Не удалось проверить статус аутентификации:",
     "kiro_oauth_title": "Kiro OAuth",
     "kiro_oauth_button": "Войти в Kiro",
     "kiro_oauth_hint": "Войдите в Kiro через авторизацию устройства AWS Builder ID. Учётные данные будут сохранены автоматически после подтверждения.",

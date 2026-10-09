@@ -31,6 +31,10 @@ export function isClaudeOAuthFile(file: AuthFileItem): boolean {
   return accessToken.includes('sk-ant-oat');
 }
 
+export function isClineFile(file: AuthFileItem): boolean {
+  return resolveAuthProvider(file) === 'cline';
+}
+
 export function isCodexFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'codex';
 }

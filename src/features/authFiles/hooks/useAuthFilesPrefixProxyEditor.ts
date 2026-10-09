@@ -20,6 +20,12 @@ import {
   readCodexAuthFileSuperCategory,
   readCodexAuthFileWebsockets,
 } from '@/features/authFiles/constants';
+import {
+  applyClineMode,
+  DEFAULT_CLINE_MODE,
+  readClineMode,
+  type ClineMode,
+} from '@/features/authFiles/clineMode';
 
 type AuthFileHeaders = Record<string, string>;
 type AuthFileHeadersErrorKey =
@@ -39,6 +45,7 @@ export type PrefixProxyEditorField =
   | 'codexTurnState'
   | 'codexTurnStateModel'
   | 'websockets'
+  | 'clineMode'
   | 'superCategory'
   | 'exclusiveEnabled'
   | 'exclusiveModel'
@@ -78,6 +85,8 @@ export type PrefixProxyEditorState = {
   codexTurnStateTouched: boolean;
   websockets: boolean;
   websocketsTouched: boolean;
+  clineMode: ClineMode;
+  clineModeTouched: boolean;
   superCategory: boolean;
   superCategoryTouched: boolean;
   superCategoryAllowed: boolean;
@@ -437,6 +446,13 @@ const buildAuthFileFieldsPatch = (
     }
   }
 
+  if (editor.providerKey === 'cline' && editor.clineModeTouched) {
+    if (editor.clineMode !== readClineMode(original)) {
+      // The default mode is stored by omitting the field, so selecting it clears the field.
+      patch.cline_mode = editor.clineMode === DEFAULT_CLINE_MODE ? null : editor.clineMode;
+    }
+  }
+
   if (editor.providerKey === 'codex' && editor.superCategoryTouched) {
     const originalSuperCategory = readCodexAuthFileSuperCategory(original);
     const nextSuperCategory = Boolean(editor.superCategory);
@@ -538,6 +554,10 @@ const buildPrefixProxyUpdatedText = (
     next = applyCodexAuthFileWebsockets(next, patch.websockets);
   }
 
+  if (patch.cline_mode !== undefined) {
+    next = applyClineMode(next, (patch.cline_mode ?? DEFAULT_CLINE_MODE) as ClineMode);
+  }
+
   if (patch.super_category !== undefined) {
     next = applyCodexAuthFileSuperCategory(next, patch.super_category);
   }
@@ -632,6 +652,8 @@ export function useAuthFilesPrefixProxyEditor(
       codexTurnStateTouched: false,
       websockets: false,
       websocketsTouched: false,
+      clineMode: DEFAULT_CLINE_MODE,
+      clineModeTouched: false,
       superCategory: false,
       superCategoryTouched: false,
       superCategoryAllowed: Boolean(file.super_category_allowed ?? file.superCategoryAllowed),
@@ -692,6 +714,7 @@ export function useAuthFilesPrefixProxyEditor(
       );
       const codexTurnState = '';
       const websockets = providerKey === 'codex' ? readCodexAuthFileWebsockets(json) : false;
+      const clineMode = providerKey === 'cline' ? readClineMode(json) : DEFAULT_CLINE_MODE;
       const superCategory =
         providerKey === 'codex'
           ? readCodexAuthFileSuperCategory(json) ||
@@ -741,6 +764,8 @@ export function useAuthFilesPrefixProxyEditor(
           codexTurnStateTouched: false,
           websockets,
           websocketsTouched: false,
+          clineMode,
+          clineModeTouched: false,
           superCategory,
           superCategoryTouched: false,
           superCategoryAllowed,
@@ -827,6 +852,9 @@ export function useAuthFilesPrefixProxyEditor(
       }
       if (field === 'websockets') {
         return { ...prev, websockets: Boolean(value), websocketsTouched: true };
+      }
+      if (field === 'clineMode') {
+        return { ...prev, clineMode: readClineMode({ cline_mode: value }), clineModeTouched: true };
       }
       if (field === 'superCategory') {
         return { ...prev, superCategory: Boolean(value), superCategoryTouched: true };

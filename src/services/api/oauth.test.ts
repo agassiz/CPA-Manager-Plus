@@ -32,6 +32,18 @@ describe('oauthApi Meta and Devin support', () => {
     expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', { params: { provider: 'meta' } });
   });
 
+  it('starts Cline device login without web callback mode', async () => {
+    mocks.get.mockResolvedValue({
+      url: 'https://example.test/device',
+      state: 'cline-state',
+      user_code: 'CLINE-CODE',
+      flow: 'device',
+    });
+
+    await expect(oauthApi.startAuth('cline')).resolves.toMatchObject({ user_code: 'CLINE-CODE' });
+    expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', { params: { provider: 'cline' } });
+  });
+
   it('starts and cancels a Devin web login session', async () => {
     mocks.get.mockResolvedValue({ url: 'https://example.test/login', state: 'devin-state' });
     mocks.delete.mockResolvedValue({ status: 'ok', cancelled: true });

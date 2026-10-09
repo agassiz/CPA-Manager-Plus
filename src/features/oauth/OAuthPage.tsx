@@ -23,6 +23,8 @@ import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconKiro from '@/assets/icons/kiro.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
+import iconClineLight from '@/assets/icons/cline-light.svg';
+import iconClineDark from '@/assets/icons/cline-dark.svg';
 
 interface ProviderState {
   url?: string;
@@ -142,6 +144,13 @@ const PROVIDERS: {
     hintKey: 'auth_login.devin_oauth_hint',
     urlLabelKey: 'auth_login.devin_oauth_url_label',
     icon: { light: iconDevin, dark: iconDevinDark },
+  },
+  {
+    id: 'cline',
+    titleKey: 'auth_login.cline_oauth_title',
+    hintKey: 'auth_login.cline_oauth_hint',
+    urlLabelKey: 'auth_login.cline_oauth_url_label',
+    icon: { light: iconClineLight, dark: iconClineDark },
   },
 ];
 

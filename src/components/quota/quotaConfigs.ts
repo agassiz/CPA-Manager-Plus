@@ -11,6 +11,8 @@ import type {
   ClaudeExtraUsage,
   ClaudeQuotaState,
   ClaudeQuotaWindow,
+  ClineBalance,
+  ClineQuotaState,
   CodexRateLimitResetCredit,
   CodexQuotaState,
   CodexQuotaWindow,
@@ -27,6 +29,7 @@ import type {
   XaiQuotaState,
 } from '@/types';
 import { useQuotaStore } from '@/stores';
+import { formatClineCredits } from '@/services/api/clineQuota';
 import {
   normalizePlanType,
   type AntigravityQuotaData,
@@ -36,6 +39,7 @@ import {
   formatKimiResetHint,
   fetchAntigravityQuota,
   fetchClaudeQuota,
+  fetchClineQuota,
   fetchCodexQuota,
   fetchDevinQuota,
   fetchGeminiCliCodeAssist,
@@ -46,6 +50,7 @@ import {
   fetchXaiQuota,
   isAntigravityFile,
   isClaudeFile,
+  isClineFile,
   isCodexFile,
   isDevinFile,
   isDisabledAuthFile,
@@ -65,6 +70,7 @@ type QuotaUpdater<T> = T | ((prev: T) => T);
 type QuotaType =
   | 'antigravity'
   | 'claude'
+  | 'cline'
   | 'codex'
   | 'devin'
   | 'gemini-cli'
@@ -90,6 +96,7 @@ const geminiCliSupplementaryCache = new Map<
 export interface QuotaStore {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
+  clineQuota: Record<string, ClineQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
@@ -99,6 +106,7 @@ export interface QuotaStore {
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
+  setClineQuota: (updater: QuotaUpdater<Record<string, ClineQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
@@ -776,6 +784,48 @@ export const DEVIN_CONFIG: QuotaConfig<DevinQuotaState, DevinQuotaData> = {
   gridClassName: styles.kimiGrid,
   getSearchText: (_file, quota) => [quota?.plan],
   renderQuotaItems: renderDevinItems,
+};
+
+const renderClineItems = (
+  quota: ClineQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap } = helpers;
+  const { createElement: h } = React;
+  if (!quota.balance) {
+    return h('div', { className: styleMap.quotaMessage }, t('cline_quota.empty_data'));
+  }
+  return h(
+    'div',
+    { key: 'balance', className: styleMap.codexPlan },
+    h('span', { className: styleMap.codexPlanLabel }, t('cline_quota.balance_label')),
+    h('span', { className: styleMap.codexPlanValue }, formatClineCredits(quota.balance))
+  );
+};
+
+export const CLINE_CONFIG: QuotaConfig<ClineQuotaState, ClineBalance> = {
+  type: 'cline',
+  i18nPrefix: 'cline_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isClineFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchClineQuota,
+  storeSelector: (state) => state.clineQuota,
+  storeSetter: 'setClineQuota',
+  buildLoadingState: () => ({ status: 'loading', balance: null }),
+  buildSuccessState: (balance) => ({ status: 'success', balance }),
+  buildErrorState: (message, status, upstreamError) => ({
+    status: 'error',
+    balance: null,
+    error: message,
+    errorStatus: status,
+    upstreamError,
+  }),
+  cardClassName: styles.kimiCard,
+  controlsClassName: styles.kimiControls,
+  controlClassName: styles.kimiControl,
+  gridClassName: styles.kimiGrid,
+  renderQuotaItems: renderClineItems,
 };
 
 const renderMetaItems = (

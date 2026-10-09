@@ -327,6 +327,19 @@ export interface DevinQuotaState extends DevinQuotaData {
   upstreamError?: boolean;
 }
 
+/** Cline credit balance in millionths of a US dollar (the unit the balance API returns). */
+export interface ClineBalance {
+  balanceMicroUsd: number;
+}
+
+export interface ClineQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  balance: ClineBalance | null;
+  error?: string;
+  errorStatus?: number;
+  upstreamError?: boolean;
+}
+
 export interface MetaQuotaWindow {
   id: 'window' | 'weekly';
   usedPercent: number | null;

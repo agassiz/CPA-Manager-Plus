@@ -8,6 +8,7 @@ import { obfuscatedStorage } from '@/services/storage/secureStorage';
 import type {
   AntigravityQuotaState,
   ClaudeQuotaState,
+  ClineQuotaState,
   CodexQuotaState,
   DevinQuotaState,
   GeminiCliQuotaState,
@@ -23,6 +24,7 @@ interface QuotaStoreState {
   cacheScope: string;
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
+  clineQuota: Record<string, ClineQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
@@ -32,6 +34,7 @@ interface QuotaStoreState {
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
+  setClineQuota: (updater: QuotaUpdater<Record<string, ClineQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
@@ -53,6 +56,7 @@ const resolveUpdater = <T>(updater: QuotaUpdater<T>, prev: T): T => {
 const emptyQuotaState = {
   antigravityQuota: {},
   claudeQuota: {},
+  clineQuota: {},
   codexQuota: {},
   devinQuota: {},
   geminiCliQuota: {},
@@ -78,6 +82,8 @@ export const useQuotaStore = create<QuotaStoreState>()(
         set((state) => ({ antigravityQuota: resolveUpdater(updater, state.antigravityQuota) })),
       setClaudeQuota: (updater) =>
         set((state) => ({ claudeQuota: resolveUpdater(updater, state.claudeQuota) })),
+      setClineQuota: (updater) =>
+        set((state) => ({ clineQuota: resolveUpdater(updater, state.clineQuota) })),
       setCodexQuota: (updater) =>
         set((state) => ({ codexQuota: resolveUpdater(updater, state.codexQuota) })),
       setDevinQuota: (updater) =>
@@ -119,6 +125,7 @@ export const useQuotaStore = create<QuotaStoreState>()(
         cacheScope: state.cacheScope,
         antigravityQuota: persistSuccessfulQuota(state.antigravityQuota),
         claudeQuota: persistSuccessfulQuota(state.claudeQuota),
+        clineQuota: persistSuccessfulQuota(state.clineQuota),
         codexQuota: persistSuccessfulQuota(state.codexQuota),
         devinQuota: persistSuccessfulQuota(state.devinQuota),
         geminiCliQuota: persistSuccessfulQuota(state.geminiCliQuota),

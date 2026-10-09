@@ -7,6 +7,7 @@ import type {
   ClaudeProfileResponse,
   ClaudeQuotaWindow,
   ClaudeUsagePayload,
+  ClineBalance,
   CodexRateLimitResetCredit,
   CodexQuotaWindow,
   CodexUsagePayload,
@@ -27,6 +28,7 @@ import type {
 } from '@/types';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api/apiCall';
 import { authFilesApi } from '@/services/api/authFiles';
+import { readClineBalance, readClineUserId } from '@/services/api/clineQuota';
 import { hasDevinQuotaObservation, readDevinQuotaResponse } from '@/services/api/devinQuota';
 import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
 import {
@@ -37,6 +39,9 @@ import {
   CLAUDE_REQUEST_HEADERS,
   CLAUDE_USAGE_URL,
   CLAUDE_USAGE_WINDOW_KEYS,
+  CLINE_BALANCE_URL,
+  CLINE_REQUEST_HEADERS,
+  CLINE_USER_URL,
   CODEX_RATE_LIMIT_RESET_CREDITS_URL,
   CODEX_RATE_LIMIT_RESET_CREDITS_CONSUME_URL,
   CODEX_REQUEST_HEADERS,
@@ -1116,6 +1121,44 @@ export const fetchXaiQuota = async (
   }
 
   return summary;
+};
+
+const clineRequest = (authIndex: string, url: string) =>
+  apiCallApi.request({
+    authIndex,
+    method: 'GET',
+    url,
+    header: { ...CLINE_REQUEST_HEADERS },
+  });
+
+export const fetchClineQuota = async (file: AuthFileItem, t: TFunction): Promise<ClineBalance> => {
+  const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
+  if (!authIndex) {
+    throw new Error(t('cline_quota.missing_auth_index'));
+  }
+
+  const userResult = await clineRequest(authIndex, CLINE_USER_URL);
+  if (userResult.statusCode < 200 || userResult.statusCode >= 300) {
+    throw createStatusError(getApiCallErrorMessage(userResult), userResult.statusCode, {
+      upstream: true,
+    });
+  }
+  const userId = readClineUserId(userResult.body ?? userResult.bodyText);
+  if (!userId) {
+    throw new Error(t('cline_quota.empty_data'));
+  }
+
+  const balanceResult = await clineRequest(authIndex, CLINE_BALANCE_URL(userId));
+  if (balanceResult.statusCode < 200 || balanceResult.statusCode >= 300) {
+    throw createStatusError(getApiCallErrorMessage(balanceResult), balanceResult.statusCode, {
+      upstream: true,
+    });
+  }
+  const balance = readClineBalance(balanceResult.body ?? balanceResult.bodyText);
+  if (!balance) {
+    throw new Error(t('cline_quota.empty_data'));
+  }
+  return balance;
 };
 
 const readMetaDcaToken = (text: string): string => {

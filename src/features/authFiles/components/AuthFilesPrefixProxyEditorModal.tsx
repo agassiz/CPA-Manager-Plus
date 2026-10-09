@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { formatDateTime } from '@/utils/format';
+import { CLINE_MODES } from '@/features/authFiles/clineMode';
 import type {
   PrefixProxyEditorField,
   PrefixProxyEditorFieldValue,
@@ -234,6 +235,22 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
                     disabled={disableControls || editor.saving || !editor.json}
                     onChange={(e) => onChange('proxyUrl', e.target.value)}
                   />
+                  {editor.providerKey === 'cline' && (
+                    <div className="form-group">
+                      <label>{t('auth_files.cline_mode_label')}</label>
+                      <Select
+                        value={editor.clineMode}
+                        options={CLINE_MODES.map((mode) => ({
+                          value: mode,
+                          label: t(`auth_files.cline_mode_${mode}`),
+                        }))}
+                        ariaLabel={t('auth_files.cline_mode_label')}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(value) => onChange('clineMode', value)}
+                      />
+                      <div className="hint">{t('auth_files.cline_mode_hint')}</div>
+                    </div>
+                  )}
                   {editor.providerKey === 'codex' && (
                     <>
                       <div className="form-group">

@@ -921,7 +921,13 @@
     "quota_refresh_single": "重新整理配額",
     "quota_refresh_failed": "重新整理「{{name}}」的配額失敗：{{message}}",
     "filter_meta": "Muse (Meta)",
-    "filter_devin": "Devin"
+    "filter_devin": "Devin",
+    "filter_cline": "Cline",
+    "cline_mode_label": "Cline 模式",
+    "cline_mode_hint": "選擇此憑證提供的模型。兩種模式使用同一個介面，ClinePass 是訂閱制的 cline-pass/* 模型。",
+    "cline_mode_billing": "Cline Usage-Billing（按量計費）",
+    "cline_mode_pass": "ClinePass（訂閱）",
+    "cline_mode_all": "全部"
   },
   "antigravity_quota": {
     "title": "Antigravity 配額",
@@ -1049,6 +1055,19 @@
     "limit_window": "{{duration}} 限額",
     "limit_index": "限額 #{{index}}",
     "reset_hint": "{{hint}} 後重置"
+  },
+  "cline_quota": {
+    "title": "Cline 積分",
+    "empty_title": "尚無 Cline 認證檔案",
+    "empty_desc": "使用 Cline OAuth 登入後可查看剩餘積分。",
+    "idle": "點擊此處重新整理積分",
+    "loading": "正在載入積分...",
+    "load_failed": "積分載入失敗: {{message}}",
+    "missing_auth_index": "認證檔案缺少 auth_index",
+    "empty_data": "暫無積分資料",
+    "refresh_button": "重新整理積分",
+    "fetch_all": "全部取得",
+    "balance_label": "剩餘積分"
   },
   "xai_quota": {
     "title": "xAI 配額",
@@ -1281,6 +1300,17 @@
     "kimi_oauth_status_error": "驗證失敗:",
     "kimi_oauth_start_error": "啟動 Kimi OAuth 失敗:",
     "kimi_oauth_polling_error": "檢查驗證狀態失敗:",
+    "cline_oauth_title": "Cline OAuth",
+    "cline_oauth_button": "開始 Cline 登入",
+    "cline_oauth_hint": "透過裝置授權流程登入 Cline，自動取得並儲存驗證檔案。",
+    "cline_oauth_url_label": "授權連結:",
+    "cline_open_link": "開啟連結",
+    "cline_copy_link": "複製連結",
+    "cline_oauth_status_waiting": "等待驗證中...",
+    "cline_oauth_status_success": "驗證成功！",
+    "cline_oauth_status_error": "驗證失敗:",
+    "cline_oauth_start_error": "啟動 Cline OAuth 失敗:",
+    "cline_oauth_polling_error": "檢查驗證狀態失敗:",
     "kiro_oauth_title": "Kiro OAuth",
     "kiro_oauth_button": "開始 Kiro 登入",
     "kiro_oauth_hint": "使用 AWS Builder ID 裝置授權登入 Kiro，完成授權後自動儲存驗證檔案。",

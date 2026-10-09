@@ -3,6 +3,7 @@ import type {
   AntigravityQuotaState,
   AuthFileItem,
   ClaudeQuotaState,
+  ClineQuotaState,
   CodexQuotaState,
   CodexQuotaWindow,
   DevinQuotaState,
@@ -13,6 +14,7 @@ import type {
   XaiBillingSummary,
   XaiQuotaState,
 } from '@/types';
+import { formatClineCredits } from '@/services/api/clineQuota';
 import {
   formatKimiResetHint,
   formatQuotaResetTime,
@@ -316,6 +318,13 @@ export const buildAuthFileTableQuotaItems = (
         window.resetAt ? formatTimestampMs(window.resetAt * 1000) : t('meta_quota.unknown')
       );
     }
+    return items;
+  }
+
+  if (quotaType === 'cline') {
+    const balance = (quota as ClineQuotaState).balance;
+    if (!balance) return [];
+    pushMeta(items, 'balance', t('cline_quota.balance_label'), formatClineCredits(balance));
     return items;
   }
 
@@ -655,6 +664,20 @@ export const getAuthFileTableQuotaItems = (
       });
     }
     return items;
+  }
+
+  if (quotaType === 'cline') {
+    const balance = (quota as ClineQuotaState | undefined)?.balance;
+    if (!balance) return [];
+    return [
+      {
+        id: 'balance',
+        label: t('cline_quota.balance_label'),
+        percent: null,
+        resetLabel: '',
+        detailLabel: formatClineCredits(balance),
+      },
+    ];
   }
 
   const billing = (quota as XaiQuotaState | undefined)?.billing;

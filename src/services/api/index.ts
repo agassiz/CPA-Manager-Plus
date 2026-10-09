@@ -17,6 +17,7 @@ export * from './transformers';
 export * from './vertex';
 export * from './codexQuota';
 export * from './codexTurnStateMonitor';
+export * from './clineQuota';
 export * from './devinQuota';
 export * from './metaQuota';
 export * from './plugins';

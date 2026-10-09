@@ -3,6 +3,7 @@ import type { QuotaSortMode } from '@/components/quota/quotaConfigs';
 export type QuotaSectionType =
   | 'antigravity'
   | 'claude'
+  | 'cline'
   | 'codex'
   | 'devin'
   | 'gemini-cli'
@@ -26,6 +27,7 @@ const QUOTA_SORT_MODE_SET = new Set<QuotaSortMode>([
 const QUOTA_SECTION_TYPE_SET = new Set<QuotaSectionType>([
   'antigravity',
   'claude',
+  'cline',
   'codex',
   'devin',
   'gemini-cli',

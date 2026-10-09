@@ -931,7 +931,13 @@
     "quota_refresh_single": "刷新额度",
     "quota_refresh_failed": "刷新 \"{{name}}\" 的额度失败：{{message}}",
     "filter_meta": "Muse (Meta)",
-    "filter_devin": "Devin"
+    "filter_devin": "Devin",
+    "filter_cline": "Cline",
+    "cline_mode_label": "Cline 模式",
+    "cline_mode_hint": "选择该凭证提供的模型。两种模式使用同一个接口，ClinePass 是订阅制的 cline-pass/* 模型。",
+    "cline_mode_billing": "Cline Usage-Billing（按量计费）",
+    "cline_mode_pass": "ClinePass（订阅）",
+    "cline_mode_all": "全部"
   },
   "antigravity_quota": {
     "title": "Antigravity 额度",
@@ -1059,6 +1065,19 @@
     "limit_window": "{{duration}} 限额",
     "limit_index": "限额 #{{index}}",
     "reset_hint": "{{hint}} 后重置"
+  },
+  "cline_quota": {
+    "title": "Cline 积分",
+    "empty_title": "暂无 Cline 认证文件",
+    "empty_desc": "使用 Cline OAuth 登录后可查看剩余积分。",
+    "idle": "点击此处刷新积分",
+    "loading": "正在加载积分...",
+    "load_failed": "积分加载失败: {{message}}",
+    "missing_auth_index": "认证文件缺少 auth_index",
+    "empty_data": "暂无积分数据",
+    "refresh_button": "刷新积分",
+    "fetch_all": "全部获取",
+    "balance_label": "剩余积分"
   },
   "xai_quota": {
     "title": "xAI 额度",
@@ -1291,6 +1310,17 @@
     "kimi_oauth_status_error": "认证失败:",
     "kimi_oauth_start_error": "启动 Kimi OAuth 失败:",
     "kimi_oauth_polling_error": "检查认证状态失败:",
+    "cline_oauth_title": "Cline OAuth",
+    "cline_oauth_button": "开始 Cline 登录",
+    "cline_oauth_hint": "通过设备授权流程登录 Cline，自动获取并保存认证文件。",
+    "cline_oauth_url_label": "授权链接:",
+    "cline_open_link": "打开链接",
+    "cline_copy_link": "复制链接",
+    "cline_oauth_status_waiting": "等待认证中...",
+    "cline_oauth_status_success": "认证成功！",
+    "cline_oauth_status_error": "认证失败:",
+    "cline_oauth_start_error": "启动 Cline OAuth 失败:",
+    "cline_oauth_polling_error": "检查认证状态失败:",
     "kiro_oauth_title": "Kiro OAuth",
     "kiro_oauth_button": "开始 Kiro 登录",
     "kiro_oauth_hint": "使用 AWS Builder ID 设备授权登录 Kiro，完成授权后自动保存认证文件。",

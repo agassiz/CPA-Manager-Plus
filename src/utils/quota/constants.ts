@@ -231,6 +231,16 @@ export const XAI_REQUEST_HEADERS = {
   'User-Agent': 'xai-grok-workspace/0.2.93',
 };
 
+// Cline API configuration. The account endpoints only accept the `workos:`-prefixed token.
+export const CLINE_USER_URL = 'https://api.cline.bot/api/v1/users/me';
+export const CLINE_BALANCE_URL = (userId: string) =>
+  `https://api.cline.bot/api/v1/users/${encodeURIComponent(userId)}/balance`;
+
+export const CLINE_REQUEST_HEADERS = {
+  Authorization: 'Bearer workos:$TOKEN$',
+  Accept: 'application/json',
+};
+
 // Kiro (AWS CodeWhisperer) API configuration
 export const KIRO_QUOTA_URL = 'https://codewhisperer.us-east-1.amazonaws.com';
 

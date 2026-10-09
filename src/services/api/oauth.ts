@@ -13,7 +13,8 @@ export type OAuthProvider =
   | 'kimi'
   | 'kiro'
   | 'xai'
-  | 'devin';
+  | 'devin'
+  | 'cline';
 
 export interface OAuthStartResponse {
   url?: string;
