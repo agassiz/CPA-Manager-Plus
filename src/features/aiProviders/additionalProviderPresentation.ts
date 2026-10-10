@@ -14,11 +14,7 @@ import {
   type StatusBarData,
 } from '@/utils/recentRequests';
 import { isMultiProtocolSponsorBrand } from '@/features/providers/sponsorDefinitions';
-import type {
-  ProviderBrand,
-  ProviderResource,
-  SponsorProviderRaw,
-} from '@/features/providers/types';
+import type { ProviderResource, SponsorProviderRaw } from '@/features/providers/types';
 
 export interface ProviderCredentialEntry {
   key: string;
@@ -28,9 +24,6 @@ export interface ProviderCredentialEntry {
   failure: number;
   authIndices: string[];
 }
-
-const getUsageProvider = (brand: ProviderBrand): string =>
-  brand === 'claudeApi' ? 'claude' : brand;
 
 const getSponsorCredentials = (
   raw: SponsorProviderRaw,
@@ -122,13 +115,13 @@ export const getAdditionalProviderCredentials = (
       proxyUrl: config.proxyUrl,
       ...getProviderTotalStats(
         usageByProvider,
-        getUsageProvider(resource.brand),
+        resource.brand,
         config.apiKey,
         config.baseUrl
       ),
       authIndices: getProviderAuthIndices(
         usageByProvider,
-        getUsageProvider(resource.brand),
+        resource.brand,
         config.apiKey,
         config.baseUrl
       ),
@@ -172,7 +165,7 @@ export const getAdditionalProviderStatusData = (
   if (!isMultiProtocolSponsorBrand(resource.brand)) {
     return getProviderRecentStatusData(
       usageByProvider,
-      getUsageProvider(resource.brand),
+      resource.brand,
       resource.apiKey ?? undefined,
       resource.baseUrl ?? undefined
     );

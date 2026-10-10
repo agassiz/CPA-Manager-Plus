@@ -3,7 +3,7 @@ import { getApiCallErrorMessage, providersApi, type ApiCallResult } from '@/serv
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ProviderKeyConfig } from '@/types';
-import type { ApiKeyEntryInput, ModelEntryInput, ProviderBrand } from '../../types';
+import type { ApiKeyEntryInput, ModelEntryInput, ProviderBrand } from '../types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -328,7 +328,7 @@ export function useConnectivityTest(
   }, [brand, resolveSingleKeyTest, runTest]);
 
   const runClaude = useCallback(async (): Promise<void> => {
-    if (brand !== 'claude' && brand !== 'claudeApi') return;
+    if (brand !== 'claude') return;
     const resolved = resolveSingleKeyTest(setClaudeStatus, ['x-api-key', 'authorization'], false);
     if (!resolved) return;
     await runTest(setClaudeStatus, () =>

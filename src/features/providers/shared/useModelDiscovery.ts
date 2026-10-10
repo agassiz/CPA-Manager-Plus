@@ -7,14 +7,13 @@ import {
 } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ModelInfo } from '@/utils/models';
-import type { ApiKeyEntryInput, ProviderBrand } from '../../types';
+import type { ApiKeyEntryInput, ProviderBrand } from '../types';
 
 export const MODEL_DISCOVERY_BRANDS: ReadonlyArray<ProviderBrand> = [
   'gemini',
   'codex',
   'xai',
   'claude',
-  'claudeApi',
   'openaiCompatibility',
 ];
 
@@ -71,7 +70,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           brand === 'codex' ? withCodexClientIdentity(baseHeaders) : baseHeaders,
           undefined
         );
-      } else if (brand === 'claude' || brand === 'claudeApi') {
+      } else if (brand === 'claude') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
         next = await modelsApi.fetchClaudeModelsViaApiCall(
           baseUrl,

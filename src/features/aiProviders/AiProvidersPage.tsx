@@ -35,7 +35,6 @@ import { providersApi, usageCounterSnapshotsApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore, useThemeStore } from '@/stores';
 import { STORAGE_KEY_AI_PROVIDERS_LIST_MODE } from '@/utils/constants';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
-import { ProviderSheet, type ProviderSheetState } from '@/features/providers/sheets/ProviderSheet';
 import { isSponsorPartialMutationError } from '@/features/providers/sponsorMutationRecovery';
 import type {
   ProviderBrand,
@@ -104,7 +103,6 @@ type LegacyProviderBrand = 'openai' | 'codex' | 'claude' | 'vertex' | 'gemini';
 
 const ADDITIONAL_PROVIDER_BRANDS: ProviderBrand[] = [
   'xai',
-  'claudeApi',
   'kimi',
   'code0',
   'fennoAI',
@@ -118,7 +116,6 @@ const PROVIDER_PICKER_BRANDS: Array<LegacyProviderBrand | ProviderBrand> = [
   'gemini',
   'xai',
   'vertex',
-  'claudeApi',
   'kimi',
   'code0',
   'fennoAI',
@@ -143,12 +140,6 @@ export function AiProvidersPage() {
   const [error, setError] = useState('');
   const [listMode, setListMode] = useLocalStorage(STORAGE_KEY_AI_PROVIDERS_LIST_MODE, false);
   const [addProviderModalOpen, setAddProviderModalOpen] = useState(false);
-  const [providerSheetState, setProviderSheetState] = useState<ProviderSheetState>({
-    open: false,
-    brand: 'xai',
-    mode: 'create',
-    resource: null,
-  });
 
   const [geminiKeys, setGeminiKeys] = useState<GeminiKeyConfig[]>(
     () => config?.geminiApiKeys || []
@@ -321,40 +312,20 @@ export function AiProvidersPage() {
     [navigate]
   );
 
-  const openProviderEditor = (provider: LegacyProviderBrand) => {
+  const openProviderEditor = (provider: LegacyProviderBrand | ProviderBrand) => {
     setAddProviderModalOpen(false);
     openEditor('/ai-providers/' + provider + '/new');
   };
 
+  // Additional providers are edited by their position inside the brand group.
   const openAdditionalProviderEditor = (
     brand: ProviderBrand,
-    resource: ProviderResource | null = null
+    resources: ProviderResource[],
+    resource: ProviderResource
   ) => {
-    setAddProviderModalOpen(false);
-    setProviderSheetState({
-      open: true,
-      brand,
-      mode: resource ? 'edit' : 'create',
-      resource,
-    });
-  };
-
-  const closeAdditionalProviderEditor = () => {
-    setProviderSheetState((current) => ({ ...current, open: false }));
-  };
-
-  const handleProviderPickerSelection = (provider: LegacyProviderBrand | ProviderBrand) => {
-    if (
-      provider === 'openai' ||
-      provider === 'codex' ||
-      provider === 'claude' ||
-      provider === 'vertex' ||
-      provider === 'gemini'
-    ) {
-      openProviderEditor(provider);
-      return;
-    }
-    openAdditionalProviderEditor(provider);
+    const resourceIndex = resources.indexOf(resource);
+    if (resourceIndex < 0) return;
+    openEditor(`/ai-providers/${brand}/${resourceIndex}`);
   };
 
   const deleteAdditionalProvider = (resource: ProviderResource) => {
@@ -842,7 +813,7 @@ export function AiProvidersPage() {
           disabled: resource.disabled,
           canToggle: true,
           canDelete: true,
-          onEdit: () => openAdditionalProviderEditor(brand, resource),
+          onEdit: () => openAdditionalProviderEditor(brand, resources, resource),
           onDelete: () => deleteAdditionalProvider(resource),
           onToggle: (enabled) => void setAdditionalProviderEnabled(resource, enabled),
         });
@@ -1239,8 +1210,8 @@ export function AiProvidersPage() {
                     providerWorkbench.isFetching
                   }
                   resolvedTheme={resolvedTheme}
-                  onAdd={() => openAdditionalProviderEditor(brand)}
-                  onEdit={(resource) => openAdditionalProviderEditor(brand, resource)}
+                  onAdd={() => openProviderEditor(brand)}
+                  onEdit={(resource) => openAdditionalProviderEditor(brand, resources, resource)}
                   onDelete={deleteAdditionalProvider}
                   onToggle={(resource, enabled) =>
                     void setAdditionalProviderEnabled(resource, enabled)
@@ -1270,7 +1241,7 @@ export function AiProvidersPage() {
               key={provider}
               variant="secondary"
               className={styles.providerTypeButton}
-              onClick={() => handleProviderPickerSelection(provider)}
+              onClick={() => openProviderEditor(provider)}
               disabled={disableControls || loading}
             >
               {provider === 'openai'
@@ -1285,29 +1256,6 @@ export function AiProvidersPage() {
           ))}
         </div>
       </Modal>
-
-      <ProviderSheet
-        state={providerSheetState}
-        onClose={closeAdditionalProviderEditor}
-        onSwitchToEdit={() => {
-          setProviderSheetState((current) =>
-            current.resource ? { ...current, mode: 'edit' } : current
-          );
-        }}
-        workbench={providerWorkbench}
-        onCreated={() => {
-          showNotification(t('providersPage.toast.created'), 'success');
-          closeAdditionalProviderEditor();
-        }}
-        onUpdated={() => {
-          showNotification(t('providersPage.toast.updated'), 'success');
-          closeAdditionalProviderEditor();
-        }}
-        mutationDisabled={
-          disableControls || providerWorkbench.mutating || providerWorkbench.isFetching
-        }
-        usageByProvider={usageByProvider}
-      />
 
       {!listMode && <ProviderNav />}
     </div>

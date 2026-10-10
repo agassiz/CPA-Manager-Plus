@@ -21,7 +21,6 @@ import {
   buildHeaderObject,
   headersToEntries,
   normalizeHeaderEntries,
-  withCodexClientIdentity,
 } from '@/utils/headers';
 import {
   areKeyValueEntriesEqual,
@@ -49,9 +48,8 @@ const buildEmptyForm = (): ProviderFormState => ({
   apiKey: '',
   priority: undefined,
   prefix: '',
-  baseUrl: '',
+  baseUrl: 'https://api.x.ai/v1',
   websockets: false,
-  enableNativeCompaction: false,
   proxyUrl: '',
   headers: [],
   models: [],
@@ -89,7 +87,6 @@ type CodexFormBaseline = {
   prefix: string;
   baseUrl: string;
   websockets: boolean;
-  enableNativeCompaction: boolean;
   disableCooling: boolean;
   proxyUrl: string;
   headers: ReturnType<typeof normalizeHeaderEntries>;
@@ -108,7 +105,6 @@ const buildCodexBaseline = (form: ProviderFormState): CodexFormBaseline => ({
   prefix: String(form.prefix ?? '').trim(),
   baseUrl: String(form.baseUrl ?? '').trim(),
   websockets: Boolean(form.websockets),
-  enableNativeCompaction: Boolean(form.enableNativeCompaction),
   disableCooling: Boolean(form.disableCooling),
   proxyUrl: String(form.proxyUrl ?? '').trim(),
   headers: normalizeHeaderEntries(form.headers),
@@ -116,7 +112,7 @@ const buildCodexBaseline = (form: ProviderFormState): CodexFormBaseline => ({
   excludedModels: parseExcludedModels(form.excludedText ?? ''),
 });
 
-export function AiProvidersCodexEditPage() {
+export function AiProvidersXAIEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -186,7 +182,7 @@ export function AiProvidersCodexEditPage() {
 
   const connectivity = useConnectivityTest(
     {
-      brand: 'codex',
+      brand: 'xai',
       baseUrl: form.baseUrl ?? '',
       testModel: resolvedTestModel,
       models: form.modelEntries,
@@ -199,8 +195,8 @@ export function AiProvidersCodexEditPage() {
 
   const title =
     editIndex !== null
-      ? t('ai_providers.codex_edit_modal_title')
-      : t('ai_providers.codex_add_modal_title');
+      ? t('ai_providers.xai_edit_modal_title')
+      : t('ai_providers.xai_add_modal_title');
 
   const handleBack = useCallback(() => {
     const state = location.state as LocationState;
@@ -228,7 +224,7 @@ export function AiProvidersCodexEditPage() {
     setLoading(true);
     setError('');
 
-    fetchConfig('codex-api-key')
+    fetchConfig('xai-api-key')
       .then((value) => {
         if (cancelled) return;
         setConfigs(Array.isArray(value) ? (value as ProviderKeyConfig[]) : []);
@@ -255,7 +251,6 @@ export function AiProvidersCodexEditPage() {
       const nextForm: ProviderFormState = {
         ...initialData,
         websockets: Boolean(initialData.websockets),
-        enableNativeCompaction: Boolean(initialData.enableNativeCompaction),
         headers: headersToEntries(initialData.headers),
         modelEntries: modelsToEntries(initialData.models),
         excludedText: excludedModelsToText(initialData.excludedModels),
@@ -303,7 +298,6 @@ export function AiProvidersCodexEditPage() {
     baseline.prefix !== String(form.prefix ?? '').trim() ||
     baseline.baseUrl !== String(form.baseUrl ?? '').trim() ||
     baseline.websockets !== Boolean(form.websockets) ||
-    baseline.enableNativeCompaction !== Boolean(form.enableNativeCompaction) ||
     baseline.disableCooling !== Boolean(form.disableCooling) ||
     baseline.proxyUrl !== String(form.proxyUrl ?? '').trim() ||
     isHeadersDirty ||
@@ -393,7 +387,7 @@ export function AiProvidersCodexEditPage() {
     [setForm, showNotification, t]
   );
 
-  const fetchCodexModelDiscovery = useCallback(async () => {
+  const fetchXAIModelDiscovery = useCallback(async () => {
     const requestId = (modelDiscoveryRequestIdRef.current += 1);
     setModelDiscoveryFetching(true);
     setModelDiscoveryError('');
@@ -407,7 +401,7 @@ export function AiProvidersCodexEditPage() {
       const list = await modelsApi.fetchV1ModelsViaApiCall(
         form.baseUrl ?? '',
         hasCustomAuthorization ? undefined : apiKey,
-        withCodexClientIdentity(headerObject)
+        headerObject
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -457,9 +451,9 @@ export function AiProvidersCodexEditPage() {
     if (autoFetchSignatureRef.current === signature) return;
     autoFetchSignatureRef.current = signature;
 
-    void fetchCodexModelDiscovery();
+    void fetchXAIModelDiscovery();
   }, [
-    fetchCodexModelDiscovery,
+    fetchXAIModelDiscovery,
     form.apiKey,
     form.baseUrl,
     form.headers,
@@ -522,7 +516,7 @@ export function AiProvidersCodexEditPage() {
     const trimmedBaseUrl = (form.baseUrl ?? '').trim();
     const baseUrl = trimmedBaseUrl || undefined;
     if (!baseUrl) {
-      showNotification(t('notification.codex_base_url_required'), 'error');
+      showNotification(t('providersPage.form.validation.baseUrlRequired'), 'error');
       return;
     }
 
@@ -541,26 +535,26 @@ export function AiProvidersCodexEditPage() {
         prefix: form.prefix?.trim() || undefined,
         baseUrl,
         websockets: Boolean(form.websockets),
-        enableNativeCompaction: Boolean(form.enableNativeCompaction),
-        disableCooling: Boolean(form.disableCooling),
+              disableCooling: Boolean(form.disableCooling),
         proxyUrl: form.proxyUrl?.trim() || undefined,
         headers: buildHeaderObject(form.headers),
         models: entriesToModels(form.modelEntries),
         excludedModels: parseExcludedModels(form.excludedText),
       };
 
-      const nextList =
-        editIndex !== null
-          ? configs.map((item, idx) => (idx === editIndex ? payload : item))
-          : [...configs, payload];
-
-      await providersApi.saveCodexConfigs(nextList);
-      updateConfigValue('codex-api-key', nextList);
-      clearCache('codex-api-key');
+      const existing = editIndex !== null ? configs[editIndex] : undefined;
+      if (existing) {
+        await providersApi.updateXAIConfig(existing.apiKey, existing.baseUrl, payload);
+      } else {
+        await providersApi.createXAIConfig(payload);
+      }
+      const nextList = existing
+        ? configs.map((item, idx) => (idx === editIndex ? payload : item))
+        : [...configs, payload];
+      updateConfigValue('xai-api-key', nextList);
+      clearCache('xai-api-key');
       showNotification(
-        editIndex !== null
-          ? t('notification.codex_config_updated')
-          : t('notification.codex_config_added'),
+        existing ? t('providersPage.toast.updated') : t('providersPage.toast.created'),
         'success'
       );
       allowNextNavigation();
@@ -700,18 +694,6 @@ export function AiProvidersCodexEditPage() {
                 ariaLabel={t('ai_providers.codex_websockets_label')}
               />
               <div className="hint">{t('ai_providers.codex_websockets_hint')}</div>
-            </div>
-            <div className="form-group">
-              <label>{t('providersPage.form.nativeCompaction')}</label>
-              <ToggleSwitch
-                checked={Boolean(form.enableNativeCompaction)}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, enableNativeCompaction: value }))
-                }
-                disabled={disableControls || saving}
-                ariaLabel={t('providersPage.form.nativeCompaction')}
-              />
-              <div className="hint">{t('providersPage.form.nativeCompactionHint')}</div>
             </div>
             <div className="form-group">
               <label>{t('providersPage.form.disableCooling')}</label>
@@ -881,7 +863,7 @@ export function AiProvidersCodexEditPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => void fetchCodexModelDiscovery()}
+                      onClick={() => void fetchXAIModelDiscovery()}
                       loading={modelDiscoveryFetching}
                       disabled={disableControls || saving}
                     >

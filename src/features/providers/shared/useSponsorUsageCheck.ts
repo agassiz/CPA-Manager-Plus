@@ -5,7 +5,7 @@ import {
   getApiKeyFunUsageEndpoints,
   normalizeApiKeyFunUsagePayload,
   type ApiKeyFunUsageSummary,
-} from '../../sponsor';
+} from '../sponsor';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 

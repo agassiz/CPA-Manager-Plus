@@ -68,7 +68,7 @@ const buildEmptyForm = (): ProviderFormState => ({
   excludedText: '',
   experimentalCCHSigning: false,
   cloak: {
-    mode: 'never',
+    mode: 'always',
     strictMode: false,
     sensitiveWords: [],
     cacheUserID: true,

@@ -541,12 +541,12 @@ export function AiProvidersClaudeEditPage() {
 
                         const restored = prev.cloak ??
                           lastCloakConfigRef.current ?? {
-                            mode: 'never',
+                            mode: 'always',
                             strictMode: false,
                             sensitiveWords: [],
                             cacheUserID: true,
                           };
-                        const mode = String(restored.mode ?? 'never').trim() || 'never';
+                        const mode = String(restored.mode ?? 'always').trim() || 'always';
                         return {
                           ...prev,
                           cloak: {

@@ -4,7 +4,6 @@ import geminiLogo from '@/assets/icons/gemini.svg';
 import openaiLightLogo from '@/assets/icons/openai-light.svg';
 import openaiDarkLogo from '@/assets/icons/openai-dark.svg';
 import vertexLogo from '@/assets/icons/vertex.svg';
-import claudeApiLogo from '@/assets/icons/claudeapi.png';
 import apikeyFunLogo from '@/assets/icons/apikey-fun.png';
 import code0Logo from '@/assets/icons/code0.png';
 import fennoAILogo from '@/assets/icons/fenno-ai.png';
@@ -26,7 +25,6 @@ export interface ProviderBrandLogo {
 export const PROVIDER_LOGOS: Record<ProviderBrand, ProviderBrandLogo> = {
   gemini: { src: geminiLogo },
   claude: { src: claudeLogo },
-  claudeApi: { src: claudeApiLogo },
   codex: { src: codexLogo },
   xai: { src: xaiLightLogo, darkSrc: xaiDarkLogo, transparent: true },
   vertex: { src: vertexLogo },

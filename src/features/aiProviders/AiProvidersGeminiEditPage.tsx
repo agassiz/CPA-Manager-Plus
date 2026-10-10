@@ -31,8 +31,8 @@ import { parseProviderIndexParam } from '@/features/aiProviders/model/routeParam
 import {
   useConnectivityTest,
   type ConnectivityErrorMessages,
-} from '@/features/providers/sheets/forms/useConnectivityTest';
-import { ConnectivityStatusIcon } from '@/features/providers/sheets/forms/ConnectivityStatusIcon';
+} from '@/features/providers/shared/useConnectivityTest';
+import { ConnectivityStatusIcon } from '@/features/providers/shared/ConnectivityStatusIcon';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
 import { ModelThinkingInputList } from './components/ModelThinkingInputList';

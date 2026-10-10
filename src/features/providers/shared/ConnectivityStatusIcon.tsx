@@ -1,6 +1,6 @@
 import { IconAlertTriangle, IconCheckCircle2, IconLoader2 } from '@/components/ui/icons';
 import type { ConnectivityState } from './useConnectivityTest';
-import styles from './sharedForm.module.scss';
+import styles from './ConnectivityStatusIcon.module.scss';
 
 export function ConnectivityStatusIcon({ state }: { state: ConnectivityState }) {
   if (state === 'loading') {

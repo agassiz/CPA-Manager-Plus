@@ -1,0 +1,26 @@
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.statusIconLoading {
+  color: var(--text-secondary);
+  animation: spin 0.8s linear infinite;
+}
+
+.statusIconSuccess {
+  color: var(--success-color);
+}
+
+.statusIconError {
+  color: var(--destructive-color);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

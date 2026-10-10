@@ -10,7 +10,6 @@ import {
 import type { GeminiKeyConfig, ModelAlias, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import {
   apiKeyFunToResource,
-  claudeApiToResource,
   claudeToResource,
   code0ToResource,
   codexToResource,
@@ -39,7 +38,6 @@ import {
   isApiKeyFunCodexProvider,
   isApiKeyFunOpenAIProvider,
 } from './sponsor';
-import { CLAUDE_API_BASE_URL, isClaudeApiProvider } from './claudeApi';
 import {
   buildCode0Raw,
   isCode0ClaudeProvider,
@@ -187,19 +185,6 @@ const buildProviderKeyConfig = (
   }
   return next;
 };
-
-const buildClaudeApiConfig = (
-  input: ProviderEntryFormInput,
-  existing?: ProviderKeyConfig | null
-): ProviderKeyConfig =>
-  buildProviderKeyConfig(
-    'claude',
-    {
-      ...input,
-      baseUrl: CLAUDE_API_BASE_URL,
-    },
-    existing
-  ) as ProviderKeyConfig;
 
 const buildOpenAIConfig = (
   input: ProviderEntryFormInput,
@@ -461,21 +446,9 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
                 !isCode0ClaudeProvider(item) &&
                 !isFennoAIClaudeProvider(item) &&
                 !isQiniuCloudClaudeProvider(item) &&
-                !isKimiClaudeProvider(item) &&
-                !isClaudeApiProvider(item)
+                !isKimiClaudeProvider(item)
               ) {
                 out.push(claudeToResource(item, index));
-              }
-              return out;
-            },
-            []
-          );
-          break;
-        case 'claudeApi':
-          resources = (config.claudeApiKeys ?? []).reduce<ProviderResource[]>(
-            (out, item, index) => {
-              if (isClaudeApiProvider(item)) {
-                out.push(claudeApiToResource(item, index));
               }
               return out;
             },
@@ -669,8 +642,6 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
           await providersApi.createClaudeConfig(
             buildProviderKeyConfig('claude', input) as ProviderKeyConfig
           );
-        } else if (brand === 'claudeApi') {
-          await providersApi.createClaudeConfig(buildClaudeApiConfig(input));
         } else if (brand === 'vertex') {
           await providersApi.createVertexConfig(
             buildProviderKeyConfig('vertex', input) as ProviderKeyConfig
@@ -728,12 +699,6 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
             selector.baseUrl,
             buildProviderKeyConfig('claude', input, existing) as ProviderKeyConfig
           );
-        } else if (brand === 'claudeApi' && selector.brand === 'claudeApi') {
-          await providersApi.updateClaudeConfig(
-            selector.apiKey,
-            selector.baseUrl,
-            buildClaudeApiConfig(input, resource.raw as ProviderKeyConfig)
-          );
         } else if (brand === 'vertex' && selector.brand === 'vertex') {
           const existing = resource.raw as ProviderKeyConfig;
           await providersApi.updateVertexConfig(
@@ -782,10 +747,6 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
           const next = (config?.xaiApiKeys ?? []).filter((_, i) => i !== sel.index);
           updateConfigValue('xai-api-key', next);
         } else if (sel.brand === 'claude') {
-          await providersApi.deleteClaudeConfig(sel.apiKey, sel.baseUrl);
-          const next = (config?.claudeApiKeys ?? []).filter((_, i) => i !== sel.index);
-          updateConfigValue('claude-api-key', next);
-        } else if (sel.brand === 'claudeApi') {
           await providersApi.deleteClaudeConfig(sel.apiKey, sel.baseUrl);
           const next = (config?.claudeApiKeys ?? []).filter((_, i) => i !== sel.index);
           updateConfigValue('claude-api-key', next);
@@ -852,7 +813,6 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
           (brand === 'codex' && selector.brand === 'codex') ||
           (brand === 'xai' && selector.brand === 'xai') ||
           (brand === 'claude' && selector.brand === 'claude') ||
-          (brand === 'claudeApi' && selector.brand === 'claudeApi') ||
           (brand === 'vertex' && selector.brand === 'vertex')
         ) {
           const current = resource.raw as ProviderKeyConfig;
@@ -864,7 +824,7 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
             await providersApi.updateCodexConfig(selector.apiKey, selector.baseUrl, next);
           } else if (selector.brand === 'xai') {
             await providersApi.updateXAIConfig(selector.apiKey, selector.baseUrl, next);
-          } else if (selector.brand === 'claude' || selector.brand === 'claudeApi') {
+          } else if (selector.brand === 'claude') {
             await providersApi.updateClaudeConfig(selector.apiKey, selector.baseUrl, next);
           } else if (selector.brand === 'vertex') {
             await providersApi.updateVertexConfig(selector.apiKey, selector.baseUrl, next);

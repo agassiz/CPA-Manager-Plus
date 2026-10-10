@@ -7,7 +7,6 @@ import {
   getApiKeyFunProtocolUrls,
   resolveApiKeyFunBaseUrl,
 } from './sponsor';
-import { CLAUDE_API_DISPLAY_NAME } from './claudeApi';
 import {
   CODE0_DISPLAY_NAME,
   CODE0_PROTOCOL_LABELS,
@@ -66,7 +65,7 @@ const truncateForId = (value: string | undefined | null): string => {
 };
 
 function providerKeyToResource(
-  brand: 'gemini' | 'codex' | 'xai' | 'claude' | 'claudeApi' | 'vertex',
+  brand: 'gemini' | 'codex' | 'xai' | 'claude' | 'vertex',
   config: GeminiKeyConfig | ProviderKeyConfig,
   index: number
 ): ProviderResource {
@@ -76,7 +75,7 @@ function providerKeyToResource(
   if (brand === 'codex' || brand === 'xai') {
     flags.websockets = (config as ProviderKeyConfig).websockets === true;
   }
-  if (brand === 'claude' || brand === 'claudeApi') {
+  if (brand === 'claude') {
     const cloak = (config as ProviderKeyConfig).cloak;
     flags.cloakEnabled = Boolean(cloak?.mode?.trim());
   }
@@ -127,14 +126,6 @@ export function xaiToResource(config: ProviderKeyConfig, index: number): Provide
 
 export function claudeToResource(config: ProviderKeyConfig, index: number): ProviderResource {
   return providerKeyToResource('claude', config, index);
-}
-
-export function claudeApiToResource(config: ProviderKeyConfig, index: number): ProviderResource {
-  const resource = providerKeyToResource('claudeApi', config, index);
-  return {
-    ...resource,
-    name: CLAUDE_API_DISPLAY_NAME,
-  };
 }
 
 export function vertexToResource(config: ProviderKeyConfig, index: number): ProviderResource {

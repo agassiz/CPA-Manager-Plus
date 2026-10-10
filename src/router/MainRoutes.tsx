@@ -11,6 +11,8 @@ import { AiProvidersOpenAIEditLayout } from '@/pages/AiProvidersOpenAIEditLayout
 import { AiProvidersOpenAIEditPage } from '@/pages/AiProvidersOpenAIEditPage';
 import { AiProvidersOpenAIModelsPage } from '@/pages/AiProvidersOpenAIModelsPage';
 import { AiProvidersVertexEditPage } from '@/pages/AiProvidersVertexEditPage';
+import { AiProvidersXAIEditPage } from '@/features/aiProviders/AiProvidersXAIEditPage';
+import { AiProvidersSponsorEditPage } from '@/features/aiProviders/AiProvidersSponsorEditPage';
 import { AiProvidersEditorModal } from '@/features/aiProviders/AiProvidersEditorModal';
 import { AuthFilesPage } from '@/pages/AuthFilesPage';
 import { AuthFilesOAuthExcludedEditPage } from '@/pages/AuthFilesOAuthExcludedEditPage';
@@ -84,6 +86,30 @@ function LogsGate({ children }: { children: ReactElement }) {
 
   return children;
 }
+
+const SPONSOR_EDITOR_BRANDS = ['kimi', 'code0', 'fennoAI', 'qiniuCloud'] as const;
+
+// Full-page editors for the providers that have no dedicated edit page of their own.
+const EXTRA_PROVIDER_EDITOR_ROUTES = [
+  ...['new', ':index'].map((segment) => ({
+    path: `/ai-providers/xai/${segment}`,
+    element: (
+      <AiProvidersEditorModal>
+        <AiProvidersXAIEditPage />
+      </AiProvidersEditorModal>
+    ),
+  })),
+  ...SPONSOR_EDITOR_BRANDS.flatMap((brand) =>
+    ['new', ':index'].map((segment) => ({
+      path: `/ai-providers/${brand}/${segment}`,
+      element: (
+        <AiProvidersEditorModal>
+          <AiProvidersSponsorEditPage brand={brand} />
+        </AiProvidersEditorModal>
+      ),
+    }))
+  ),
+];
 
 const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/', element: <DashboardPage /> },
@@ -186,6 +212,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
       { path: 'models', element: <AiProvidersOpenAIModelsPage /> },
     ],
   },
+  ...EXTRA_PROVIDER_EDITOR_ROUTES,
   { path: '/ai-providers', element: <AiProvidersPage /> },
   { path: '/ai-providers/*', element: <AiProvidersPage /> },
   { path: '/auth-files', element: <AuthFilesPage /> },

@@ -17,7 +17,6 @@ describe('providers workbench catalog', () => {
       'vertex',
       'kimi',
       'apikeyFun',
-      'claudeApi',
       'code0',
       'fennoAI',
       'qiniuCloud',

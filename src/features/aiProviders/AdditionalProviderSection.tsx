@@ -13,7 +13,6 @@ import type { ProviderRecentUsageMap } from '@/components/providers/utils';
 import type { ProviderKeyConfig } from '@/types';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
-import { CLAUDE_API_AFFILIATE_URL } from '@/features/providers/claudeApi';
 import { getKimiAffiliateUrl } from '@/features/providers/kimi';
 import {
   getSponsorProviderDefinition,
@@ -57,17 +56,14 @@ export function AdditionalProviderSection({
   const { t, i18n } = useTranslation();
   const logo = PROVIDER_LOGOS[brand];
   const logoSource = resolvedTheme === 'dark' && logo.darkSrc ? logo.darkSrc : logo.src;
-  const compactLogo =
-    brand === 'claudeApi' || brand === 'code0' || brand === 'fennoAI' || brand === 'qiniuCloud';
+  const compactLogo = brand === 'code0' || brand === 'fennoAI' || brand === 'qiniuCloud';
   const providerName = t(`providersPage.providerNames.${brand}`);
   const registrationUrl =
-    brand === 'claudeApi'
-      ? CLAUDE_API_AFFILIATE_URL
-      : brand === 'kimi'
-        ? getKimiAffiliateUrl(i18n.resolvedLanguage ?? i18n.language)
-        : brand === 'code0' || brand === 'fennoAI' || brand === 'qiniuCloud'
-          ? getSponsorProviderDefinition(brand).affiliateUrl
-          : undefined;
+    brand === 'kimi'
+      ? getKimiAffiliateUrl(i18n.resolvedLanguage ?? i18n.language)
+      : brand === 'code0' || brand === 'fennoAI' || brand === 'qiniuCloud'
+        ? getSponsorProviderDefinition(brand).affiliateUrl
+        : undefined;
   const statusByResource = useMemo(
     () =>
       new Map(
