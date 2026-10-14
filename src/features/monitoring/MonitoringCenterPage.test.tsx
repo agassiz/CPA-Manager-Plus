@@ -426,7 +426,7 @@ describe('MonitoringCenterPage account card', () => {
           recentPattern: [true, true],
           models: [
             {
-              model: 'gpt-5.5',
+              model: 'gpt-6-luna',
               totalCalls: 196,
               successCalls: 195,
               failureCalls: 1,
@@ -478,7 +478,7 @@ describe('MonitoringCenterPage account card', () => {
       />
     );
 
-    expect(html).toContain('gpt-5.5');
+    expect(html).toContain('gpt-6-luna');
     expect(html).toContain('<small>Calls</small><strong>196</strong>');
     expect(html).toContain('<small>Success</small><strong class="_rate90Text');
     expect(html).toContain('<small>Total Tokens</small><strong>33.5M</strong>');
@@ -563,7 +563,7 @@ describe('MonitoringCenterPage account card', () => {
       recentPattern: [true, true],
       models: [
         {
-          model: 'gpt-5.5',
+          model: 'gpt-6-luna',
           totalCalls: 196,
           successCalls: 195,
           failureCalls: 1,
@@ -639,7 +639,7 @@ describe('MonitoringCenterPage account card', () => {
     expect(html).not.toContain('<th>Create</th>');
     expect(html).toContain('<th>Total Tokens</th>');
     expect(html).toContain('<th>Latest request</th>');
-    expect(html).toContain('gpt-5.5');
+    expect(html).toContain('gpt-6-luna');
     expect(html).toContain('codex-auto-review');
     expect(html).not.toContain('long-tail-model');
   });

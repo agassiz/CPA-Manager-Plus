@@ -122,6 +122,21 @@ const PROVIDER_PICKER_BRANDS: Array<LegacyProviderBrand | ProviderBrand> = [
   'qiniuCloud',
 ];
 
+// Survives unmounting when navigating to an editor page, so list controls are restored on return.
+const savedListControls: {
+  filter: string;
+  provider: string;
+  sortBy: ProviderSortBy;
+  sortDir: SortDir;
+  selectedModels: Set<string>;
+} = {
+  filter: '',
+  provider: '',
+  sortBy: 'name',
+  sortDir: 'asc',
+  selectedModels: new Set(),
+};
+
 export function AiProvidersPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -156,13 +171,30 @@ export function AiProvidersPage() {
   const [openaiProviders, setOpenaiProviders] = useState<OpenAIProviderConfig[]>(
     () => config?.openaiCompatibility || []
   );
-  const [providerListFilter, setProviderListFilter] = useState('');
-  const [providerListProvider, setProviderListProvider] = useState('');
-  const [providerListSortBy, setProviderListSortBy] = useState<ProviderSortBy>('name');
-  const [providerListSortDir, setProviderListSortDir] = useState<SortDir>('asc');
-  const [providerListSelectedModels, setProviderListSelectedModels] = useState<Set<string>>(
-    () => new Set()
+  const [providerListFilter, setProviderListFilter] = useState(savedListControls.filter);
+  const [providerListProvider, setProviderListProvider] = useState(savedListControls.provider);
+  const [providerListSortBy, setProviderListSortBy] = useState<ProviderSortBy>(
+    savedListControls.sortBy
   );
+  const [providerListSortDir, setProviderListSortDir] = useState<SortDir>(
+    savedListControls.sortDir
+  );
+  const [providerListSelectedModels, setProviderListSelectedModels] = useState<Set<string>>(
+    () => new Set(savedListControls.selectedModels)
+  );
+  useEffect(() => {
+    savedListControls.filter = providerListFilter;
+    savedListControls.provider = providerListProvider;
+    savedListControls.sortBy = providerListSortBy;
+    savedListControls.sortDir = providerListSortDir;
+    savedListControls.selectedModels = providerListSelectedModels;
+  }, [
+    providerListFilter,
+    providerListProvider,
+    providerListSortBy,
+    providerListSortDir,
+    providerListSelectedModels,
+  ]);
   const [selectedProviderRowIds, setSelectedProviderRowIds] = useState<Set<string>>(
     () => new Set()
   );

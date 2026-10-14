@@ -346,7 +346,7 @@ export function ModelPricesPage() {
               className={styles.compactInput}
               value={draft.model}
               onChange={(event) => setDraftField('model', event.target.value)}
-              placeholder="gpt-5.5"
+              placeholder="gpt-6-luna"
             />
             <Input
               label={`${t('usage_stats.model_price_prompt')} ($/1M)`}

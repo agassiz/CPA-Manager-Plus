@@ -242,7 +242,6 @@ export function getServiceTierMultiplier(modelName: string, serviceTier?: string
   // OpenAI Priority pricing currently publishes tier multipliers for these
   // model families. Keep this as a compatibility layer until model prices can
   // be represented per tier, such as standard, priority, flex, and batch.
-  if (isModelFamily(normalizedModel, 'gpt-5.5')) return 2.5;
   if (isModelFamily(normalizedModel, 'gpt-5.6')) return 2;
   return 1;
 }

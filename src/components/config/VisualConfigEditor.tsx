@@ -252,7 +252,7 @@ export function VisualConfigEditor({
   const portError = getValidationMessage(t, validationErrors?.port);
   const logsMaxSizeError = getValidationMessage(t, validationErrors?.logsMaxTotalSizeMb);
   const errorLogsMaxFilesError = getValidationMessage(t, validationErrors?.errorLogsMaxFiles);
-  const maxRequestBodyMbError = getValidationMessage(t, validationErrors?.maxRequestBodyMb);
+  const maxRequestBodyBytesError = getValidationMessage(t, validationErrors?.maxRequestBodyBytes);
   const requestRetryError = getValidationMessage(t, validationErrors?.requestRetry);
   const maxRetryCredentialsError = getValidationMessage(t, validationErrors?.maxRetryCredentials);
   const maxRetryIntervalError = getValidationMessage(t, validationErrors?.maxRetryInterval);
@@ -372,7 +372,7 @@ export function VisualConfigEditor({
           'requestRetry',
           'maxRetryCredentials',
           'maxRetryInterval',
-          'maxRequestBodyMb',
+          'maxRequestBodyBytes',
         ]),
       },
       {
@@ -924,14 +924,14 @@ export function VisualConfigEditor({
                   disabled={disabled}
                 />
                 <Input
-                  label={t('config_management.visual.sections.system.max_request_body_mb')}
+                  label={t('config_management.visual.sections.system.max_request_body_bytes')}
                   type="number"
-                  placeholder="16"
-                  value={values.maxRequestBodyMb}
-                  onChange={(e) => onChange({ maxRequestBodyMb: e.target.value })}
+                  placeholder="0"
+                  value={values.maxRequestBodyBytes}
+                  onChange={(e) => onChange({ maxRequestBodyBytes: e.target.value })}
                   disabled={disabled}
-                  hint={t('config_management.visual.sections.system.max_request_body_mb_hint')}
-                  error={maxRequestBodyMbError}
+                  hint={t('config_management.visual.sections.system.max_request_body_bytes_hint')}
+                  error={maxRequestBodyBytesError}
                 />
                 <Input
                   label={t('config_management.visual.sections.network.request_retry')}

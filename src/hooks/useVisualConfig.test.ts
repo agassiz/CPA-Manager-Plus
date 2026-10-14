@@ -49,7 +49,7 @@ describe('useVisualConfig', () => {
       'api-key-access:',
       '  - api-key: client-a',
       '    models:',
-      '      - gpt-5.5',
+      '      - gpt-6-luna',
       '    auth-ids:',
       '      - auth-1',
       '    providers:',
@@ -63,7 +63,7 @@ describe('useVisualConfig', () => {
     });
 
     expect(harness.getCurrent().visualValues.apiKeyAccessRules).toEqual([
-      { apiKey: 'client-a', models: ['gpt-5.5'], authIds: ['auth-1'], providers: ['codex:0'] },
+      { apiKey: 'client-a', models: ['gpt-6-luna'], authIds: ['auth-1'], providers: ['codex:0'] },
     ]);
     harness.unmount();
   });
@@ -77,7 +77,7 @@ describe('useVisualConfig', () => {
       'api-key-access:',
       '  - api-key: client-a',
       '    models:',
-      '      - gpt-5.5',
+      '      - gpt-6-luna',
       '  - api-key: client-b',
       '    providers:',
       '      - codex:0',
@@ -307,7 +307,7 @@ describe('useVisualConfig', () => {
     act(() => {
       harness.getCurrent().setVisualValues({
         codexModelContextWindowOverrides: [
-          { id: 'gpt', model: 'gpt-5.5', contextWindow: '200000' },
+          { id: 'gpt', model: 'gpt-6-luna', contextWindow: '200000' },
         ],
       });
     });
@@ -317,13 +317,13 @@ describe('useVisualConfig', () => {
     expect(harness.getCurrent().visualDirty).toBe(true);
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).toContain('model-context-window-overrides:');
-    expect(savedYaml).toContain('gpt-5.5: 200000');
+    expect(savedYaml).toContain('gpt-6-luna: 200000');
 
     act(() => {
       harness.getCurrent().setVisualValues({
         codexModelContextWindowOverrides: [
-          { id: 'invalid-1', model: 'gpt-5.5', contextWindow: '0' },
-          { id: 'invalid-2', model: 'gpt-5.5', contextWindow: '200000' },
+          { id: 'invalid-1', model: 'gpt-6-luna', contextWindow: '0' },
+          { id: 'invalid-2', model: 'gpt-6-luna', contextWindow: '200000' },
         ],
       });
     });
@@ -549,7 +549,7 @@ describe('useVisualConfig', () => {
     const harness = mountUseVisualConfig();
     const yaml = [
       'augment:',
-      '  silent-mode-model: gpt-5.5',
+      '  silent-mode-model: gpt-6-luna',
       '  image-fallback-model: qwen3.5-plus',
       '  codebase-retrieval-model: claude-sonnet-4-5',
       '  use-configured-completion-models: true',
@@ -574,7 +574,7 @@ describe('useVisualConfig', () => {
       expect(result.ok).toBe(true);
     });
 
-    expect(harness.getCurrent().visualValues.augmentSilentModeModel).toBe('gpt-5.5');
+    expect(harness.getCurrent().visualValues.augmentSilentModeModel).toBe('gpt-6-luna');
     expect(harness.getCurrent().visualValues.augmentCodebaseRetrievalModel).toBe(
       'claude-sonnet-4-5'
     );
@@ -587,7 +587,7 @@ describe('useVisualConfig', () => {
 
     act(() => {
       harness.getCurrent().setVisualValues({
-        augmentCodebaseRetrievalModel: 'gpt-5.5',
+        augmentCodebaseRetrievalModel: 'gpt-6-luna',
         augmentUseConfiguredCompletionModels: false,
         augmentCodeCompletionModel: 'gpt-5.6-luna',
         augmentChatInputCompletionModel: 'gpt-5.6-luna',
@@ -597,7 +597,7 @@ describe('useVisualConfig', () => {
     });
 
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
-    expect(savedYaml).toContain('codebase-retrieval-model: gpt-5.5');
+    expect(savedYaml).toContain('codebase-retrieval-model: gpt-6-luna');
     expect(savedYaml).toContain('use-configured-completion-models: false');
     expect(savedYaml).toContain('code-completion-model: gpt-5.6-luna');
     expect(savedYaml).toContain('chat-input-completion-model: gpt-5.6-luna');
@@ -612,9 +612,9 @@ describe('useVisualConfig', () => {
     const harness = mountUseVisualConfig();
     const yaml = [
       'usage-models:',
-      '  gpt-5.5:',
-      '    displayName: GPT-5.5',
-      '    shortName: gpt5.5',
+      '  gpt-6-luna:',
+      '    displayName: GPT-6 Luna',
+      '    shortName: gpt6-luna',
       '    description: 修复 Bug 的主力',
       '    disabled: false',
       '    isNew: true',
@@ -636,7 +636,7 @@ describe('useVisualConfig', () => {
     });
 
     expect(harness.getCurrent().visualValues.usageModels).toHaveLength(2);
-    expect(harness.getCurrent().visualValues.usageModels[0].name).toBe('gpt-5.5');
+    expect(harness.getCurrent().visualValues.usageModels[0].name).toBe('gpt-6-luna');
 
     act(() => {
       harness.getCurrent().setVisualValues({
@@ -652,7 +652,7 @@ describe('useVisualConfig', () => {
 
     const savedYaml = harness.getCurrent().applyVisualChangesToYaml(yaml);
     expect(savedYaml).toContain('usage-models:');
-    expect(savedYaml).toContain('displayName: GPT-5.5');
+    expect(savedYaml).toContain('displayName: GPT-6 Luna');
     expect(savedYaml).toContain('modelGroupPriority: 0');
     expect(savedYaml).toContain('priority: 2');
 

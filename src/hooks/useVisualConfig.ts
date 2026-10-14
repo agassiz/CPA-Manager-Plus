@@ -483,7 +483,7 @@ export function getVisualConfigValidationErrors(
 ): VisualConfigValidationErrors {
   return {
     port: getPortError(values.port),
-    maxRequestBodyMb: getNonNegativeIntegerError(values.maxRequestBodyMb),
+    maxRequestBodyBytes: getNonNegativeIntegerError(values.maxRequestBodyBytes),
     errorLogsMaxFiles: getNonNegativeIntegerError(values.errorLogsMaxFiles),
     logsMaxTotalSizeMb: getNonNegativeIntegerError(values.logsMaxTotalSizeMb),
     requestRetry: getNonNegativeIntegerError(values.requestRetry),
@@ -596,7 +596,7 @@ function getNextDirtyFields(
   (
     [
       'rmDisableAutoUpdatePanel',
-      'maxRequestBodyMb',
+      'maxRequestBodyBytes',
       'errorLogsMaxFiles',
       'pluginsEnabled',
       'codexForceSuperCategory',
@@ -966,7 +966,7 @@ export function useVisualConfig() {
         requestLog: Boolean(parsed['request-log']),
         logsMaxTotalSizeMb: String(parsed['logs-max-total-size-mb'] ?? ''),
         errorLogsMaxFiles: String(parsed['error-logs-max-files'] ?? ''),
-        maxRequestBodyMb: String(parsed['max-request-body-mb'] ?? ''),
+        maxRequestBodyBytes: String(parsed['max-request-body-bytes'] ?? ''),
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
         forceModelPrefix: Boolean(parsed['force-model-prefix']),
@@ -1233,7 +1233,7 @@ export function useVisualConfig() {
         setBooleanInDoc(doc, ['request-log'], values.requestLog);
         setIntFromStringInDoc(doc, ['logs-max-total-size-mb'], values.logsMaxTotalSizeMb);
         setIntFromStringInDoc(doc, ['error-logs-max-files'], values.errorLogsMaxFiles);
-        setIntFromStringInDoc(doc, ['max-request-body-mb'], values.maxRequestBodyMb);
+        setIntFromStringInDoc(doc, ['max-request-body-bytes'], values.maxRequestBodyBytes);
         setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
         setBooleanInDoc(doc, ['force-model-prefix'], values.forceModelPrefix);
         setBooleanInDoc(doc, ['sort-model-list'], values.sortModelList);

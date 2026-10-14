@@ -13,7 +13,7 @@ import type { UsageModelCallStats } from '@/services/api/usageService';
 // Successful calls only: the backend already excludes failures from these counters.
 const modelCallStats: UsageModelCallStats[] = [
   { model: 'alias-fast', calls: 1, requested_calls: 1, resolved_calls: 0 },
-  { model: 'gpt-5.5', calls: 1, requested_calls: 0, resolved_calls: 1 },
+  { model: 'gpt-6-luna', calls: 1, requested_calls: 0, resolved_calls: 1 },
 ];
 
 describe('modelPricesPageModel', () => {
@@ -22,7 +22,7 @@ describe('modelPricesPageModel', () => {
       buildSyncPriceModelsFromUsage(modelCallStats, {
         'manual-model': { prompt: 1, completion: 2, cache: 0.5 },
       })
-    ).toEqual(['alias-fast', 'gpt-5.5', 'manual-model']);
+    ).toEqual(['alias-fast', 'gpt-6-luna', 'manual-model']);
   });
 
   it('uses checked models when present and falls back to the full sync scope', () => {
@@ -34,14 +34,14 @@ describe('modelPricesPageModel', () => {
     const rows = buildModelPriceRows(
       modelCallStats,
       {
-        'gpt-5.5': { prompt: 1, completion: 2, cache: 0.5 },
+        'gpt-6-luna': { prompt: 1, completion: 2, cache: 0.5 },
       },
       [
         {
           model: 'alias-fast',
           candidates: [
             {
-              sourceModelId: 'openai/gpt-5.5',
+              sourceModelId: 'openai/gpt-6-luna',
               score: 0.75,
               reason: 'similar',
               price: { prompt: 1, completion: 2, cache: 0.5 },
@@ -78,7 +78,7 @@ describe('modelPricesPageModel', () => {
       resolvedCalls: 0,
       hasPrice: true,
     });
-    expect(rows.find((row) => row.model === 'gpt-5.5')).toMatchObject({
+    expect(rows.find((row) => row.model === 'gpt-6-luna')).toMatchObject({
       calls: 1,
       requestedCalls: 0,
       resolvedCalls: 1,
@@ -88,7 +88,7 @@ describe('modelPricesPageModel', () => {
 
   it('applies a candidate under the local model name', () => {
     const next = applyCandidatePrice({}, 'alias-fast', {
-      sourceModelId: 'openai/gpt-5.5',
+      sourceModelId: 'openai/gpt-6-luna',
       score: 0.75,
       reason: 'similar',
       price: { prompt: 1, completion: 2, cache: 0.5, source: 'openrouter' },
@@ -99,7 +99,7 @@ describe('modelPricesPageModel', () => {
       completion: 2,
       cache: 0.5,
       source: 'openrouter',
-      sourceModelId: 'openai/gpt-5.5',
+      sourceModelId: 'openai/gpt-6-luna',
     });
   });
 

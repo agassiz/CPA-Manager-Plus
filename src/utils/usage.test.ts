@@ -119,7 +119,7 @@ describe('usage source candidates', () => {
       apis: {
         'POST /v1/responses': {
           models: {
-            'gpt-5.5': {
+            'gpt-6-luna': {
               details: [
                 {
                   timestamp: '2026-05-26T10:00:00Z',
@@ -146,7 +146,7 @@ describe('usage source candidates', () => {
       apis: {
         'POST /v1/responses': {
           models: {
-            'gpt-5.5': {
+            'gpt-6-luna': {
               details: [
                 {
                   timestamp: '2026-05-26T10:00:00Z',
@@ -254,7 +254,7 @@ describe('usage detail collection', () => {
                   timestamp: '2026-05-19T10:00:00Z',
                   source: 'alice@example.com',
                   auth_index: 'auth-1',
-                  resolved_model: 'gpt-5.5',
+                  resolved_model: 'gpt-6-luna',
                   tokens: { input_tokens: 1 },
                   failed: false,
                 },
@@ -267,8 +267,8 @@ describe('usage detail collection', () => {
 
     const detail = collectUsageDetails(usageData)[0];
     expect(detail.__modelName).toBe('gpt-5.6-terra');
-    expect(detail.__resolvedModel).toBe('gpt-5.5');
-    expect(collectUsageDetailsWithEndpoint(usageData)[0].__resolvedModel).toBe('gpt-5.5');
+    expect(detail.__resolvedModel).toBe('gpt-6-luna');
+    expect(collectUsageDetailsWithEndpoint(usageData)[0].__resolvedModel).toBe('gpt-6-luna');
   });
 
   it('extracts usage details from management API wrapped payloads', () => {
@@ -535,7 +535,7 @@ describe('sensitive text masking', () => {
 
 describe('calculateCost model price preference', () => {
   const prices = {
-    'gpt-5.5': { prompt: 5, completion: 10, cache: 1 },
+    'gpt-6-luna': { prompt: 5, completion: 10, cache: 1 },
     'test-model': { prompt: 50, completion: 100, cache: 10 },
   };
 
@@ -544,7 +544,7 @@ describe('calculateCost model price preference', () => {
       {
         tokens: { input_tokens: 1_000_000, output_tokens: 0 },
         __modelName: 'test-model',
-        __resolvedModel: 'gpt-5.5',
+        __resolvedModel: 'gpt-6-luna',
       },
       prices
     );
@@ -579,7 +579,7 @@ describe('calculateCost model price preference', () => {
 			{
 				tokens: { input_tokens: 1_000_000, output_tokens: 0 },
 				__modelName: 'test-model',
-				response_model: 'gpt-5.5',
+				response_model: 'gpt-6-luna',
 			},
 			prices
 		);
@@ -679,10 +679,10 @@ describe('calculateCost model price preference', () => {
           output_tokens: 500_000,
           cached_tokens: 250_000,
         },
-        __modelName: 'gpt-5.5',
+        __modelName: 'gpt-6-luna',
       },
       {
-        'gpt-5.5': { prompt: 2, completion: 4, cache: 1 },
+        'gpt-6-luna': { prompt: 2, completion: 4, cache: 1 },
       }
     );
     expect(cost).toBeCloseTo(3.75);
@@ -819,19 +819,19 @@ describe('calculateCost model price preference', () => {
     expect(cost).toBeCloseTo(10);
   });
 
-  it('applies gpt-5.5 priority service tier multiplier', () => {
+  it('uses configured Luna priority prices', () => {
     const cost = calculateCost(
       {
         tokens: { input_tokens: 1_000_000 },
-        __modelName: 'gpt-5.5',
+        __modelName: 'gpt-6-luna',
         serviceTier: 'priority',
       },
       {
-        'gpt-5.5': { prompt: 2, completion: 4, cache: 1 },
+        'gpt-6-luna': { prompt: 2, completion: 4, cache: 1, promptPriority: 4 },
       }
     );
 
-    expect(cost).toBeCloseTo(5);
+    expect(cost).toBeCloseTo(4);
   });
 
   it('keeps default and missing service tier at standard cost', () => {
@@ -882,7 +882,7 @@ describe('getServiceTierMultiplier', () => {
     expect(getServiceTierMultiplier('gpt-5.6-terra', 'priority')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.6-terra', 'fast')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.6-luna', 'priority')).toBe(2);
-    expect(getServiceTierMultiplier('gpt-5.5', 'priority')).toBe(2.5);
+    expect(getServiceTierMultiplier('gpt-6-luna', 'priority')).toBe(1);
     expect(getServiceTierMultiplier('gpt-5.6-sol', 'priority')).toBe(2);
     expect(getServiceTierMultiplier('gpt-5.6-sol', 'flex')).toBe(0.5);
     expect(getServiceTierMultiplier('gpt-5.6-sol', 'ultrafast')).toBe(2);

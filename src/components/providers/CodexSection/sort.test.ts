@@ -75,12 +75,12 @@ describe('sortCodexConfigs', () => {
       baseUrl: 'https://beta.example.com/v1',
       prefix: 'beta',
       priority: 6,
-      models: [{ name: 'gpt-5.5' }],
+      models: [{ name: 'gpt-6-luna' }],
     },
     {
       apiKey: 'unset-key',
       baseUrl: 'https://unset.example.com/v1',
-      models: [{ name: 'gpt-5.5' }],
+      models: [{ name: 'gpt-6-luna' }],
     },
   ];
 
@@ -128,7 +128,7 @@ describe('sortCodexConfigs', () => {
       sortCodexConfigs(configs, {
         sortOption: 'priority',
         sortDirection: 'desc',
-        selectedModels: new Set(['gpt-5.5']),
+        selectedModels: new Set(['gpt-6-luna']),
       }).map((item) => item.originalIndex)
     ).toEqual([2, 3]);
 

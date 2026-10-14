@@ -15,6 +15,7 @@ type PlainObject = Record<string, unknown>;
 export const V8_PATH_RULES: ReadonlyArray<readonly [string, string]> = [
   ['host', 'server.host'],
   ['port', 'server.port'],
+  ['max-request-body-bytes', 'server.max-request-body-bytes'],
   ['trusted-proxies', 'server.trusted-proxies'],
   ['tls', 'server.tls'],
   ['commercial-mode', 'server.commercial-mode'],

@@ -324,7 +324,7 @@ export const UsageModelsEditor = memo(function UsageModelsEditor({
                         <input
                           className="input"
                           value={model.name}
-                          placeholder="gpt-5.5"
+                          placeholder="gpt-6-luna"
                           disabled={disabled}
                           onChange={(event) =>
                             updateModel(model.id, { name: event.target.value.trim() })
