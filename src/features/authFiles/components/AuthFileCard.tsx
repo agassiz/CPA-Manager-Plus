@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { CODEX_CONFIG } from '@/components/quota';
+import {
+  CODEX_CONFIG,
+  CodexResetConfirmContent,
+  type CodexResetConfirmClassNames,
+} from '@/components/quota';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
@@ -17,7 +20,11 @@ import {
 } from '@/components/ui/icons';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import { getAuthFileAccountName, type AuthFileItem } from '@/types';
-import { formatShanghaiDateTime, resetCodexQuota, resolveAuthProvider } from '@/utils/quota';
+import {
+  resetCodexQuota,
+  resolveAntigravityFileTierBadge,
+  resolveAuthProvider,
+} from '@/utils/quota';
 import {
   normalizeRecentRequestAuthIndex,
   normalizeRecentRequestBuckets,
@@ -50,54 +57,15 @@ import {
 } from '@/features/authFiles/components/AuthFileQuotaSection';
 import { useNotificationStore, useQuotaStore } from '@/stores';
 import styles from '@/features/authFiles/AuthFilesPage.module.scss';
-import type { CodexRateLimitResetCredit, CodexQuotaState } from '@/types/quota';
+import type { AntigravityQuotaState, CodexQuotaState } from '@/types/quota';
 
 const HEALTHY_STATUS_MESSAGES = new Set(['ok', 'healthy', 'ready', 'success', 'available']);
 
-const buildCodexResetConfirmMessage = (
-  file: AuthFileItem,
-  quota: CodexQuotaState | undefined,
-  t: TFunction
-) => {
-  const count = quota?.rateLimitResetCreditsAvailableCount;
-  const credits: CodexRateLimitResetCredit[] = quota?.rateLimitResetCredits ?? [];
-  const error = quota?.rateLimitResetCreditsError ?? '';
-
-  return (
-    <div className={styles.resetConfirmContent}>
-      <p>{t('codex_quota.reset_confirm_message', { key: file.name })}</p>
-      {count !== undefined && count !== null ? (
-        <div className={styles.resetConfirmSummary}>
-          <span>{t('codex_quota.reset_credits_label')}</span>
-          <strong>{count}</strong>
-        </div>
-      ) : null}
-      {credits.length > 0 ? (
-        <table className={styles.resetConfirmCreditsTable}>
-          <thead>
-            <tr>
-              <th>{t('codex_quota.reset_card_label')}</th>
-              <th>{t('codex_quota.reset_credit_granted_at_label')}</th>
-              <th>{t('codex_quota.reset_credit_expires_at_label')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {credits.map((credit, index) => (
-              <tr key={credit.id || `${credit.expiresAt}-${index}`}>
-                <td>{index + 1}</td>
-                <td>{formatShanghaiDateTime(credit.grantedAt) || '--'}</td>
-                <td>{formatShanghaiDateTime(credit.expiresAt) || credit.expiresAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : error ? (
-        <div className={styles.resetConfirmError}>
-          {t('codex_quota.reset_credits_expiry_failed', { message: error })}
-        </div>
-      ) : null}
-    </div>
-  );
+const RESET_CONFIRM_CLASS_NAMES: CodexResetConfirmClassNames = {
+  content: styles.resetConfirmContent,
+  summary: styles.resetConfirmSummary,
+  table: styles.resetConfirmCreditsTable,
+  error: styles.resetConfirmError,
 };
 
 export type AuthFileCardProps = {
@@ -238,7 +206,13 @@ export function AuthFileCard(props: AuthFileCardProps) {
 
     showConfirmation({
       title: t('codex_quota.reset_confirm_title'),
-      message: buildCodexResetConfirmMessage(file, quotaRefresh.quota as CodexQuotaState, t),
+      message: (
+        <CodexResetConfirmContent
+          file={file}
+          quota={quotaRefresh.quota as CodexQuotaState}
+          classNames={RESET_CONFIRM_CLASS_NAMES}
+        />
+      ),
       confirmText: t('codex_quota.reset_confirm_button'),
       variant: 'primary',
       onConfirm: async () => {
@@ -301,6 +275,15 @@ export function AuthFileCard(props: AuthFileCardProps) {
     : t('auth_files.cooldown_active');
   const projectIdValue = getProjectIdValue(file);
   const planLabel = providerKey === 'codex' ? getAuthFilePlanLabel(file, t, codexQuota) : null;
+  const antigravityTierBadgeLabel =
+    providerKey === 'antigravity'
+      ? resolveAntigravityFileTierBadge(
+          file,
+          quotaType === 'antigravity'
+            ? (quotaRefresh.quota as AntigravityQuotaState | undefined)
+            : undefined
+        )
+      : null;
   const kiroSubscriptionBadgeLabel =
     providerKey === 'kiro' ? formatKiroSubscriptionBadgeLabel(file) : '';
   const kiroAccountTypeBadgeLabel =
@@ -359,6 +342,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
                 >
                   {typeLabel}
                 </span>
+                {antigravityTierBadgeLabel && (
+                  <span className={`${styles.stateBadge} ${styles.antigravityTierBadge}`}>
+                    {antigravityTierBadgeLabel}
+                  </span>
+                )}
                 {kiroSubscriptionBadgeLabel && (
                   <span className={`${styles.stateBadge} ${styles.kiroPlanBadge}`}>
                     {kiroSubscriptionBadgeLabel}
@@ -416,6 +404,16 @@ export function AuthFileCard(props: AuthFileCardProps) {
                     </span>
                   );
                 })}
+                <div className={`${styles.cardStats} ${styles.cardStatsHeader}`}>
+                  <div className={`${styles.statPill} ${styles.statSuccess}`}>
+                    <span className={styles.statLabel}>{t('stats.success')}</span>
+                    <span className={styles.statValue}>{fileStats.success}</span>
+                  </div>
+                  <div className={`${styles.statPill} ${styles.statFailure}`}>
+                    <span className={styles.statLabel}>{t('stats.failure')}</span>
+                    <span className={styles.statValue}>{fileStats.failure}</span>
+                  </div>
+                </div>
               </div>
               <span className={styles.fileName} title={accountName}>
                 {accountName}
@@ -430,24 +428,30 @@ export function AuthFileCard(props: AuthFileCardProps) {
           </div>
 
           <div className={`${styles.cardMeta} ${compact ? styles.cardMetaCompact : ''}`}>
-            <div className={styles.metaItem}>
+            <div className={styles.metaItem} title={t('auth_files.file_size')}>
               <span className={styles.metaLabel}>{t('auth_files.file_size')}</span>
               <span className={styles.metaValue}>
                 {file.size ? formatFileSize(file.size) : '-'}
               </span>
             </div>
-            <div className={styles.metaItem}>
+            <div className={styles.metaItem} title={t('auth_files.file_modified')}>
               <span className={styles.metaLabel}>{t('auth_files.file_modified')}</span>
               <span className={styles.metaValue}>{formatModified(file)}</span>
             </div>
             {planLabel && (
-              <div className={`${styles.metaItem} ${styles.planMetaItem}`}>
+              <div
+                className={`${styles.metaItem} ${styles.planMetaItem}`}
+                title={t('codex_quota.plan_label')}
+              >
                 <span className={styles.metaLabel}>{t('codex_quota.plan_label')}</span>
                 <span className={`${styles.metaValue} ${styles.planMetaValue}`}>{planLabel}</span>
               </div>
             )}
             {projectIdValue && (
-              <div className={styles.metaItem} title={projectIdValue}>
+              <div
+                className={styles.metaItem}
+                title={`${t('auth_files.project_id_display')}: ${projectIdValue}`}
+              >
                 <span className={styles.metaLabel}>{t('auth_files.project_id_display')}</span>
                 <span className={styles.metaValue}>{projectIdValue}</span>
               </div>
@@ -462,21 +466,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
           )}
 
           <div className={`${styles.cardInsights} ${compact ? styles.cardInsightsCompact : ''}`}>
-            <div className={`${styles.cardStats} ${compact ? styles.cardStatsCompact : ''}`}>
-              <div className={`${styles.statPill} ${styles.statSuccess}`}>
-                <span className={styles.statLabel}>{t('stats.success')}</span>
-                <span className={styles.statValue}>{fileStats.success}</span>
-              </div>
-              <div className={`${styles.statPill} ${styles.statFailure}`}>
-                <span className={styles.statLabel}>{t('stats.failure')}</span>
-                <span className={styles.statValue}>{fileStats.failure}</span>
-              </div>
-            </div>
-
-            <div className={`${styles.statusPanel} ${compact ? styles.statusPanelCompact : ''}`}>
-              <div className={styles.statusPanelLabel}>
-                <span>{t('auth_files.health_status_label')}</span>
-              </div>
+            <div
+              className={`${styles.statusPanel} ${compact ? styles.statusPanelCompact : ''}`}
+              title={t('auth_files.health_status_label')}
+            >
               <ProviderStatusBar statusData={statusData} styles={styles} />
             </div>
 

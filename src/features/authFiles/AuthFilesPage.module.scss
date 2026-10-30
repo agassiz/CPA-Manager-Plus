@@ -649,19 +649,19 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: $spacing-sm;
+  gap: 6px;
   min-width: 0;
-  padding-top: $spacing-sm;
-  margin-top: 2px;
+  padding-top: 6px;
+  margin-top: 0;
   border-top: 1px dashed color-mix(in srgb, var(--border-color) 82%, transparent);
 }
 
 .quotaRow {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xs;
+  gap: 3px;
   min-width: 0;
-  padding: 2px 0;
+  padding: 0;
 }
 
 .quotaSection > .codexPlan,
@@ -675,17 +675,17 @@
 
 .quotaRowHeader {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: $spacing-xs;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 0;
 }
 
 .quotaModel {
-  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
@@ -695,7 +695,7 @@
 }
 
 .quotaBar {
-  height: 8px;
+  height: 4px;
   background-color: var(--surface-subtle-strong);
   border-radius: 999px;
   overflow: hidden;
@@ -722,8 +722,8 @@
 .quotaMeta {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  width: 100%;
+  justify-content: flex-end;
+  flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
   flex-wrap: nowrap;
@@ -742,8 +742,13 @@
   white-space: nowrap;
 }
 
+.quotaMeta > .quotaReset:not(:empty)::before {
+  content: '·';
+  margin-right: 4px;
+}
+
 .quotaMeta > .quotaPercent {
-  min-width: 42px;
+  min-width: 0;
   flex: 0 0 auto;
   overflow: visible;
   text-overflow: clip;
@@ -752,11 +757,9 @@
 .quotaPercent {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 42px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary));
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 0;
   color: var(--primary-color);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -903,12 +906,11 @@
   -webkit-backdrop-filter: var(--glass-backdrop-filter);
   border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 360px;
   transition:
     transform $transition-fast,
     box-shadow $transition-fast,
@@ -958,7 +960,6 @@
 .fileCardCompact {
   padding: 12px;
   border-radius: 10px;
-  min-height: 280px;
 
   .fileCardMain {
     gap: 8px;
@@ -1059,7 +1060,7 @@
 .fileCardMain {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   width: 100%;
   min-height: 100%;
@@ -1081,7 +1082,7 @@
 .cardHeaderContent {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
@@ -1158,6 +1159,18 @@
   color: #075985;
   background: #e0f2fe;
   border: 1px solid #7dd3fc;
+}
+
+.antigravityTierBadge {
+  color: #075985;
+  background: #e0f2fe;
+  border: 1px solid #7dd3fc;
+}
+
+:global(.dark) .antigravityTierBadge {
+  color: #bae6fd;
+  background: rgba(14, 116, 144, 0.24);
+  border-color: rgba(125, 211, 252, 0.38);
 }
 
 .kiroAccountBadge {
@@ -1251,11 +1264,40 @@
 
 .cardMeta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
-  gap: 4px 14px;
-  min-height: 28px;
+  gap: 2px 8px;
   padding: 0 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// Keep meta on one line: earlier items keep their width, the last one truncates.
+.cardMeta .metaItem {
+  flex: 0 0 auto;
+}
+
+.cardMeta .metaItem:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cardMeta .metaItem:last-child .metaValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.cardMeta .metaLabel {
+  display: none;
+}
+
+.cardMeta .metaItem + .metaItem::before {
+  content: '·';
+  margin-right: 3px;
+  color: var(--text-tertiary);
 }
 
 .cardMetaCompact {
@@ -1296,7 +1338,7 @@
 .metaValue {
   min-width: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -1690,11 +1732,10 @@ button.authFileTableQuotaPrompt {
 .cardInsights {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
   min-width: 0;
-  margin-top: auto;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 0 2px;
 }
 
@@ -1712,7 +1753,7 @@ button.authFileTableQuotaPrompt {
 .cardStatsHeader {
   flex: 0 0 auto;
   gap: 4px;
-  margin-left: 2px;
+  margin-left: auto;
   flex-wrap: nowrap;
 }
 
@@ -1994,10 +2035,10 @@ button.authFileTableQuotaPrompt {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  padding: 6px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: var(--surface-subtle);
   flex-shrink: 0;
@@ -2168,7 +2209,7 @@ button.authFileTableQuotaPrompt {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 0;
+  margin-top: auto;
   min-height: 42px;
   padding-top: 8px;
   border-top: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
@@ -2341,38 +2382,8 @@ button.authFileTableQuotaPrompt {
     line-height: 1.45;
   }
 
-  .cardMeta {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 8px 12px;
-    padding: 8px 0;
-    border-top: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
-  }
-
-  .metaItem {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-
-  .metaLabel::after {
-    content: '';
-  }
-
-  .quotaRowHeader {
-    gap: 3px;
-  }
-
-  .quotaMeta {
-    justify-content: flex-start;
-    text-align: left;
-  }
-
   .quotaBar {
-    height: 7px;
+    height: 4px;
   }
 
   .cardActions {

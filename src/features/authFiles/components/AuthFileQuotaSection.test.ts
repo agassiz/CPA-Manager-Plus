@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { describe, expect, it } from 'vitest';
 import {
+  buildEmbeddedAntigravityQuota,
   buildEmbeddedCodexQuota,
   getAuthFileQuotaErrorMessage,
   preserveCodexPlanType,
@@ -108,6 +109,53 @@ describe('buildEmbeddedCodexQuota', () => {
 
     expect(quota?.windows).toHaveLength(1);
     expect(quota?.windows[0]).toMatchObject({ id: 'weekly', usedPercent: 100 });
+  });
+});
+
+describe('buildEmbeddedAntigravityQuota', () => {
+  it('使用服务端启动探测保存的额度分组与账号类型', () => {
+    const quota = buildEmbeddedAntigravityQuota({
+      name: 'antigravity-a.json',
+      type: 'antigravity',
+      subscription_tier: 'free-tier',
+      updated_at: '2026-11-20T13:42:08Z',
+      antigravity_quota_groups: [
+        {
+          id: 'claude-gpt',
+          label: 'Claude/GPT',
+          models: ['claude-sonnet-4-6'],
+          remainingFraction: 1,
+          resetTime: '2026-11-27T12:46:00Z',
+        },
+        { id: 'broken', label: 'Broken' },
+      ],
+    });
+
+    expect(quota).toMatchObject({
+      status: 'success',
+      tierId: 'free-tier',
+      creditBalance: null,
+      fetchedAtMs: Date.parse('2026-11-20T13:42:08Z'),
+      groups: [{ id: 'claude-gpt', label: 'Claude/GPT', remainingFraction: 1 }],
+    });
+    expect(quota?.groups).toHaveLength(1);
+  });
+
+  it('只有积分时不会用空分组覆盖浏览器缓存', () => {
+    const embedded = buildEmbeddedAntigravityQuota({
+      name: 'antigravity-b.json',
+      type: 'antigravity',
+      credit_balance: 0,
+      updated_at: '2026-11-20T13:42:08Z',
+    });
+    const cached = { status: 'success' as const, groups: [{ id: 'g', label: 'G', models: [], remainingFraction: 0.5 }] };
+
+    expect(embedded?.fetchedAtMs).toBeUndefined();
+    expect(selectEffectiveQuota(cached, embedded)).toBe(cached);
+  });
+
+  it('没有服务端额度数据时返回 undefined', () => {
+    expect(buildEmbeddedAntigravityQuota({ name: 'antigravity-c.json', type: 'antigravity' })).toBeUndefined();
   });
 });
 

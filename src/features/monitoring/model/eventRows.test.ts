@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { UsageDetailWithEndpoint } from '@/utils/usage';
 import { buildSourceInfoMap } from '@/utils/sourceResolver';
-import { buildEventRows } from './eventRows';
+import { buildEventRows, resolveAntigravityTierMatch } from './eventRows';
 
 const buildRows = (overrides: Partial<UsageDetailWithEndpoint> = {}) =>
   buildEventRows(
@@ -108,6 +108,40 @@ describe('buildEventRows', () => {
     expect(row.upstreamModel).toBe('gpt-5.6');
     expect(row.upstreamResponseModel).toBe('gpt-5.6-2026-09-24');
     expect(row.upstreamModelMismatch).toBe(false);
+  });
+
+  it('accepts an Antigravity tier that matches the request effort, even for stored flags', () => {
+    const [row] = buildRows({
+      requested_model: 'claude-opus-5-5',
+      upstream_model: 'claude-opus-5-5',
+      upstream_response_model: 'claude-opus-5-5-high',
+      upstream_model_mismatch: true,
+      reasoning_effort: 'high',
+    });
+
+    expect(row.upstreamModelMismatch).toBe(false);
+  });
+
+  it('flags an Antigravity tier that differs from the request effort', () => {
+    const [row] = buildRows({
+      requested_model: 'claude-opus-5-5',
+      upstream_model: 'claude-opus-5-5',
+      upstream_response_model: 'claude-opus-5-5-high',
+      upstream_model_mismatch: false,
+      reasoning_effort: 'low',
+    });
+
+    expect(row.upstreamModelMismatch).toBe(true);
+  });
+
+  it('resolves the Antigravity tier match from the effort', () => {
+    const match = resolveAntigravityTierMatch;
+    expect(match('claude-opus-5-5', 'claude-opus-5-5-high', 'xhigh')).toBe(true);
+    expect(match('claude-opus-5-5', 'claude-opus-5-5-medium', '')).toBe(true);
+    expect(match('claude-opus-5-5', 'claude-opus-5-5-low', 'none')).toBe(true);
+    expect(match('claude-opus-5-5', 'claude-opus-5-5-low', 'high')).toBe(false);
+    expect(match('claude-opus-5-5', 'claude-sonnet-5-5-high', 'high')).toBeNull();
+    expect(match('claude-opus-5-5', 'claude-opus-5-5', 'high')).toBeNull();
   });
 
   it('prefers configured provider names over auth file labels', () => {

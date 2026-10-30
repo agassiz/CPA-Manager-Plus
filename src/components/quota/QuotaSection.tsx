@@ -2,7 +2,6 @@
  * Generic quota section component.
  */
 
-import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +10,13 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
-import type { AuthFileItem, CodexRateLimitResetCredit, ResolvedTheme } from '@/types';
-import { formatShanghaiDateTime, getStatusFromError, isUpstreamStatusError } from '@/utils/quota';
+import type { AuthFileItem, ResolvedTheme } from '@/types';
+import { getStatusFromError, isUpstreamStatusError } from '@/utils/quota';
+import {
+  CodexResetConfirmContent,
+  type CodexResetConfirmClassNames,
+  type CodexResetConfirmQuota,
+} from './CodexResetConfirmContent';
 import { QuotaCard } from './QuotaCard';
 import type { QuotaStatusState } from './QuotaCard';
 import { useQuotaLoader } from './useQuotaLoader';
@@ -40,60 +44,18 @@ const stringifySearchValue = (value: unknown): string[] => {
 const compareFileName = (left: AuthFileItem, right: AuthFileItem) =>
   left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' });
 
-type CodexResetQuotaState = {
-  rateLimitResetCreditsAvailableCount?: number | null;
-  rateLimitResetCredits?: CodexRateLimitResetCredit[];
-  rateLimitResetCreditsError?: string;
+const RESET_CONFIRM_CLASS_NAMES: CodexResetConfirmClassNames = {
+  content: styles.resetConfirmContent,
+  summary: styles.resetConfirmSummary,
+  table: styles.resetConfirmCreditsTable,
+  error: styles.resetConfirmError,
 };
 
-const getCodexResetQuotaState = (quota: unknown): CodexResetQuotaState | null => {
+const getCodexResetQuotaState = (quota: unknown): CodexResetConfirmQuota | null => {
   if (!quota || typeof quota !== 'object' || !('rateLimitResetCreditsAvailableCount' in quota)) {
     return null;
   }
-  return quota as CodexResetQuotaState;
-};
-
-const buildResetQuotaConfirmMessage = (file: AuthFileItem, quota: unknown, t: TFunction) => {
-  const resetQuota = getCodexResetQuotaState(quota);
-  const count = resetQuota?.rateLimitResetCreditsAvailableCount;
-  const credits = resetQuota?.rateLimitResetCredits ?? [];
-  const error = resetQuota?.rateLimitResetCreditsError ?? '';
-
-  return (
-    <div className={styles.resetConfirmContent}>
-      <p>{t('codex_quota.reset_confirm_message', { key: file.name })}</p>
-      {count !== undefined && count !== null ? (
-        <div className={styles.resetConfirmSummary}>
-          <span>{t('codex_quota.reset_credits_label')}</span>
-          <strong>{count}</strong>
-        </div>
-      ) : null}
-      {credits.length > 0 ? (
-        <table className={styles.resetConfirmCreditsTable}>
-          <thead>
-            <tr>
-              <th>{t('codex_quota.reset_card_label')}</th>
-              <th>{t('codex_quota.reset_credit_granted_at_label')}</th>
-              <th>{t('codex_quota.reset_credit_expires_at_label')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {credits.map((credit, index) => (
-              <tr key={credit.id || `${credit.expiresAt}-${index}`}>
-                <td>{index + 1}</td>
-                <td>{formatShanghaiDateTime(credit.grantedAt) || '--'}</td>
-                <td>{formatShanghaiDateTime(credit.expiresAt) || credit.expiresAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : error ? (
-        <div className={styles.resetConfirmError}>
-          {t('codex_quota.reset_credits_expiry_failed', { message: error })}
-        </div>
-      ) : null}
-    </div>
-  );
+  return quota as CodexResetConfirmQuota;
 };
 
 interface QuotaPaginationState<T> {
@@ -392,7 +354,13 @@ export function QuotaSection<TState extends QuotaStatusState, TData>({
 
       showConfirmation({
         title: t('codex_quota.reset_confirm_title'),
-        message: buildResetQuotaConfirmMessage(file, currentQuota, t),
+        message: (
+          <CodexResetConfirmContent
+            file={file}
+            quota={getCodexResetQuotaState(currentQuota)}
+            classNames={RESET_CONFIRM_CLASS_NAMES}
+          />
+        ),
         confirmText: t('codex_quota.reset_confirm_button'),
         variant: 'primary',
         onConfirm: async () => {

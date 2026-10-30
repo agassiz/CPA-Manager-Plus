@@ -253,6 +253,8 @@ export interface AntigravityQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   groups: AntigravityQuotaGroup[];
   creditBalance?: number | null;
+  tierId?: string | null;
+  fetchedAtMs?: number;
   error?: string;
   errorStatus?: number;
   upstreamError?: boolean;

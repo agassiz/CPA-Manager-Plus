@@ -608,6 +608,8 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
     status: 'success',
     groups: data.groups,
     creditBalance: data.creditBalance,
+    tierId: data.tierId,
+    fetchedAtMs: Date.now(),
   }),
   buildErrorState: (message, status, upstreamError) => ({
     status: 'error',

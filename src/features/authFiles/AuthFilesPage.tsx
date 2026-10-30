@@ -121,6 +121,7 @@ export function AuthFilesPage() {
   const managementKey = useAuthStore((state) => state.managementKey);
   const resolvedTheme: ResolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const codexQuota = useQuotaStore((state) => state.codexQuota);
+  const antigravityQuota = useQuotaStore((state) => state.antigravityQuota);
   const setCodexQuota = useQuotaStore((state) => state.setCodexQuota);
   const activateQuotaCacheScope = useQuotaStore((state) => state.activateQuotaCacheScope);
   const pageTransitionLayer = usePageTransitionLayer();
@@ -141,7 +142,7 @@ export function AuthFilesPage() {
     regular: DEFAULT_REGULAR_PAGE_SIZE,
     compact: DEFAULT_COMPACT_PAGE_SIZE,
   });
-  const [pageSizeInput, setPageSizeInput] = useState('9');
+  const [pageSizeInput, setPageSizeInput] = useState(String(DEFAULT_REGULAR_PAGE_SIZE));
   const [viewMode, setViewMode] = useState<'diagram' | 'list'>('list');
   const [layoutMode, setLayoutMode] = useState<AuthFilesLayoutMode>('card');
   const [sortMode, setSortMode] = useState<AuthFilesSortMode>('default');
@@ -697,10 +698,12 @@ export function AuthFilesPage() {
         if (disabledCompare !== 0) return disabledCompare;
         const superCompare = compareSuperCategoryFirst(a, b);
         if (superCompare !== 0) return superCompare;
-        const modifiedCompare = compareAuthFileModifiedDesc(a, b);
-        if (modifiedCompare !== 0) return modifiedCompare;
-        const leftRank = getAuthFilePlanSortRank(a, codexQuota[a.name]);
-        const rightRank = getAuthFilePlanSortRank(b, codexQuota[b.name]);
+        const leftRank = getAuthFilePlanSortRank(a, codexQuota[a.name], antigravityQuota[a.name]);
+        const rightRank = getAuthFilePlanSortRank(
+          b,
+          codexQuota[b.name],
+          antigravityQuota[b.name]
+        );
         const leftKnown = leftRank !== null && leftRank !== undefined;
         const rightKnown = rightRank !== null && rightRank !== undefined;
 
@@ -710,6 +713,8 @@ export function AuthFilesPage() {
           const rankDiff = rightRank - leftRank;
           if (rankDiff !== 0) return rankDiff;
         }
+        const modifiedCompare = compareAuthFileModifiedDesc(a, b);
+        if (modifiedCompare !== 0) return modifiedCompare;
 
         const providerA = normalizeProviderKey(String(a.provider ?? a.type ?? 'unknown'));
         const providerB = normalizeProviderKey(String(b.provider ?? b.type ?? 'unknown'));
@@ -743,8 +748,12 @@ export function AuthFilesPage() {
         if (disabledCompare !== 0) return disabledCompare;
         const superCompare = compareSuperCategoryFirst(a, b);
         if (superCompare !== 0) return superCompare;
-        const leftRank = getAuthFilePlanSortRank(a, codexQuota[a.name]);
-        const rightRank = getAuthFilePlanSortRank(b, codexQuota[b.name]);
+        const leftRank = getAuthFilePlanSortRank(a, codexQuota[a.name], antigravityQuota[a.name]);
+        const rightRank = getAuthFilePlanSortRank(
+          b,
+          codexQuota[b.name],
+          antigravityQuota[b.name]
+        );
         const leftKnown = leftRank !== null && leftRank !== undefined;
         const rightKnown = rightRank !== null && rightRank !== undefined;
 
@@ -759,7 +768,7 @@ export function AuthFilesPage() {
       });
     }
     return copy;
-  }, [codexQuota, filtered, sortMode]);
+  }, [antigravityQuota, codexQuota, filtered, sortMode]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);

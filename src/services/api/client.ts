@@ -3,7 +3,7 @@
  * 替代原项目 src/core/api-client.js
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, CanceledError } from 'axios';
 import type { ApiClientConfig, ApiError } from '@/types';
 import {
   BUILD_DATE_HEADER_KEYS,
@@ -12,6 +12,8 @@ import {
   VERSION_HEADER_KEYS
 } from '@/utils/constants';
 import { computeApiUrl, detectApiBaseFromLocation, resolveRuntimeApiBase } from '@/utils/connection';
+
+const MISSING_MANAGEMENT_KEY_MESSAGE = 'Management key is not set';
 
 export interface ManagementSession {
   token: string;
@@ -121,8 +123,11 @@ class ApiClient {
           config.url = config.url.replace(/\/generative-language-api-key\b/g, '/gemini-api-key');
         }
 
-        // 添加认证头
-        if (this.managementKey && !config.headers?.Authorization && !config.headers?.authorization) {
+        // 添加认证头；无凭证时不发请求（登出后的定时轮询会被服务端计为登录失败并封禁 IP）
+        if (!config.headers?.Authorization && !config.headers?.authorization) {
+          if (!this.managementKey) {
+            throw new CanceledError(MISSING_MANAGEMENT_KEY_MESSAGE, AxiosError.ERR_CANCELED, config);
+          }
           config.headers.Authorization = `Bearer ${this.managementKey}`;
         }
 
@@ -279,7 +284,10 @@ class ApiClient {
     if (!headers.has('Content-Type') && init.body !== undefined) {
       headers.set('Content-Type', 'application/json');
     }
-    if (this.managementKey && !headers.has('Authorization')) {
+    if (!headers.has('Authorization')) {
+      if (!this.managementKey) {
+        throw this.handleError(new CanceledError(MISSING_MANAGEMENT_KEY_MESSAGE, AxiosError.ERR_CANCELED));
+      }
       headers.set('Authorization', `Bearer ${this.managementKey}`);
     }
     return fetch(this.resolveRequestUrl(url), {

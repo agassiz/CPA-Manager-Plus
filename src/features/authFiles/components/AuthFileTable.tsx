@@ -12,7 +12,11 @@ import {
   IconTimer,
   IconTrash2,
 } from '@/components/ui/icons';
-import { CODEX_CONFIG } from '@/components/quota';
+import {
+  CODEX_CONFIG,
+  CodexResetConfirmContent,
+  type CodexResetConfirmClassNames,
+} from '@/components/quota';
 import { getAuthFileAccountName, type AuthFileItem } from '@/types';
 import type { CodexQuotaState } from '@/types/quota';
 import {
@@ -44,7 +48,11 @@ import {
   type QuotaProviderType,
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
-import { resetCodexQuota, resolveAuthProvider } from '@/utils/quota';
+import {
+  resetCodexQuota,
+  resolveAntigravityFileTierBadge,
+  resolveAuthProvider,
+} from '@/utils/quota';
 import { useNotificationStore, useQuotaStore } from '@/stores';
 import styles from '@/features/authFiles/AuthFilesPage.module.scss';
 
@@ -86,6 +94,7 @@ export function AuthFileTable({
   onToggleSelect,
 }: AuthFileTableProps) {
   const { t } = useTranslation();
+  const antigravityQuota = useQuotaStore((state) => state.antigravityQuota);
   const showDeleteAction = selectedFiles.size === 0;
 
   return (
@@ -136,13 +145,15 @@ export function AuthFileTable({
             const planLabel =
               providerKey === 'codex'
                 ? getAuthFilePlanLabel(file, t, codexQuota)
-                : typeof file.subscription_title === 'string'
-                  ? file.subscription_title.trim()
-                  : typeof file.subscription_tier === 'string'
-                    ? file.subscription_tier.trim()
-                    : typeof file.subscription_type === 'string'
-                      ? file.subscription_type.trim()
-                      : '';
+                : providerKey === 'antigravity'
+                  ? (resolveAntigravityFileTierBadge(file, antigravityQuota[file.name]) ?? '')
+                  : typeof file.subscription_title === 'string'
+                    ? file.subscription_title.trim()
+                    : typeof file.subscription_tier === 'string'
+                      ? file.subscription_tier.trim()
+                      : typeof file.subscription_type === 'string'
+                        ? file.subscription_type.trim()
+                        : '';
             const authIndexKey = normalizeRecentRequestAuthIndex(
               file.authIndex ?? file['auth_index']
             );
@@ -430,6 +441,13 @@ function AuthFileTableQuotaCell({
   );
 }
 
+const RESET_CONFIRM_CLASS_NAMES: CodexResetConfirmClassNames = {
+  content: styles.resetConfirmContent,
+  summary: styles.resetConfirmSummary,
+  table: styles.resetConfirmCreditsTable,
+  error: styles.resetConfirmError,
+};
+
 type QuotaActionButtonsProps = {
   file: AuthFileItem;
   disableControls: boolean;
@@ -457,7 +475,13 @@ function QuotaActionButtons({ file, disableControls }: QuotaActionButtonsProps) 
 
     showConfirmation({
       title: t('codex_quota.reset_confirm_title'),
-      message: t('codex_quota.reset_confirm_message', { key: file.name }),
+      message: (
+        <CodexResetConfirmContent
+          file={file}
+          quota={quota as CodexQuotaState | undefined}
+          classNames={RESET_CONFIRM_CLASS_NAMES}
+        />
+      ),
       confirmText: t('codex_quota.reset_confirm_button'),
       variant: 'primary',
       onConfirm: async () => {
@@ -478,7 +502,7 @@ function QuotaActionButtons({ file, disableControls }: QuotaActionButtonsProps) 
         }
       },
     });
-  }, [canResetQuota, file, quotaType, showConfirmation, showNotification, t]);
+  }, [canResetQuota, file, quota, quotaType, showConfirmation, showNotification, t]);
 
   if (!quotaType || !canRefreshQuota) return null;
 

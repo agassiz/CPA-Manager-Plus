@@ -19,6 +19,7 @@ import {
   formatKimiResetHint,
   formatQuotaResetTime,
   normalizePlanType,
+  resolveAntigravityFileTierBadge,
   resolveCodexChatgptAccountId,
   resolveCodexPlanType,
 } from '@/utils/quota';
@@ -33,7 +34,7 @@ export const easePower3Out = (progress: number) => 1 - (1 - progress) ** 4;
 export const easePower2In = (progress: number) => progress ** 3;
 export const BATCH_BAR_BASE_TRANSFORM = 'translateX(-50%)';
 export const BATCH_BAR_HIDDEN_TRANSFORM = 'translateX(-50%) translateY(56px)';
-export const DEFAULT_REGULAR_PAGE_SIZE = 9;
+export const DEFAULT_REGULAR_PAGE_SIZE = 12;
 export const DEFAULT_COMPACT_PAGE_SIZE = 12;
 
 const escapeWildcardSearchSegment = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1135,10 +1136,17 @@ export const getAuthFilePlanLabel = (
   quota?: CodexQuotaState
 ): string | null => getAuthFileCodexPlanLabel(getAuthFilePlanType(file, quota), t);
 
+const ANTIGRAVITY_TIER_SORT_RANKS = { ULTRA: 50, PRO: 30, FREE: 10 } as const;
+
 export const getAuthFilePlanSortRank = (
   file: AuthFileItem,
-  quota?: CodexQuotaState
+  quota?: CodexQuotaState,
+  antigravityQuota?: AntigravityQuotaState
 ): number | null => {
+  if (normalizeProviderKey(String(file.type ?? file.provider ?? '')) === 'antigravity') {
+    const badge = resolveAntigravityFileTierBadge(file, antigravityQuota);
+    return badge ? ANTIGRAVITY_TIER_SORT_RANKS[badge] : null;
+  }
   const normalized = normalizePlanType(getAuthFilePlanType(file, quota));
   if (!normalized) return null;
   if (normalized === 'pro') return 50;

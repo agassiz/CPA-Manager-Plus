@@ -79,7 +79,7 @@ export const CodexContextWindowOverridesEditor = memo(function CodexContextWindo
                 step="1"
                 inputMode="numeric"
                 value={override.contextWindow}
-                placeholder="272000"
+                placeholder="500000"
                 disabled={disabled}
                 onChange={(event) =>
                   updateOverride(override.id, { contextWindow: event.target.value })

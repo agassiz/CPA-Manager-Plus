@@ -4,6 +4,11 @@
 
 export { QuotaSection } from './QuotaSection';
 export { QuotaCard } from './QuotaCard';
+export { CodexResetConfirmContent } from './CodexResetConfirmContent';
+export type {
+  CodexResetConfirmClassNames,
+  CodexResetConfirmQuota,
+} from './CodexResetConfirmContent';
 export { useQuotaLoader } from './useQuotaLoader';
 export {
   ANTIGRAVITY_CONFIG,

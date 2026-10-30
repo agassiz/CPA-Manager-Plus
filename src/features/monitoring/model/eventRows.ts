@@ -36,6 +36,39 @@ const normalizeModelForComparison = (value: string) => {
   return base.replace(/-latest$/, '');
 };
 
+// Antigravity encodes effort in the model ID: "claude-opus-5-5" asked with high
+// effort is served as "claude-opus-5-5-high". The tier suffix is only expected,
+// not a mismatch, when it matches the effort the request used.
+const ANTIGRAVITY_TIER_SUFFIX = /-(low|medium|high)$/;
+
+const expectedAntigravityTier = (effort?: string) => {
+  switch (readString(effort).toLowerCase()) {
+    case 'none':
+    case 'minimal':
+    case 'low':
+      return 'low';
+    case 'high':
+    case 'xhigh':
+    case 'max':
+      return 'high';
+    default:
+      return 'medium';
+  }
+};
+
+/** Returns null unless responseModel is upstreamModel plus a tier suffix. */
+export const resolveAntigravityTierMatch = (
+  upstreamModel: string,
+  responseModel: string,
+  effort?: string
+): boolean | null => {
+  const base = normalizeModelForComparison(upstreamModel);
+  const response = normalizeModelForComparison(responseModel);
+  const tier = ANTIGRAVITY_TIER_SUFFIX.exec(response)?.[1];
+  if (!base || !tier || response.replace(ANTIGRAVITY_TIER_SUFFIX, '') !== base) return null;
+  return tier === expectedAntigravityTier(effort);
+};
+
 export const areMonitoringModelsEquivalent = (left: string, right: string) => {
   const normalizedLeft = normalizeModelForComparison(left);
   const normalizedRight = normalizeModelForComparison(right);
@@ -52,8 +85,11 @@ const resolveUpstreamModelMismatch = (
   value: unknown,
   legacyValue: unknown,
   upstreamModel: string,
-  responseModel: string
+  responseModel: string,
+  effort: string
 ): boolean | null => {
+  const tierMatch = resolveAntigravityTierMatch(upstreamModel, responseModel, effort);
+  if (tierMatch !== null) return !tierMatch;
   if (typeof value === 'boolean') return value;
   if (typeof legacyValue === 'boolean') return legacyValue;
   if (!responseModel) return null;
@@ -151,7 +187,8 @@ export const buildEventRows = (
         detail.upstream_model_mismatch ?? detail.upstreamModelMismatch,
         detail.response_model_mismatch ?? detail.responseModelMismatch,
         upstreamModel,
-        responseModel
+        responseModel,
+        readString(detail.reasoning_effort ?? detail.reasoningEffort)
       );
       const responseModelMismatch = upstreamModelMismatch === true;
       const projectId = readString(detail.auth_project_id_snapshot ?? detail.authProjectIdSnapshot);

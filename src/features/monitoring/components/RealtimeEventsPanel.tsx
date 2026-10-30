@@ -45,7 +45,7 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { formatNumber, maskSensitiveText, truncateText } from '@/utils/format';
 import { formatCompactNumber, formatUsd, getActualInputTokens } from '@/utils/usage';
 import { shouldPreferApiKeyAlias } from '../model/apiKeys';
-import { areMonitoringModelsEquivalent } from '../model/eventRows';
+import { areMonitoringModelsEquivalent, resolveAntigravityTierMatch } from '../model/eventRows';
 import { getMonitoringSuccessRateTone } from '../model/successRateTone';
 import styles from '../MonitoringCenterPage.module.scss';
 
@@ -149,6 +149,8 @@ const resolveMonitoringModelRelation = (row: MonitoringEventRow): MonitoringMode
   const upstreamModel = formatReadableText(row.upstreamModel || row.resolvedModel);
   const responseModel = formatReadableText(row.upstreamResponseModel || row.responseModel);
   if (!upstreamModel || !responseModel || upstreamModel === responseModel) return null;
+  const tierMatch = resolveAntigravityTierMatch(upstreamModel, responseModel, row.reasoningEffort);
+  if (tierMatch !== null) return tierMatch ? null : 'mismatch';
   if (row.upstreamModelMismatch === true || row.responseModelMismatch === true) {
     return 'mismatch';
   }
@@ -867,7 +869,11 @@ export function RealtimeEventsPanel({
     const responseModel = formatReadableText(row.upstreamResponseModel || row.responseModel);
     const showUpstreamModel = Boolean(upstreamModel && upstreamModel !== requestedModel);
     const showResponseModel = Boolean(
-      responseModel && upstreamModel && responseModel !== upstreamModel
+      responseModel &&
+        upstreamModel &&
+        responseModel !== upstreamModel &&
+        // An Antigravity tier that matches the request's effort adds no information.
+        resolveAntigravityTierMatch(upstreamModel, responseModel, row.reasoningEffort) !== true
     );
     const modelRelation = resolveMonitoringModelRelation(row);
     const modelTooltip = t('monitoring.model_chain_tooltip', {

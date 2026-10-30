@@ -128,6 +128,36 @@ describe('auth file Codex status helpers', () => {
     ).toBeGreaterThan(getAuthFilePlanSortRank(codexFile({ plan_type: 'plus' })) ?? 0);
   });
 
+  it('ranks Antigravity accounts by refreshed tier, highest first', () => {
+    const antigravityFile = (name: string): AuthFileItem => ({ name, type: 'antigravity' });
+    const rank = (tierId: string | null) =>
+      getAuthFilePlanSortRank(antigravityFile(`${tierId}.json`), undefined, {
+        status: 'success',
+        groups: [],
+        tierId,
+      });
+
+    expect(rank('g1-ultra-tier')).toBeGreaterThan(rank('g1-pro-tier') ?? 0);
+    expect(rank('g1-pro-tier')).toBeGreaterThan(rank('free-tier') ?? 0);
+    expect(rank('free-tier')).not.toBeNull();
+    expect(rank(null)).toBeNull();
+  });
+
+  it('falls back to the server-recorded Antigravity tier before a quota refresh', () => {
+    const file: AuthFileItem = {
+      name: 'ag.json',
+      type: 'antigravity',
+      subscription_tier: 'g1-ultra-tier',
+    };
+
+    expect(getAuthFilePlanSortRank(file)).toBe(
+      getAuthFilePlanSortRank(file, undefined, { status: 'success', groups: [], tierId: 'g1-ultra-tier' })
+    );
+    expect(
+      getAuthFilePlanSortRank(file, undefined, { status: 'success', groups: [], tierId: 'free-tier' })
+    ).toBeLessThan(getAuthFilePlanSortRank(file) ?? 0);
+  });
+
   it('detects weekly-limited Codex quota from the weekly quota window', () => {
     const status = getAuthFileCodexStatus(codexFile(), codexQuota());
 

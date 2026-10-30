@@ -15,7 +15,14 @@ import {
   XAI_CONFIG,
 } from '@/components/quota';
 import { useNotificationStore, useQuotaStore } from '@/stores';
-import type { AntigravityQuotaState, AuthFileItem, CodexQuotaState, KiroQuotaState } from '@/types';
+import type {
+  AntigravityQuotaGroup,
+  AntigravityQuotaState,
+  AuthFileItem,
+  CodexQuotaState,
+  KiroQuotaState,
+} from '@/types';
+import { parseTimestampMs } from '@/utils/timestamp';
 import {
   buildCodexQuotaWindows,
   getStatusFromError,
@@ -131,13 +138,42 @@ const normalizeNumberValue = (value: unknown): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const buildEmbeddedAntigravityQuota = (file: AuthFileItem): AntigravityQuotaState | undefined => {
+// Quota groups the server stored from its own fetchAvailableModels probe (startup or requests).
+const parseEmbeddedAntigravityQuotaGroups = (value: unknown): AntigravityQuotaGroup[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): AntigravityQuotaGroup[] => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    const id = typeof record.id === 'string' ? record.id.trim() : '';
+    const label = typeof record.label === 'string' ? record.label.trim() : '';
+    const remainingFraction = normalizeNumberValue(record.remainingFraction);
+    if (!id || !label || remainingFraction === null) return [];
+    const models = Array.isArray(record.models)
+      ? record.models.filter((model): model is string => typeof model === 'string')
+      : [];
+    const resetTime = typeof record.resetTime === 'string' ? record.resetTime : undefined;
+    return [{ id, label, models, remainingFraction, ...(resetTime ? { resetTime } : {}) }];
+  });
+};
+
+export const buildEmbeddedAntigravityQuota = (
+  file: AuthFileItem
+): AntigravityQuotaState | undefined => {
   const creditBalance = normalizeNumberValue(file.credit_balance ?? file.creditBalance);
-  if (creditBalance === null) return undefined;
+  const groups = parseEmbeddedAntigravityQuotaGroups(file.antigravity_quota_groups);
+  if (creditBalance === null && groups.length === 0) return undefined;
+  const tierId =
+    typeof file.subscription_tier === 'string' && file.subscription_tier.trim()
+      ? file.subscription_tier.trim()
+      : null;
+  // Only server snapshots with quota groups may replace an older browser cache.
+  const updatedAtMs = groups.length > 0 ? parseTimestampMs(file.updated_at) : Number.NaN;
   return {
     status: 'success',
-    groups: [],
+    groups,
     creditBalance,
+    tierId,
+    ...(Number.isFinite(updatedAtMs) ? { fetchedAtMs: updatedAtMs } : {}),
   };
 };
 

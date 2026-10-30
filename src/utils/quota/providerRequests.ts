@@ -151,7 +151,41 @@ export type GeminiCliSupplementaryQuota = {
 export type AntigravityQuotaData = {
   groups: AntigravityQuotaGroup[];
   creditBalance: number | null;
+  tierId: string | null;
 };
+
+type AntigravityCodeAssistInfo = {
+  creditBalance: number | null;
+  tierId: string | null;
+};
+
+const EMPTY_ANTIGRAVITY_CODE_ASSIST_INFO: AntigravityCodeAssistInfo = {
+  creditBalance: null,
+  tierId: null,
+};
+
+/**
+ * Maps a loadCodeAssist tier id (paidTier first, then currentTier) to a short plan badge.
+ */
+export const resolveAntigravityTierBadge = (
+  tierId: string | null | undefined
+): 'ULTRA' | 'PRO' | 'FREE' | null => {
+  const normalized = normalizeStringValue(tierId)?.toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes('ultra')) return 'ULTRA';
+  if (normalized.includes('pro')) return 'PRO';
+  return 'FREE';
+};
+
+/**
+ * Resolves an Antigravity account badge from the refreshed quota tier first, then the
+ * tier the server recorded from its own loadCodeAssist probe (`subscription_tier`).
+ */
+export const resolveAntigravityFileTierBadge = (
+  file: AuthFileItem,
+  quota?: { tierId?: string | null }
+): 'ULTRA' | 'PRO' | 'FREE' | null =>
+  resolveAntigravityTierBadge(quota?.tierId) ?? resolveAntigravityTierBadge(file.subscription_tier);
 
 export const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> => {
   try {
@@ -197,7 +231,7 @@ export const fetchAntigravityQuota = async (
 
   const projectId = await resolveAntigravityProjectId(file);
   const requestBody = JSON.stringify({ project: projectId });
-  const creditBalancePromise = fetchAntigravityCreditBalance(authIndex);
+  const codeAssistInfoPromise = fetchAntigravityCodeAssistInfo(authIndex);
 
   let lastError = '';
   let lastStatus: number | undefined;
@@ -237,7 +271,7 @@ export const fetchAntigravityQuota = async (
         continue;
       }
 
-      return { groups, creditBalance: await creditBalancePromise };
+      return { groups, ...(await codeAssistInfoPromise) };
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : t('common.unknown_error');
       const status = getStatusFromError(err);
@@ -251,7 +285,7 @@ export const fetchAntigravityQuota = async (
   }
 
   if (hadSuccess) {
-    return { groups: [], creditBalance: await creditBalancePromise };
+    return { groups: [], ...(await codeAssistInfoPromise) };
   }
 
   throw createStatusError(lastError || t('common.unknown_error'), priorityStatus ?? lastStatus, {
@@ -259,7 +293,9 @@ export const fetchAntigravityQuota = async (
   });
 };
 
-const fetchAntigravityCreditBalance = async (authIndex: string): Promise<number | null> => {
+const fetchAntigravityCodeAssistInfo = async (
+  authIndex: string
+): Promise<AntigravityCodeAssistInfo> => {
   const requestBody = JSON.stringify({
     metadata: {
       ideName: 'antigravity',
@@ -288,14 +324,17 @@ const fetchAntigravityCreditBalance = async (authIndex: string): Promise<number 
       }
 
       const payload = parseGeminiCliCodeAssistPayload(result.body ?? result.bodyText);
-      const balance = resolveAntigravityCreditBalance(payload);
-      if (balance !== null) return balance;
+      const info: AntigravityCodeAssistInfo = {
+        creditBalance: resolveAntigravityCreditBalance(payload),
+        tierId: resolveGeminiCliTierId(payload),
+      };
+      if (info.creditBalance !== null || info.tierId !== null) return info;
     } catch {
       continue;
     }
   }
 
-  return null;
+  return EMPTY_ANTIGRAVITY_CODE_ASSIST_INFO;
 };
 
 const resolveAntigravityCreditBalance = (
@@ -365,7 +404,7 @@ const buildCodexQuotaRequestHeaders = (accountId?: string | null): Record<string
   Priority: 'u=4, i',
 });
 
-type CodexResetCreditsData = {
+export type CodexResetCreditsData = {
   availableCount: number | null;
   credits: CodexRateLimitResetCredit[];
   error: string;
@@ -508,6 +547,17 @@ const fetchCodexResetCredits = async (
       error: err instanceof Error ? err.message : t('common.unknown_error'),
     };
   }
+};
+
+export const fetchCodexResetCreditsForFile = async (
+  file: AuthFileItem,
+  t: TFunction
+): Promise<CodexResetCreditsData> => {
+  const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
+  if (!authIndex) {
+    return { availableCount: null, credits: [], error: t('codex_quota.missing_auth_index') };
+  }
+  return fetchCodexResetCredits(authIndex, resolveCodexChatgptAccountId(file), t);
 };
 
 export const formatShanghaiDateTime = (value: string): string => {

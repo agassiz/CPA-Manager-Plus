@@ -105,6 +105,19 @@ export const ANTIGRAVITY_QUOTA_GROUPS: AntigravityQuotaGroupDefinition[] = [
     identifiers: ['gemini-3.1-pro-high', 'gemini-3.1-pro-low'],
   },
   {
+    id: 'gemini-4',
+    label: 'Gemini 4',
+    identifiers: [
+      'gemini-4-argon-high',
+      'gemini-4-argon-medium',
+      'gemini-4-argon-low',
+      'gemini-4-carbon',
+      'gemini-4-carbon-high',
+      'gemini-4-hydrogen-xhigh',
+      'gemini-4-neon-xhigh',
+    ],
+  },
+  {
     id: 'gemini-2-5-flash',
     label: 'Gemini 2.5 Flash',
     identifiers: ['gemini-2.5-flash', 'gemini-2.5-flash-thinking'],

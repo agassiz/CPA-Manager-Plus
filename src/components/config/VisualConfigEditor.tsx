@@ -926,7 +926,7 @@ export function VisualConfigEditor({
                 <Input
                   label={t('config_management.visual.sections.system.max_request_body_bytes')}
                   type="number"
-                  placeholder="0"
+                  placeholder="67108864"
                   value={values.maxRequestBodyBytes}
                   onChange={(e) => onChange({ maxRequestBodyBytes: e.target.value })}
                   disabled={disabled}

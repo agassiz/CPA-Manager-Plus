@@ -244,6 +244,7 @@ export function buildAntigravityQuotaGroups(
   const gemini31ProGroup = appendGroup('gemini-3-1-pro-series');
   const geminiProGroup = appendGroup('gemini-3-pro');
   const geminiProResetTime = gemini31ProGroup?.resetTime ?? geminiProGroup?.resetTime;
+  appendGroup('gemini-4');
   appendGroup('gemini-2-5-flash');
   appendGroup('gemini-2-5-flash-lite');
   appendGroup('gemini-2-5-cu');

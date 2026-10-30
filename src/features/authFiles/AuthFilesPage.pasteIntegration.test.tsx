@@ -118,12 +118,14 @@ vi.mock('@/stores', () => ({
   useQuotaStore: (
     selector: (state: {
       codexQuota: Record<string, never>;
+      antigravityQuota: Record<string, never>;
       setCodexQuota: ReturnType<typeof vi.fn>;
       activateQuotaCacheScope: ReturnType<typeof vi.fn>;
     }) => unknown
   ) =>
     selector({
       codexQuota: {},
+      antigravityQuota: {},
       setCodexQuota: vi.fn(),
       activateQuotaCacheScope: vi.fn(),
     }),
