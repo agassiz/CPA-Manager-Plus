@@ -46,6 +46,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e0f7fa', text: '#006064' },
     dark: { bg: '#004d40', text: '#80deea' },
   },
+  copilot: {
+    light: { bg: '#dafbe1', text: '#1a7f37' },
+    dark: { bg: '#12402a', text: '#7ee2a8' },
+  },
   xai: {
     light: { bg: '#f3f4f6', text: '#111827', border: '1px solid #d1d5db' },
     dark: { bg: '#111827', text: '#f9fafb', border: '1px solid #374151' },
@@ -251,6 +255,15 @@ export const CLINE_BALANCE_URL = (userId: string) =>
 
 export const CLINE_REQUEST_HEADERS = {
   Authorization: 'Bearer workos:$TOKEN$',
+  Accept: 'application/json',
+};
+
+// GitHub Copilot API configuration. The quota endpoint needs the GitHub OAuth token
+// (credential `refresh_token`), not the short-lived Copilot inference token.
+export const COPILOT_USER_URL = 'https://api.github.com/copilot_internal/user';
+
+export const COPILOT_REQUEST_HEADERS = {
+  'User-Agent': 'copilot/1.0.114',
   Accept: 'application/json',
 };
 

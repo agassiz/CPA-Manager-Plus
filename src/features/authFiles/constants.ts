@@ -4,6 +4,7 @@ import iconClaude from '@/assets/icons/claude.svg';
 import iconClineDark from '@/assets/icons/cline-dark.svg';
 import iconClineLight from '@/assets/icons/cline-light.svg';
 import iconCodex from '@/assets/icons/codex.svg';
+import iconCopilot from '@/assets/icons/copilot.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
 import iconGemini from '@/assets/icons/gemini.svg';
@@ -35,6 +36,7 @@ export type QuotaProviderType =
   | 'claude'
   | 'cline'
   | 'codex'
+  | 'copilot'
   | 'devin'
   | 'gemini-cli'
   | 'kiro'
@@ -47,6 +49,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'claude',
   'cline',
   'codex',
+  'copilot',
   'devin',
   'gemini-cli',
   'kiro',
@@ -117,6 +120,11 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e6f1ff', text: '#0867df' },
     dark: { bg: '#12366b', text: '#7db7ff' },
   },
+  // GitHub Copilot logo: monochrome glyph; GitHub green keeps it apart from the graphite providers
+  copilot: {
+    light: { bg: '#dafbe1', text: '#1a7f37' },
+    dark: { bg: '#12402a', text: '#7ee2a8' },
+  },
   // Antigravity logo: 多色（主色 #3789F9 蓝 + #53A89A 青绿），用青色区分
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },
@@ -153,6 +161,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   claude: iconClaude,
   cline: { light: iconClineLight, dark: iconClineDark },
   codex: iconCodex,
+  copilot: iconCopilot,
   devin: { light: iconDevin, dark: iconDevinDark },
   gemini: iconGemini,
   'gemini-cli': iconGemini,

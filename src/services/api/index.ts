@@ -18,6 +18,7 @@ export * from './vertex';
 export * from './codexQuota';
 export * from './codexTurnStateMonitor';
 export * from './clineQuota';
+export * from './copilotQuota';
 export * from './devinQuota';
 export * from './metaQuota';
 export * from './plugins';

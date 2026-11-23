@@ -20,6 +20,7 @@ export type AuthFileType =
   | 'meta'
   | 'xai'
   | 'kiro'
+  | 'copilot'
   | 'iflow'
   | 'vertex'
   | 'empty'

@@ -35,6 +35,10 @@ export function isClineFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'cline';
 }
 
+export function isCopilotFile(file: AuthFileItem): boolean {
+  return resolveAuthProvider(file) === 'copilot';
+}
+
 export function isCodexFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'codex';
 }

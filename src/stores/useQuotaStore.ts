@@ -10,6 +10,7 @@ import type {
   ClaudeQuotaState,
   ClineQuotaState,
   CodexQuotaState,
+  CopilotQuotaState,
   DevinQuotaState,
   GeminiCliQuotaState,
   KiroQuotaState,
@@ -26,6 +27,7 @@ interface QuotaStoreState {
   claudeQuota: Record<string, ClaudeQuotaState>;
   clineQuota: Record<string, ClineQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  copilotQuota: Record<string, CopilotQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
   kiroQuota: Record<string, KiroQuotaState>;
@@ -36,6 +38,7 @@ interface QuotaStoreState {
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setClineQuota: (updater: QuotaUpdater<Record<string, ClineQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setCopilotQuota: (updater: QuotaUpdater<Record<string, CopilotQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
@@ -58,6 +61,7 @@ const emptyQuotaState = {
   claudeQuota: {},
   clineQuota: {},
   codexQuota: {},
+  copilotQuota: {},
   devinQuota: {},
   geminiCliQuota: {},
   kiroQuota: {},
@@ -86,6 +90,8 @@ export const useQuotaStore = create<QuotaStoreState>()(
         set((state) => ({ clineQuota: resolveUpdater(updater, state.clineQuota) })),
       setCodexQuota: (updater) =>
         set((state) => ({ codexQuota: resolveUpdater(updater, state.codexQuota) })),
+      setCopilotQuota: (updater) =>
+        set((state) => ({ copilotQuota: resolveUpdater(updater, state.copilotQuota) })),
       setDevinQuota: (updater) =>
         set((state) => ({ devinQuota: resolveUpdater(updater, state.devinQuota) })),
       setGeminiCliQuota: (updater) =>
@@ -127,6 +133,7 @@ export const useQuotaStore = create<QuotaStoreState>()(
         claudeQuota: persistSuccessfulQuota(state.claudeQuota),
         clineQuota: persistSuccessfulQuota(state.clineQuota),
         codexQuota: persistSuccessfulQuota(state.codexQuota),
+        copilotQuota: persistSuccessfulQuota(state.copilotQuota),
         devinQuota: persistSuccessfulQuota(state.devinQuota),
         geminiCliQuota: persistSuccessfulQuota(state.geminiCliQuota),
         kiroQuota: persistSuccessfulQuota(state.kiroQuota),

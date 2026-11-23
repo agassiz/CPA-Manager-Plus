@@ -12,6 +12,7 @@ export type OAuthProvider =
   | 'gemini-cli'
   | 'kimi'
   | 'kiro'
+  | 'copilot'
   | 'xai'
   | 'devin'
   | 'cline';

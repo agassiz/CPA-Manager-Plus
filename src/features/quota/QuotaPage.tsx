@@ -16,6 +16,7 @@ import {
   CLAUDE_CONFIG,
   CODEX_CONFIG,
   CLINE_CONFIG,
+  COPILOT_CONFIG,
   DEVIN_CONFIG,
   GEMINI_CLI_CONFIG,
   KIRO_CONFIG,
@@ -163,6 +164,14 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={KIRO_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+        searchQuery={searchQuery}
+        sortMode={sortMode}
+      />
+      <QuotaSection
+        config={COPILOT_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

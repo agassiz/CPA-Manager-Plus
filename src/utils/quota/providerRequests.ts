@@ -11,6 +11,7 @@ import type {
   CodexRateLimitResetCredit,
   CodexQuotaWindow,
   CodexUsagePayload,
+  CopilotQuotaData,
   GeminiCliCodeAssistPayload,
   GeminiCliCredits,
   GeminiCliParsedBucket,
@@ -29,6 +30,7 @@ import type {
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api/apiCall';
 import { authFilesApi } from '@/services/api/authFiles';
 import { readClineBalance, readClineUserId } from '@/services/api/clineQuota';
+import { parseCopilotQuota } from '@/services/api/copilotQuota';
 import { hasDevinQuotaObservation, readDevinQuotaResponse } from '@/services/api/devinQuota';
 import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
 import {
@@ -46,6 +48,8 @@ import {
   CODEX_RATE_LIMIT_RESET_CREDITS_CONSUME_URL,
   CODEX_REQUEST_HEADERS,
   CODEX_USAGE_URL,
+  COPILOT_REQUEST_HEADERS,
+  COPILOT_USER_URL,
   GEMINI_CLI_CODE_ASSIST_URL,
   GEMINI_CLI_QUOTA_URL,
   GEMINI_CLI_REQUEST_HEADERS,
@@ -1230,6 +1234,41 @@ const readMetaDcaToken = (text: string): string => {
 const isRuntimeOnlyQuotaFile = (file: AuthFileItem): boolean => {
   const raw = file.runtimeOnly ?? file.runtime_only;
   return raw === true || (typeof raw === 'string' && raw.trim().toLowerCase() === 'true');
+};
+
+const COPILOT_GITHUB_TOKEN_PATTERN = /^[A-Za-z0-9._~-]+$/;
+
+export const fetchCopilotQuota = async (
+  file: AuthFileItem,
+  t: TFunction
+): Promise<CopilotQuotaData> => {
+  const unavailable = () => new Error(t('copilot_quota.unavailable'));
+  const authIndex = normalizeAuthIndex(file.authIndex ?? file.auth_index);
+  if (!authIndex || !file.name?.trim() || isRuntimeOnlyQuotaFile(file)) {
+    throw unavailable();
+  }
+
+  try {
+    const credential = asRecord(JSON.parse(await authFilesApi.downloadText(file.name)));
+    if (!credential || credential.type !== 'copilot') throw unavailable();
+    // access_token is the short-lived inference token; only refresh_token holds the GitHub OAuth token.
+    const token = credential.refresh_token;
+    if (typeof token !== 'string' || !COPILOT_GITHUB_TOKEN_PATTERN.test(token)) {
+      throw unavailable();
+    }
+    const result = await apiCallApi.request({
+      authIndex,
+      method: 'GET',
+      url: COPILOT_USER_URL,
+      header: { Authorization: `Bearer ${token}`, ...COPILOT_REQUEST_HEADERS },
+    });
+    if (result.statusCode < 200 || result.statusCode >= 300) throw unavailable();
+    const data = parseCopilotQuota(result.body);
+    if (data) return data;
+  } catch {
+    // Download, transport and parse errors may carry credentials or raw account data.
+  }
+  throw unavailable();
 };
 
 export const fetchMetaQuota = async (file: AuthFileItem, t: TFunction): Promise<MetaQuotaData> => {

@@ -5,6 +5,7 @@ export type QuotaSectionType =
   | 'claude'
   | 'cline'
   | 'codex'
+  | 'copilot'
   | 'devin'
   | 'gemini-cli'
   | 'kiro'
@@ -29,6 +30,7 @@ const QUOTA_SECTION_TYPE_SET = new Set<QuotaSectionType>([
   'claude',
   'cline',
   'codex',
+  'copilot',
   'devin',
   'gemini-cli',
   'kiro',

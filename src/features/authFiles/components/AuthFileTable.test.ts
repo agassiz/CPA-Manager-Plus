@@ -249,6 +249,22 @@ describe('buildAuthFileTableQuotaItems', () => {
     ]);
   });
 
+  it('copilot 展示 premium 剩余百分比与用量', () => {
+    const quota = {
+      status: 'success',
+      data: { remaining: 120, entitlement: 300, percentRemaining: 40 },
+    };
+
+    expect(buildAuthFileTableQuotaItems('copilot', quota, t)).toEqual([
+      expect.objectContaining({
+        id: 'premium',
+        remainingPercent: 40,
+        detail: '120 / 300',
+        kind: 'progress',
+      }),
+    ]);
+  });
+
   it('kiro 展示订阅与基础额度', () => {
     const quota: KiroQuotaState = {
       status: 'success',

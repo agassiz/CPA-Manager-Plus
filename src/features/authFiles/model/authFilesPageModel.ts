@@ -6,6 +6,7 @@ import type {
   ClineQuotaState,
   CodexQuotaState,
   CodexQuotaWindow,
+  CopilotQuotaState,
   DevinQuotaState,
   GeminiCliQuotaState,
   KimiQuotaState,
@@ -326,6 +327,19 @@ export const buildAuthFileTableQuotaItems = (
     const balance = (quota as ClineQuotaState).balance;
     if (!balance) return [];
     pushMeta(items, 'balance', t('cline_quota.balance_label'), formatClineCredits(balance));
+    return items;
+  }
+
+  if (quotaType === 'copilot') {
+    const data = (quota as CopilotQuotaState).data;
+    if (!data) return [];
+    pushProgress(
+      items,
+      'premium',
+      t('copilot_quota.premium'),
+      clampRemainingPercent(data.percentRemaining),
+      `${data.remaining} / ${data.entitlement}`
+    );
     return items;
   }
 
@@ -665,6 +679,20 @@ export const getAuthFileTableQuotaItems = (
       });
     }
     return items;
+  }
+
+  if (quotaType === 'copilot') {
+    const data = (quota as CopilotQuotaState | undefined)?.data;
+    if (!data) return [];
+    return [
+      {
+        id: 'premium',
+        label: t('copilot_quota.premium'),
+        percent: clampRemainingPercent(data.percentRemaining),
+        resetLabel: '-',
+        detailLabel: `${data.remaining} / ${data.entitlement}`,
+      },
+    ];
   }
 
   if (quotaType === 'cline') {

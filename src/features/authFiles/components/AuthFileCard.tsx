@@ -247,7 +247,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
                 ? styles.kimiCard
                 : quotaType === 'meta'
                   ? styles.geminiCliCard
-                  : quotaType === 'devin' || quotaType === 'cline'
+                  : quotaType === 'devin' || quotaType === 'cline' || quotaType === 'copilot'
                     ? styles.xaiCard
                     : quotaType === 'xai'
                       ? styles.xaiCard

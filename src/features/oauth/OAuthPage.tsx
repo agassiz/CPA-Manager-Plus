@@ -21,6 +21,7 @@ import iconVertex from '@/assets/icons/vertex.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconKiro from '@/assets/icons/kiro.svg';
+import iconCopilot from '@/assets/icons/copilot.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
 import iconClineLight from '@/assets/icons/cline-light.svg';
@@ -130,6 +131,13 @@ const PROVIDERS: {
     hintKey: 'auth_login.kiro_oauth_hint',
     urlLabelKey: 'auth_login.kiro_oauth_url_label',
     icon: iconKiro,
+  },
+  {
+    id: 'copilot',
+    titleKey: 'auth_login.copilot_oauth_title',
+    hintKey: 'auth_login.copilot_oauth_hint',
+    urlLabelKey: 'auth_login.copilot_oauth_url_label',
+    icon: iconCopilot,
   },
   {
     id: 'xai',

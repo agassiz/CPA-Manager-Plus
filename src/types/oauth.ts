@@ -3,16 +3,10 @@
  * 基于原项目 src/modules/oauth.js
  */
 
-// OAuth 提供商类型
-export type OAuthProvider =
-  | 'meta'
-  | 'codex'
-  | 'anthropic'
-  | 'antigravity'
-  | 'gemini-cli'
-  | 'kimi'
-  | 'devin'
-  | 'cline';
+import type { OAuthProvider } from '@/services/api/oauth';
+
+// OAuth provider type: the OAuth API service owns the single source of truth.
+export type { OAuthProvider };
 
 // OAuth 流程状态
 export interface OAuthFlow {

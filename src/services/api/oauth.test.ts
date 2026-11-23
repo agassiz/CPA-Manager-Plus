@@ -44,6 +44,24 @@ describe('oauthApi Meta and Devin support', () => {
     expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', { params: { provider: 'cline' } });
   });
 
+  it('starts GitHub Copilot device login without web callback mode', async () => {
+    mocks.get.mockResolvedValue({
+      status: 'ok',
+      url: 'https://example.test/device',
+      state: 'copilot-state',
+      user_code: 'COPILOT-CODE',
+      flow: 'device',
+      expires_in: 900,
+    });
+
+    await expect(oauthApi.startAuth('copilot')).resolves.toMatchObject({
+      user_code: 'COPILOT-CODE',
+    });
+    expect(mocks.get).toHaveBeenCalledWith('/oauth/auth-url', {
+      params: { provider: 'copilot' },
+    });
+  });
+
   it('starts and cancels a Devin web login session', async () => {
     mocks.get.mockResolvedValue({ url: 'https://example.test/login', state: 'devin-state' });
     mocks.delete.mockResolvedValue({ status: 'ok', cancelled: true });

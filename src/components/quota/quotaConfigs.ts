@@ -16,6 +16,8 @@ import type {
   CodexRateLimitResetCredit,
   CodexQuotaState,
   CodexQuotaWindow,
+  CopilotQuotaData,
+  CopilotQuotaState,
   DevinQuotaData,
   DevinQuotaState,
   GeminiCliQuotaBucketState,
@@ -41,6 +43,7 @@ import {
   fetchClaudeQuota,
   fetchClineQuota,
   fetchCodexQuota,
+  fetchCopilotQuota,
   fetchDevinQuota,
   fetchGeminiCliCodeAssist,
   fetchGeminiCliQuotaBuckets,
@@ -52,6 +55,7 @@ import {
   isClaudeFile,
   isClineFile,
   isCodexFile,
+  isCopilotFile,
   isDevinFile,
   isDisabledAuthFile,
   isGeminiCliFile,
@@ -72,6 +76,7 @@ type QuotaType =
   | 'claude'
   | 'cline'
   | 'codex'
+  | 'copilot'
   | 'devin'
   | 'gemini-cli'
   | 'kiro'
@@ -98,6 +103,7 @@ export interface QuotaStore {
   claudeQuota: Record<string, ClaudeQuotaState>;
   clineQuota: Record<string, ClineQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  copilotQuota: Record<string, CopilotQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
   kiroQuota: Record<string, KiroQuotaState>;
@@ -108,6 +114,7 @@ export interface QuotaStore {
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setClineQuota: (updater: QuotaUpdater<Record<string, ClineQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setCopilotQuota: (updater: QuotaUpdater<Record<string, CopilotQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
@@ -828,6 +835,64 @@ export const CLINE_CONFIG: QuotaConfig<ClineQuotaState, ClineBalance> = {
   controlClassName: styles.kimiControl,
   gridClassName: styles.kimiGrid,
   renderQuotaItems: renderClineItems,
+};
+
+const renderCopilotItems = (
+  quota: CopilotQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap, QuotaProgressBar } = helpers;
+  const { createElement: h } = React;
+  const data = quota.data;
+  if (!data) {
+    return h('div', { className: styleMap.quotaMessage }, t('copilot_quota.unavailable'));
+  }
+
+  const percent = Number(data.percentRemaining.toFixed(1));
+  return h(
+    'div',
+    { key: 'premium', className: styleMap.quotaRow },
+    h(
+      'div',
+      { className: styleMap.quotaRowHeader },
+      h('span', { className: styleMap.quotaModel }, t('copilot_quota.premium')),
+      h(
+        'div',
+        { className: styleMap.quotaMeta },
+        h('span', { className: styleMap.quotaPercent }, t('copilot_quota.remaining', { percent })),
+        h('span', { className: styleMap.quotaAmount }, `${data.remaining} / ${data.entitlement}`)
+      )
+    ),
+    h(QuotaProgressBar, {
+      percent,
+      highThreshold: QUOTA_PROGRESS_HIGH_THRESHOLD,
+      mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
+    })
+  );
+};
+
+export const COPILOT_CONFIG: QuotaConfig<CopilotQuotaState, CopilotQuotaData> = {
+  type: 'copilot',
+  i18nPrefix: 'copilot_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isCopilotFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchCopilotQuota,
+  storeSelector: (state) => state.copilotQuota,
+  storeSetter: 'setCopilotQuota',
+  buildLoadingState: () => ({ status: 'loading' }),
+  buildSuccessState: (data) => ({ status: 'success', data }),
+  buildErrorState: (message, status, upstreamError) => ({
+    status: 'error',
+    error: message,
+    errorStatus: status,
+    upstreamError,
+  }),
+  cardClassName: styles.kimiCard,
+  controlsClassName: styles.kimiControls,
+  controlClassName: styles.kimiControl,
+  gridClassName: styles.kimiGrid,
+  renderQuotaItems: renderCopilotItems,
 };
 
 const renderMetaItems = (

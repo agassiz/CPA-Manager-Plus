@@ -342,6 +342,21 @@ export interface ClineQuotaState {
   upstreamError?: boolean;
 }
 
+/** GitHub Copilot premium interactions snapshot from `GET /copilot_internal/user`. */
+export interface CopilotQuotaData {
+  remaining: number;
+  entitlement: number;
+  percentRemaining: number;
+}
+
+export interface CopilotQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  data?: CopilotQuotaData;
+  error?: string;
+  errorStatus?: number;
+  upstreamError?: boolean;
+}
+
 export interface MetaQuotaWindow {
   id: 'window' | 'weekly';
   usedPercent: number | null;
