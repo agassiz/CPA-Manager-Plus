@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { AuthFileItem, CodexQuotaState } from '@/types';
+import type { AntigravityQuotaState, AuthFileItem, CodexQuotaState } from '@/types';
 import {
   authFileMatchesCodexStatusFilter,
   authFileMatchesProblemTypeFilter,
   buildAuthFileCodexInspectionMap,
   compareAuthFileDisabledLast,
   compareAuthFileModifiedDesc,
+  compareAuthFileName,
   getAuthFileCodexInspectionKey,
   getAuthFileModifiedTime,
   getAuthFileCodexStatus,
@@ -15,6 +16,8 @@ import {
   getAuthFileSearchValues,
   normalizeAuthFilesCodexStatusFilter,
   normalizeAuthFilesProblemTypeFilter,
+  reconcileStableAuthFileOrder,
+  sortAuthFilesWithStableOrder,
   stringifySearchValue,
   type AuthFileCodexInspectionSnapshot,
 } from './authFilesPageModel';
@@ -405,5 +408,83 @@ describe('auth file Codex status helpers', () => {
     expect(normalizeAuthFilesCodexStatusFilter('monthly_limited')).toBe('monthly_limited');
     expect(normalizeAuthFilesCodexStatusFilter('disabled_with_reset')).toBe('disabled_with_reset');
     expect(normalizeAuthFilesCodexStatusFilter('unknown')).toBeNull();
+  });
+});
+
+describe('stable auth file order helpers', () => {
+  const createDefaultComparator = (quotaMap: Record<string, AntigravityQuotaState>) => {
+    return (left: AuthFileItem, right: AuthFileItem) => {
+      const leftRank = getAuthFilePlanSortRank(left, undefined, quotaMap[left.name]);
+      const rightRank = getAuthFilePlanSortRank(right, undefined, quotaMap[right.name]);
+      const leftKnown = leftRank !== null && leftRank !== undefined;
+      const rightKnown = rightRank !== null && rightRank !== undefined;
+      if (leftKnown || rightKnown) {
+        if (!leftKnown) return 1;
+        if (!rightKnown) return -1;
+        const rankDiff = rightRank - leftRank;
+        if (rankDiff !== 0) return rankDiff;
+      }
+      return compareAuthFileModifiedDesc(left, right) || compareAuthFileName(left, right);
+    };
+  };
+
+  it('首次加载按默认比较器排序，并在后续刷新修改时间或套餐后维持原顺序与引用', () => {
+    const initialFiles: AuthFileItem[] = [
+      { name: 'b.json', type: 'antigravity', modified: 1_000 },
+      { name: 'a.json', type: 'antigravity', modified: 3_000, subscription_tier: 'free-tier' },
+      { name: 'c.json', type: 'antigravity', modified: 2_000 },
+    ];
+    const initialOrder = reconcileStableAuthFileOrder(
+      null,
+      initialFiles,
+      createDefaultComparator({})
+    );
+    expect(initialOrder).toEqual(['a.json', 'c.json', 'b.json']);
+
+    const refreshedFiles: AuthFileItem[] = [
+      { name: 'b.json', type: 'antigravity', modified: 9_000 },
+      { name: 'a.json', type: 'antigravity', modified: 3_000, subscription_tier: 'free-tier' },
+      { name: 'c.json', type: 'antigravity', modified: 5_000 },
+    ];
+    const afterRefreshOrder = reconcileStableAuthFileOrder(
+      initialOrder,
+      refreshedFiles,
+      createDefaultComparator({
+        'b.json': { status: 'success', groups: [], tierId: 'g1-pro-tier' },
+      })
+    );
+    expect(afterRefreshOrder).toBe(initialOrder);
+
+    const lockedMap = new Map((afterRefreshOrder ?? []).map((name, index) => [name, index]));
+    const sorted = sortAuthFilesWithStableOrder(
+      refreshedFiles,
+      createDefaultComparator({
+        'b.json': { status: 'success', groups: [], tierId: 'g1-pro-tier' },
+      }),
+      lockedMap
+    );
+    expect(sorted.map((item) => item.name)).toEqual(['a.json', 'c.json', 'b.json']);
+  });
+
+  it('移除已删除文件并按比较器将新增文件追加到末尾，解除锁定时按新比较器重排', () => {
+    const previousOrder = ['a.json', 'c.json', 'b.json'];
+    const nextFiles: AuthFileItem[] = [
+      { name: 'b.json', type: 'antigravity', modified: 4_000 },
+      { name: 'a.json', type: 'antigravity', modified: 1_000 },
+      { name: 'd.json', type: 'antigravity', modified: 2_000 },
+      { name: 'e.json', type: 'antigravity', modified: 8_000 },
+    ];
+    const compare = createDefaultComparator({});
+
+    const reconciled = reconcileStableAuthFileOrder(previousOrder, nextFiles, compare);
+    expect(reconciled).toEqual(['a.json', 'b.json', 'e.json', 'd.json']);
+
+    const resortedWithoutLock = sortAuthFilesWithStableOrder(nextFiles, compareAuthFileName, null);
+    expect(resortedWithoutLock.map((item) => item.name)).toEqual([
+      'a.json',
+      'b.json',
+      'd.json',
+      'e.json',
+    ]);
   });
 });

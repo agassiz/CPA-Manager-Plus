@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import { describe, expect, it } from 'vitest';
+import { preserveQuotaSortMetadata } from '@/utils/quota';
 import {
   buildEmbeddedAntigravityQuota,
   buildEmbeddedCodexQuota,
@@ -201,5 +202,92 @@ describe('preserveCodexPlanType', () => {
         { status: 'error', error: 'upstream failed' }
       )
     ).toEqual({ status: 'error', error: 'upstream failed', planType: 'team' });
+  });
+});
+
+describe('preserveQuotaSortMetadata', () => {
+  it('Antigravity 加载与失败状态保留 tierId 和 creditBalance', () => {
+    const previous = {
+      status: 'success',
+      groups: [],
+      tierId: 'g1-ultra-tier',
+      creditBalance: 2500,
+    };
+
+    expect(
+      preserveQuotaSortMetadata('antigravity', previous, { status: 'loading', groups: [] })
+    ).toEqual({
+      status: 'loading',
+      groups: [],
+      tierId: 'g1-ultra-tier',
+      creditBalance: 2500,
+    });
+
+    expect(
+      preserveQuotaSortMetadata('antigravity', previous, {
+        status: 'error',
+        groups: [],
+        error: 'rate limited',
+      })
+    ).toEqual({
+      status: 'error',
+      groups: [],
+      error: 'rate limited',
+      tierId: 'g1-ultra-tier',
+      creditBalance: 2500,
+    });
+  });
+
+  it('Antigravity 成功响应 tierId 为空时保留旧 tierId，有新值时采用新 tierId 和积分', () => {
+    const previous = {
+      status: 'success',
+      groups: [],
+      tierId: 'free-tier',
+      creditBalance: 100,
+    };
+
+    expect(
+      preserveQuotaSortMetadata('antigravity', previous, {
+        status: 'success',
+        groups: [],
+        tierId: null,
+        creditBalance: null,
+      })
+    ).toEqual({
+      status: 'success',
+      groups: [],
+      tierId: 'free-tier',
+      creditBalance: null,
+    });
+
+    expect(
+      preserveQuotaSortMetadata('antigravity', previous, {
+        status: 'success',
+        groups: [],
+        tierId: 'g1-pro-tier',
+        creditBalance: 1500,
+      })
+    ).toEqual({
+      status: 'success',
+      groups: [],
+      tierId: 'g1-pro-tier',
+      creditBalance: 1500,
+    });
+  });
+
+  it('Codex 在加载、失败及成功缺少 planType 时均保留已有 planType', () => {
+    const previous = { status: 'success', planType: 'pro', windows: [] };
+
+    expect(
+      preserveQuotaSortMetadata('codex', previous, { status: 'loading', windows: [] })
+    ).toEqual({ status: 'loading', windows: [], planType: 'pro' });
+
+    expect(
+      preserveQuotaSortMetadata('codex', previous, { status: 'error', windows: [], error: 'err' })
+    ).toEqual({ status: 'error', windows: [], error: 'err', planType: 'pro' });
+
+    expect(
+      preserveQuotaSortMetadata('codex', previous, { status: 'success', windows: [], planType: null })
+    ).toEqual({ status: 'success', windows: [], planType: 'pro' });
   });
 });

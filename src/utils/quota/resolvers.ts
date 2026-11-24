@@ -160,3 +160,65 @@ export function resolveGeminiCliProjectId(file: AuthFileItem): string | null {
 
   return null;
 }
+
+export function preserveQuotaSortMetadata<T>(
+  quotaType: string,
+  previousState: unknown,
+  nextState: T
+): T {
+  if (
+    !previousState ||
+    typeof previousState !== 'object' ||
+    Array.isArray(previousState) ||
+    !nextState ||
+    typeof nextState !== 'object' ||
+    Array.isArray(nextState)
+  ) {
+    return nextState;
+  }
+
+  const prevRecord = previousState as Record<string, unknown>;
+  const nextRecord = nextState as Record<string, unknown>;
+
+  if (quotaType === 'codex') {
+    const nextPlanType = nextRecord.planType;
+    const prevPlanType = prevRecord.planType;
+    if (
+      (typeof nextPlanType !== 'string' || !nextPlanType.trim()) &&
+      typeof prevPlanType === 'string' &&
+      prevPlanType.trim()
+    ) {
+      return { ...nextRecord, planType: prevPlanType } as T;
+    }
+    return nextState;
+  }
+
+  if (quotaType === 'antigravity') {
+    const patch: Record<string, unknown> = {};
+    const nextTierId = nextRecord.tierId;
+    const prevTierId = prevRecord.tierId;
+    if (
+      (typeof nextTierId !== 'string' || !nextTierId.trim()) &&
+      typeof prevTierId === 'string' &&
+      prevTierId.trim()
+    ) {
+      patch.tierId = prevTierId;
+    }
+
+    const nextStatus = nextRecord.status;
+    if (
+      (nextStatus === 'loading' || nextStatus === 'error') &&
+      (nextRecord.creditBalance === undefined || nextRecord.creditBalance === null) &&
+      typeof prevRecord.creditBalance === 'number' &&
+      Number.isFinite(prevRecord.creditBalance)
+    ) {
+      patch.creditBalance = prevRecord.creditBalance;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      return { ...nextRecord, ...patch } as T;
+    }
+  }
+
+  return nextState;
+}

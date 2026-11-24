@@ -959,7 +959,10 @@
     "refresh_button": "Refresh Quota",
     "fetch_all": "Fetch All",
     "credit_label": "Credits",
-    "credit_amount": "{{count}} credits"
+    "credit_amount": "{{count}} credits",
+    "window_weekly": "Weekly limit",
+    "window_5h": "5h limit",
+    "window_exhausted": "{{label}} (used up)"
   },
   "claude_quota": {
     "title": "Claude Quota",

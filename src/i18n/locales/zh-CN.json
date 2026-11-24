@@ -954,7 +954,10 @@
     "refresh_button": "刷新额度",
     "fetch_all": "获取全部",
     "credit_label": "积分",
-    "credit_amount": "{{count}} 积分"
+    "credit_amount": "{{count}} 积分",
+    "window_weekly": "周限额",
+    "window_5h": "5 小时限额",
+    "window_exhausted": "{{label}}（已用完）"
   },
   "claude_quota": {
     "title": "Claude 额度",

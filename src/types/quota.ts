@@ -241,12 +241,24 @@ export interface ClaudeQuotaState {
 }
 
 // Quota state types
+/** One limit of an Antigravity usage summary group, e.g. the weekly or the 5-hour limit. */
+export interface AntigravityQuotaWindow {
+  id: string;
+  /** Window kind reported by retrieveUserQuotaSummary: "weekly", "5h", or a future value. */
+  window: string;
+  label: string;
+  remainingFraction: number;
+  resetTime?: string;
+}
+
 export interface AntigravityQuotaGroup {
   id: string;
   label: string;
   models: string[];
   remainingFraction: number;
   resetTime?: string;
+  /** Limits of a usage summary group; absent for groups built from fetchAvailableModels. */
+  windows?: AntigravityQuotaWindow[];
 }
 
 export interface AntigravityQuotaState {

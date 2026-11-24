@@ -79,6 +79,17 @@ export const ANTIGRAVITY_QUOTA_URLS = [
   'https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels',
 ];
 
+// Usage summary the native client shows as its usage panel (weekly and 5-hour limits per group).
+export const ANTIGRAVITY_QUOTA_SUMMARY_URLS = [
+  'https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary',
+  'https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:retrieveUserQuotaSummary',
+  'https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary',
+];
+
+// Project the native client sends with the usage summary request. The groups the summary lists
+// depend on the client User-Agent, which the server replaces with the native one for these calls.
+export const ANTIGRAVITY_QUOTA_SUMMARY_PROJECT = 'aicode-consumers';
+
 export const ANTIGRAVITY_CODE_ASSIST_URLS = [
   'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist',
   'https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:loadCodeAssist',
@@ -208,7 +219,11 @@ export const CLAUDE_REQUEST_HEADERS = {
 export const CLAUDE_USAGE_WINDOW_KEYS = [
   { key: 'five_hour', id: 'five-hour', labelKey: 'claude_quota.five_hour' },
   { key: 'seven_day', id: 'seven-day', labelKey: 'claude_quota.seven_day' },
-  { key: 'seven_day_oauth_apps', id: 'seven-day-oauth-apps', labelKey: 'claude_quota.seven_day_oauth_apps' },
+  {
+    key: 'seven_day_oauth_apps',
+    id: 'seven-day-oauth-apps',
+    labelKey: 'claude_quota.seven_day_oauth_apps',
+  },
   { key: 'seven_day_opus', id: 'seven-day-opus', labelKey: 'claude_quota.seven_day_opus' },
   { key: 'seven_day_sonnet', id: 'seven-day-sonnet', labelKey: 'claude_quota.seven_day_sonnet' },
   { key: 'seven_day_cowork', id: 'seven-day-cowork', labelKey: 'claude_quota.seven_day_cowork' },

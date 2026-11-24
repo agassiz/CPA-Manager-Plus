@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -29,6 +29,8 @@ import {
   getStatusFromError,
   isUpstreamStatusError,
   parseCodexUsagePayload,
+  parseStoredAntigravityQuotaSummaryGroups,
+  preserveQuotaSortMetadata,
 } from '@/utils/quota';
 import { authFilesApi } from '@/services/api/authFiles';
 import {
@@ -69,22 +71,10 @@ export const preserveCodexPlanType = (
   quotaType: QuotaProviderType,
   previousState: unknown,
   nextState: unknown
-): unknown => {
-  if (
-    quotaType !== 'codex' ||
-    !previousState ||
-    typeof previousState !== 'object' ||
-    !nextState ||
-    typeof nextState !== 'object'
-  ) {
-    return nextState;
-  }
-
-  const planType = (previousState as { planType?: unknown }).planType;
-  if (typeof planType !== 'string' || !planType.trim()) return nextState;
-
-  return { ...nextState, planType };
-};
+): unknown =>
+  quotaType === 'codex'
+    ? preserveQuotaSortMetadata(quotaType, previousState, nextState)
+    : nextState;
 
 export const getAuthFileQuotaErrorMessage = (t: TFunction, quota: QuotaState): string => {
   const quotaErrorStatus =
@@ -162,7 +152,13 @@ export const buildEmbeddedAntigravityQuota = (
   file: AuthFileItem
 ): AntigravityQuotaState | undefined => {
   const creditBalance = normalizeNumberValue(file.credit_balance ?? file.creditBalance);
-  const groups = parseEmbeddedAntigravityQuotaGroups(file.antigravity_quota_groups);
+  // The usage summary (weekly and 5-hour limits) is what the native client shows; the
+  // per-model groups are the fallback when the server has no summary yet.
+  const summaryGroups = parseStoredAntigravityQuotaSummaryGroups(file.antigravity_quota_summary);
+  const groups =
+    summaryGroups.length > 0
+      ? summaryGroups
+      : parseEmbeddedAntigravityQuotaGroups(file.antigravity_quota_groups);
   if (creditBalance === null && groups.length === 0) return undefined;
   const tierId =
     typeof file.subscription_tier === 'string' && file.subscription_tier.trim()
@@ -351,14 +347,22 @@ export function useAuthFileQuotaRefresh(
 
     updateQuotaState((prev: Record<string, unknown>) => ({
       ...prev,
-      [file.name]: preserveCodexPlanType(quotaType, prev[file.name], config.buildLoadingState()),
+      [file.name]: preserveQuotaSortMetadata(
+        quotaType,
+        prev[file.name] ?? effectiveQuota,
+        config.buildLoadingState()
+      ),
     }));
 
     try {
       const data = await config.fetchQuota(file, t);
       updateQuotaState((prev: Record<string, unknown>) => ({
         ...prev,
-        [file.name]: config.buildSuccessState(data),
+        [file.name]: preserveQuotaSortMetadata(
+          quotaType,
+          prev[file.name] ?? effectiveQuota,
+          config.buildSuccessState(data)
+        ),
       }));
       requestAuthFilesRefresh();
       showNotification(t('auth_files.quota_refresh_success', { name: file.name }), 'success');
@@ -368,9 +372,9 @@ export function useAuthFileQuotaRefresh(
       const upstreamError = isUpstreamStatusError(err);
       updateQuotaState((prev: Record<string, unknown>) => ({
         ...prev,
-        [file.name]: preserveCodexPlanType(
+        [file.name]: preserveQuotaSortMetadata(
           quotaType,
-          prev[file.name],
+          prev[file.name] ?? effectiveQuota,
           config.buildErrorState(message, status, upstreamError)
         ),
       }));
@@ -379,6 +383,7 @@ export function useAuthFileQuotaRefresh(
     }
   }, [
     disableControls,
+    effectiveQuota,
     file,
     quota?.status,
     quotaType,
@@ -416,6 +421,13 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     renderQuotaItems: (quota: unknown, t: TFunction, helpers: unknown) => unknown;
   };
   const quotaErrorMessage = getAuthFileQuotaErrorMessage(t, quota);
+  // While a refresh runs, keep showing the last loaded quota (dimmed) instead of a one-line
+  // loading message, so the card keeps its height.
+  const lastSuccessQuotaRef = useRef<unknown>(undefined);
+  if (quotaStatus === 'success' && quota) {
+    lastSuccessQuotaRef.current = quota;
+  }
+  const refreshingQuota = quotaStatus === 'loading' ? lastSuccessQuotaRef.current : undefined;
   const renderQuotaRefreshAction = () => {
     if (!canRefreshQuota) return null;
 
@@ -483,7 +495,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     );
   };
 
-  const renderQuotaSuccessItems = () => {
+  const renderQuotaSuccessItems = (quota: unknown) => {
     if (quotaType === 'codex' && isCodexQuotaWithoutWindows(quota)) {
       return renderQuotaRefreshAction();
     }
@@ -512,8 +524,17 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
   };
 
   return (
-    <div className={styles.quotaSection}>
-      {quotaStatus === 'loading' ? (
+    <div
+      className={
+        refreshingQuota
+          ? `${styles.quotaSection} ${styles.quotaSectionRefreshing}`
+          : styles.quotaSection
+      }
+      aria-busy={quotaStatus === 'loading'}
+    >
+      {refreshingQuota ? (
+        renderQuotaSuccessItems(refreshingQuota)
+      ) : quotaStatus === 'loading' ? (
         <div className={styles.quotaMessage}>{t(`${config.i18nPrefix}.loading`)}</div>
       ) : quotaStatus === 'idle' ? (
         renderQuotaRefreshAction()
@@ -524,7 +545,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
           })}
         </div>
       ) : quota ? (
-        renderQuotaSuccessItems()
+        renderQuotaSuccessItems(quota)
       ) : (
         <div className={styles.quotaMessage}>{t(`${config.i18nPrefix}.idle`)}</div>
       )}

@@ -35,6 +35,8 @@ import { hasDevinQuotaObservation, readDevinQuotaResponse } from '@/services/api
 import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
 import {
   ANTIGRAVITY_CODE_ASSIST_URLS,
+  ANTIGRAVITY_QUOTA_SUMMARY_PROJECT,
+  ANTIGRAVITY_QUOTA_SUMMARY_URLS,
   ANTIGRAVITY_QUOTA_URLS,
   ANTIGRAVITY_REQUEST_HEADERS,
   CLAUDE_PROFILE_URL,
@@ -62,6 +64,7 @@ import {
 } from './constants';
 import {
   buildAntigravityQuotaGroups,
+  buildAntigravityQuotaSummaryGroups,
   buildGeminiCliQuotaBuckets,
   buildKimiQuotaRows,
 } from './builders';
@@ -236,6 +239,13 @@ export const fetchAntigravityQuota = async (
   const projectId = await resolveAntigravityProjectId(file);
   const requestBody = JSON.stringify({ project: projectId });
   const codeAssistInfoPromise = fetchAntigravityCodeAssistInfo(authIndex);
+  // The usage summary carries the weekly and 5-hour limits the native client shows. The
+  // fetchAvailableModels refresh below still runs: the server clears model cooldowns from it,
+  // and its per-model groups are the fallback when the summary is unavailable.
+  const summaryGroupsPromise = fetchAntigravityQuotaSummaryGroups(
+    authIndex,
+    JSON.stringify({ project: ANTIGRAVITY_QUOTA_SUMMARY_PROJECT })
+  );
 
   let lastError = '';
   let lastStatus: number | undefined;
@@ -275,7 +285,11 @@ export const fetchAntigravityQuota = async (
         continue;
       }
 
-      return { groups, ...(await codeAssistInfoPromise) };
+      const summaryGroups = await summaryGroupsPromise;
+      return {
+        groups: summaryGroups.length > 0 ? summaryGroups : groups,
+        ...(await codeAssistInfoPromise),
+      };
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : t('common.unknown_error');
       const status = getStatusFromError(err);
@@ -288,13 +302,43 @@ export const fetchAntigravityQuota = async (
     }
   }
 
-  if (hadSuccess) {
-    return { groups: [], ...(await codeAssistInfoPromise) };
+  const summaryGroups = await summaryGroupsPromise;
+  if (hadSuccess || summaryGroups.length > 0) {
+    return { groups: summaryGroups, ...(await codeAssistInfoPromise) };
   }
 
   throw createStatusError(lastError || t('common.unknown_error'), priorityStatus ?? lastStatus, {
     upstream: true,
   });
+};
+
+/**
+ * Fetches the usage summary groups. Failures yield no groups: the summary is display-only and
+ * the per-model quota remains the fallback.
+ */
+const fetchAntigravityQuotaSummaryGroups = async (
+  authIndex: string,
+  requestBody: string
+): Promise<AntigravityQuotaGroup[]> => {
+  for (const url of ANTIGRAVITY_QUOTA_SUMMARY_URLS) {
+    try {
+      const result = await apiCallApi.request({
+        authIndex,
+        method: 'POST',
+        url,
+        header: { ...ANTIGRAVITY_REQUEST_HEADERS },
+        data: requestBody,
+      });
+      if (result.statusCode < 200 || result.statusCode >= 300) continue;
+      const groups = buildAntigravityQuotaSummaryGroups(
+        parseAntigravityPayload(result.body ?? result.bodyText)
+      );
+      if (groups.length > 0) return groups;
+    } catch {
+      // Try the next endpoint; the per-model quota is the fallback.
+    }
+  }
+  return [];
 };
 
 const fetchAntigravityCodeAssistInfo = async (

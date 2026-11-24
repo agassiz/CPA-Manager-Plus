@@ -6,6 +6,7 @@ import type {
   AntigravityQuotaGroup,
   AntigravityQuotaGroupDefinition,
   AntigravityQuotaInfo,
+  AntigravityQuotaWindow,
   AntigravityModelsPayload,
   GeminiCliParsedBucket,
   GeminiCliQuotaBucketState,
@@ -123,7 +124,9 @@ export function buildGeminiCliQuotaBuckets(
       const remainingFraction = preferred
         ? preferred.remainingFraction
         : bucket.fallbackRemainingFraction;
-      const remainingAmount = preferred ? preferred.remainingAmount : bucket.fallbackRemainingAmount;
+      const remainingAmount = preferred
+        ? preferred.remainingAmount
+        : bucket.fallbackRemainingAmount;
       const resetTime = preferred ? preferred.resetTime : bucket.fallbackResetTime;
       return {
         id: bucket.id,
@@ -227,10 +230,7 @@ export function buildAntigravityQuotaGroups(
     };
   };
 
-  const appendGroup = (
-    id: string,
-    overrideResetTime?: string
-  ): AntigravityQuotaGroup | null => {
+  const appendGroup = (id: string, overrideResetTime?: string): AntigravityQuotaGroup | null => {
     const definition = definitions.get(id);
     if (!definition) return null;
     const group = buildGroup(definition, overrideResetTime);
@@ -252,6 +252,109 @@ export function buildAntigravityQuotaGroups(
   appendGroup('gemini-image', geminiProResetTime);
 
   return groups;
+}
+
+const toRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const toTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const clampFraction = (value: number): number => Math.max(0, Math.min(1, value));
+
+/**
+ * Picks the group's headline window: the weekly limit when present, otherwise the first one.
+ */
+const pickPrimaryWindow = (windows: AntigravityQuotaWindow[]): AntigravityQuotaWindow =>
+  windows.find((window) => window.window.toLowerCase() === 'weekly') ?? windows[0];
+
+const toSummaryGroup = (
+  id: string,
+  label: string,
+  windows: AntigravityQuotaWindow[]
+): AntigravityQuotaGroup => {
+  const primary = pickPrimaryWindow(windows);
+  return {
+    id,
+    label,
+    models: [],
+    remainingFraction: primary.remainingFraction,
+    ...(primary.resetTime ? { resetTime: primary.resetTime } : {}),
+    windows,
+  };
+};
+
+/**
+ * Builds quota groups from a retrieveUserQuotaSummary response, the data behind the native
+ * client's usage panel. Groups and limits follow the response because they differ per plan:
+ * a Pro account has a separate weekly-only Gemini 4 Argon group, an Ultra account does not.
+ */
+export function buildAntigravityQuotaSummaryGroups(payload: unknown): AntigravityQuotaGroup[] {
+  const groups = toRecord(payload)?.groups;
+  if (!Array.isArray(groups)) return [];
+  return groups.flatMap((rawGroup): AntigravityQuotaGroup[] => {
+    const group = toRecord(rawGroup);
+    const label = toTrimmedString(group?.displayName);
+    const buckets = Array.isArray(group?.buckets) ? group.buckets : [];
+    const windows = buckets.flatMap((rawBucket): AntigravityQuotaWindow[] => {
+      const bucket = toRecord(rawBucket);
+      const remainingFraction = normalizeQuotaFraction(bucket?.remainingFraction);
+      if (!bucket || remainingFraction === null) return [];
+      const resetTime = toTrimmedString(bucket.resetTime);
+      return [
+        {
+          id: toTrimmedString(bucket.bucketId),
+          window: toTrimmedString(bucket.window),
+          label: toTrimmedString(bucket.displayName),
+          remainingFraction: clampFraction(remainingFraction),
+          ...(resetTime ? { resetTime } : {}),
+        },
+      ];
+    });
+    if (!label || windows.length === 0) return [];
+    // "gemini-weekly" and "gemini-5h" share the group id "gemini".
+    const bucketGroupId = windows
+      .map((window) =>
+        window.id && window.window && window.id.endsWith(`-${window.window}`)
+          ? window.id.slice(0, -(window.window.length + 1))
+          : ''
+      )
+      .find(Boolean);
+    const id = bucketGroupId || label.toLowerCase().split(/\s+/).join('-');
+    return [toSummaryGroup(id, label, windows)];
+  });
+}
+
+/**
+ * Parses the usage summary groups the server stored from a retrieveUserQuotaSummary refresh
+ * (`antigravity_quota_summary` on an auth file).
+ */
+export function parseStoredAntigravityQuotaSummaryGroups(value: unknown): AntigravityQuotaGroup[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((rawGroup): AntigravityQuotaGroup[] => {
+    const group = toRecord(rawGroup);
+    const id = toTrimmedString(group?.id);
+    const label = toTrimmedString(group?.label);
+    const rawWindows = Array.isArray(group?.windows) ? group.windows : [];
+    const windows = rawWindows.flatMap((rawWindow): AntigravityQuotaWindow[] => {
+      const window = toRecord(rawWindow);
+      const remainingFraction = normalizeQuotaFraction(window?.remainingFraction);
+      if (!window || remainingFraction === null) return [];
+      const resetTime = toTrimmedString(window.resetTime);
+      return [
+        {
+          id: toTrimmedString(window.id),
+          window: toTrimmedString(window.window),
+          label: toTrimmedString(window.label),
+          remainingFraction: clampFraction(remainingFraction),
+          ...(resetTime ? { resetTime } : {}),
+        },
+      ];
+    });
+    if (!id || !label || windows.length === 0) return [];
+    return [toSummaryGroup(id, label, windows)];
+  });
 }
 
 function toInt(value: unknown): number | null {
@@ -394,8 +497,12 @@ export function buildKimiQuotaRows(payload: KimiUsagePayload): KimiQuotaRow[] {
   const limits = payload.limits;
   if (Array.isArray(limits)) {
     limits.forEach((item, idx) => {
-      const detail = (item.detail && typeof item.detail === 'object' ? item.detail : item) as KimiUsageDetail | KimiLimitItem;
-      const window = (item.window && typeof item.window === 'object' ? item.window : {}) as KimiLimitWindow;
+      const detail = (item.detail && typeof item.detail === 'object' ? item.detail : item) as
+        | KimiUsageDetail
+        | KimiLimitItem;
+      const window = (
+        item.window && typeof item.window === 'object' ? item.window : {}
+      ) as KimiLimitWindow;
       const fallbackLabel = kimiLimitLabel(item, detail, window, idx);
       const row = toKimiUsageRow(detail as Record<string, unknown>, fallbackLabel);
       if (row) {

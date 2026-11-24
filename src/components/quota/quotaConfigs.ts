@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
 import type {
   AntigravityQuotaState,
+  AntigravityQuotaWindow,
   AuthFileItem,
   ClaudeExtraUsage,
   ClaudeQuotaState,
@@ -242,6 +243,17 @@ const fetchGeminiCliQuota = async (
   };
 };
 
+const getAntigravityWindowLabel = (window: AntigravityQuotaWindow, t: TFunction): string => {
+  switch (window.window.toLowerCase()) {
+    case 'weekly':
+      return t('antigravity_quota.window_weekly');
+    case '5h':
+      return t('antigravity_quota.window_5h');
+    default:
+      return window.label || window.window;
+  }
+};
+
 const renderAntigravityItems = (
   quota: AntigravityQuotaState,
   t: TFunction,
@@ -256,18 +268,24 @@ const renderAntigravityItems = (
     return h('div', { className: styleMap.quotaMessage }, t('antigravity_quota.empty_models'));
   }
 
-  const nodes = groups.map((group) => {
-    const clamped = Math.max(0, Math.min(1, group.remainingFraction));
+  const renderRow = (
+    key: string,
+    label: string,
+    remainingFraction: number,
+    resetTime: string | undefined,
+    title?: string
+  ) => {
+    const clamped = Math.max(0, Math.min(1, remainingFraction));
     const percent = Math.round(clamped * 100);
-    const resetLabel = formatQuotaResetTime(group.resetTime);
+    const resetLabel = formatQuotaResetTime(resetTime);
 
     return h(
       'div',
-      { key: group.id, className: styleMap.quotaRow },
+      { key, className: styleMap.quotaRow },
       h(
         'div',
         { className: styleMap.quotaRowHeader },
-        h('span', { className: styleMap.quotaModel, title: group.models.join(', ') }, group.label),
+        h('span', { className: styleMap.quotaModel, title }, label),
         h(
           'div',
           { className: styleMap.quotaMeta },
@@ -281,6 +299,33 @@ const renderAntigravityItems = (
         mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
       })
     );
+  };
+
+  const nodes = groups.flatMap((group) => {
+    // Usage summary groups show each limit (weekly, 5-hour) like the native usage panel.
+    if (group.windows && group.windows.length > 0) {
+      return group.windows.map((window, index) => {
+        const windowLabel = getAntigravityWindowLabel(window, t);
+        const label = `${group.label} · ${windowLabel}`;
+        return renderRow(
+          `${group.id}:${window.id || index}`,
+          window.remainingFraction <= 0
+            ? t('antigravity_quota.window_exhausted', { label })
+            : label,
+          window.remainingFraction,
+          window.resetTime
+        );
+      });
+    }
+    return [
+      renderRow(
+        group.id,
+        group.label,
+        group.remainingFraction,
+        group.resetTime,
+        group.models.join(', ')
+      ),
+    ];
   });
 
   if (creditBalance !== null) {

@@ -6,7 +6,11 @@ import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AuthFileItem } from '@/types';
 import { useQuotaStore } from '@/stores';
-import { getStatusFromError, isUpstreamStatusError } from '@/utils/quota';
+import {
+  getStatusFromError,
+  isUpstreamStatusError,
+  preserveQuotaSortMetadata,
+} from '@/utils/quota';
 import type { QuotaConfig } from './quotaConfigs';
 
 type QuotaScope = 'page' | 'all';
@@ -72,7 +76,11 @@ export function useQuotaLoader<TState, TData>(config: QuotaConfig<TState, TData>
         setQuota((prev) => {
           const nextState = { ...prev };
           targets.forEach((file) => {
-            nextState[file.name] = config.buildLoadingState();
+            nextState[file.name] = preserveQuotaSortMetadata(
+              config.type,
+              prev[file.name],
+              config.buildLoadingState()
+            );
           });
           return nextState;
         });
@@ -98,12 +106,20 @@ export function useQuotaLoader<TState, TData>(config: QuotaConfig<TState, TData>
             setQuota((prev) => {
               const nextState = { ...prev };
               if (result.status === 'success') {
-                nextState[result.name] = config.buildSuccessState(result.data as TData);
+                nextState[result.name] = preserveQuotaSortMetadata(
+                  config.type,
+                  prev[result.name],
+                  config.buildSuccessState(result.data as TData)
+                );
               } else {
-                nextState[result.name] = config.buildErrorState(
-                  result.error || t('common.unknown_error'),
-                  result.errorStatus,
-                  result.upstreamError
+                nextState[result.name] = preserveQuotaSortMetadata(
+                  config.type,
+                  prev[result.name],
+                  config.buildErrorState(
+                    result.error || t('common.unknown_error'),
+                    result.errorStatus,
+                    result.upstreamError
+                  )
                 );
               }
               return nextState;

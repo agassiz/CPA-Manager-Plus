@@ -11,7 +11,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
-import { getStatusFromError, isUpstreamStatusError } from '@/utils/quota';
+import {
+  getStatusFromError,
+  isUpstreamStatusError,
+  preserveQuotaSortMetadata,
+} from '@/utils/quota';
 import {
   CodexResetConfirmContent,
   type CodexResetConfirmClassNames,
@@ -316,14 +320,22 @@ export function QuotaSection<TState extends QuotaStatusState, TData>({
 
       setQuota((prev) => ({
         ...prev,
-        [file.name]: config.buildLoadingState(),
+        [file.name]: preserveQuotaSortMetadata(
+          config.type,
+          prev[file.name],
+          config.buildLoadingState()
+        ),
       }));
 
       try {
         const data = await config.fetchQuota(file, t);
         setQuota((prev) => ({
           ...prev,
-          [file.name]: config.buildSuccessState(data),
+          [file.name]: preserveQuotaSortMetadata(
+            config.type,
+            prev[file.name],
+            config.buildSuccessState(data)
+          ),
         }));
         showNotification(t('auth_files.quota_refresh_success', { name: file.name }), 'success');
       } catch (err: unknown) {
@@ -332,7 +344,11 @@ export function QuotaSection<TState extends QuotaStatusState, TData>({
         const upstreamError = isUpstreamStatusError(err);
         setQuota((prev) => ({
           ...prev,
-          [file.name]: config.buildErrorState(message, status, upstreamError),
+          [file.name]: preserveQuotaSortMetadata(
+            config.type,
+            prev[file.name],
+            config.buildErrorState(message, status, upstreamError)
+          ),
         }));
         showNotification(
           t('auth_files.quota_refresh_failed', { name: file.name, message }),

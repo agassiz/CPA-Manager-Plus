@@ -656,6 +656,12 @@
   border-top: 1px dashed color-mix(in srgb, var(--border-color) 82%, transparent);
 }
 
+// A refreshing card keeps its last quota on screen, dimmed, so its height does not jump.
+.quotaSectionRefreshing {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
 .quotaRow {
   display: flex;
   flex-direction: column;

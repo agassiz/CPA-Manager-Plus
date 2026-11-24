@@ -933,7 +933,10 @@
     "refresh_button": "Обновить квоту",
     "fetch_all": "Получить все",
     "credit_label": "Кредиты",
-    "credit_amount": "{{count}} кредитов"
+    "credit_amount": "{{count}} кредитов",
+    "window_weekly": "Недельный лимит",
+    "window_5h": "Лимит на 5 ч",
+    "window_exhausted": "{{label}} (исчерпан)"
   },
   "claude_quota": {
     "title": "Квота Claude",

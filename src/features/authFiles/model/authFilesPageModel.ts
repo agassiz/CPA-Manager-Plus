@@ -1219,3 +1219,70 @@ export const getAuthFileSearchValues = (
     getAuthFileCodexStatusSearchValues(codexStatus, t),
   ];
 };
+
+/** 对认证文件列表排序，优先保持已锁定顺序并将新增文件按比较器追加到末尾 */
+export const sortAuthFilesWithStableOrder = (
+  items: readonly AuthFileItem[],
+  compare: (left: AuthFileItem, right: AuthFileItem) => number,
+  lockedOrder: ReadonlyMap<string, number> | null | undefined
+): AuthFileItem[] => {
+  if (!lockedOrder || lockedOrder.size === 0) {
+    return [...items].sort(compare);
+  }
+  const known: AuthFileItem[] = [];
+  const added: AuthFileItem[] = [];
+  for (const item of items) {
+    if (lockedOrder.has(item.name)) {
+      known.push(item);
+    } else {
+      added.push(item);
+    }
+  }
+  known.sort((a, b) => (lockedOrder.get(a.name) ?? 0) - (lockedOrder.get(b.name) ?? 0));
+  if (added.length === 0) {
+    return known;
+  }
+  added.sort(compare);
+  return [...known, ...added];
+};
+
+/** 在刷新文件列表时保留已有顺序，移除已删除项并将新增项按比较器排序后追加 */
+export const reconcileStableAuthFileOrder = (
+  previousOrder: readonly string[] | null,
+  files: readonly AuthFileItem[],
+  compare: (left: AuthFileItem, right: AuthFileItem) => number
+): readonly string[] | null => {
+  if (files.length === 0) {
+    return null;
+  }
+  if (!previousOrder || previousOrder.length === 0) {
+    return [...files].sort(compare).map((file) => file.name);
+  }
+  const fileNames = new Set(files.map((file) => file.name));
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  for (const name of previousOrder) {
+    if (fileNames.has(name) && !seen.has(name)) {
+      seen.add(name);
+      kept.push(name);
+    }
+  }
+  const added: AuthFileItem[] = [];
+  for (const file of files) {
+    if (!seen.has(file.name)) {
+      seen.add(file.name);
+      added.push(file);
+    }
+  }
+  if (added.length > 0) {
+    added.sort(compare);
+  }
+  const nextOrder = added.length > 0 ? [...kept, ...added.map((file) => file.name)] : kept;
+  if (
+    nextOrder.length === previousOrder.length &&
+    nextOrder.every((name, index) => name === previousOrder[index])
+  ) {
+    return previousOrder;
+  }
+  return nextOrder;
+};
